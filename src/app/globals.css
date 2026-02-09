@@ -24,3 +24,86 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* ===== Royal Bloodlines Luxury Theme ===== */
+:root {
+  --rb-bg: #050508;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 20% 10%, rgba(255,255,255,0.10), transparent 60%),
+    radial-gradient(800px 500px at 80% 20%, rgba(255,255,255,0.07), transparent 55%),
+    radial-gradient(700px 500px at 50% 90%, rgba(255,255,255,0.06), transparent 60%),
+    linear-gradient(180deg, #040406 0%, #07070a 45%, #040406 100%);
+  color: white;
+}
+/* ===== Royal Bloodlines Luxury Royalty Theme ===== */
+
+:root {
+
+  /* Base */
+  --rb-black: #050508;
+
+  /* Gold (primary luxury color) */
+  --rb-gold: #d4af37;
+  --rb-gold-light: #f5d06f;
+  --rb-gold-glow: rgba(212, 175, 55, 0.35);
+
+  /* Dark Red (authority accent) */
+  --rb-red: #6b0f1a;
+  --rb-red-light: #8b1e2d;
+
+  /* Burnt Orange (energy accent, used sparingly) */
+  --rb-orange: #cc5500;
+  --rb-orange-light: #ff6a00;
+}
+
+
+/* Background upgrade */
+body {
+  background:
+    radial-gradient(800px 500px at 20% 10%, rgba(212,175,55,0.08), transparent 60%),
+    radial-gradient(800px 500px at 80% 20%, rgba(107,15,26,0.12), transparent 60%),
+    linear-gradient(180deg, #040406 0%, #08080c 50%, #040406 100%);
+}
+
+
+/* Gold button */
+.rb-gold-button {
+  background: linear-gradient(
+    135deg,
+    var(--rb-gold),
+    var(--rb-gold-light)
+  );
+
+  color: black;
+
+  border: none;
+
+  box-shadow:
+    0 0 20px var(--rb-gold-glow),
+    inset 0 0 8px rgba(255,255,255,0.25);
+
+  transition: all 0.25s ease;
+}
+
+.rb-gold-button:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 0 35px var(--rb-gold-glow),
+    inset 0 0 10px rgba(255,255,255,0.3);
+}
+
+
+/* Gold glow text */
+.rb-gold-text {
+  color: var(--rb-gold);
+
+  text-shadow:
+    0 0 10px var(--rb-gold-glow);
+}
