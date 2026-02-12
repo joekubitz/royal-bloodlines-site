@@ -1,120 +1,118 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  const linkStyle = (href: string): React.CSSProperties => ({
+    color:
+      pathname === href
+        ? "rgba(255,215,0,0.95)"
+        : "rgba(255,255,255,0.75)",
+    textDecoration: "none",
+    fontWeight: 600,
+    fontSize: 14,
+    letterSpacing: 0.3,
+    padding: "8px 10px",
+    borderRadius: 8,
+    transition: "all 0.15s ease",
+  });
 
   return (
-    <header className="border-b border-yellow-600/20 bg-black/40 backdrop-blur sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-3">
+    <header
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        background: "rgba(0,0,0,0.85)",
+        backdropFilter: "blur(10px)",
+        borderBottom: "1px solid rgba(255,215,0,0.15)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* LEFT SIDE — LOGO */}
+        <Link
+          href="/"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            textDecoration: "none",
+            color: "rgba(255,215,0,0.95)",
+            fontWeight: 900,
+            letterSpacing: 0.5,
+          }}
+        >
           <img
             src="/rb-logo.jpg"
-            alt="Royal Bloodlines"
-            className="h-9 w-9 rounded-xl border border-yellow-600/20 object-cover"
+            alt="Royals Bloodline"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+            }}
           />
-          <span className="text-xl font-semibold tracking-wider rb-gold-text">
-            ROYAL BLOODLINES
-          </span>
+          ROYAL BLOODLINES
         </Link>
 
-        {/* Desktop menu */}
-        <div className="hidden md:flex gap-6 items-center">
-
-          <Link
-            href="/"
-            className="text-white/70 hover:text-white transition"
-          >
+        {/* RIGHT SIDE — NAV LINKS */}
+        <nav
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Link href="/" style={linkStyle("/")}>
             Home
           </Link>
 
-          <Link
-            href="/requirements"
-            className="text-white/70 hover:text-white transition"
-          >
+          <Link href="/requirements" style={linkStyle("/requirements")}>
             Requirements
           </Link>
 
-          <Link
-            href="/agents"
-            className="text-white/70 hover:text-white transition"
-          >
+          <Link href="/agents" style={linkStyle("/agents")}>
             Agents
           </Link>
 
+          <Link href="/leadership" style={linkStyle("/leadership")}>
+            Meet the Leadership 👑
+          </Link>
+
+          <Link href="/apply" style={linkStyle("/apply")}>
+            Apply to Become an Agent
+          </Link>
+
+          {/* JOIN NOW BUTTON (CTA LAST) */}
           <Link
             href="/join"
-            className="rb-gold-button px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{
+              marginLeft: 10,
+              padding: "8px 14px",
+              borderRadius: 10,
+              background:
+                "linear-gradient(180deg, rgba(255,215,0,0.95), rgba(255,215,0,0.75))",
+              color: "black",
+              fontWeight: 800,
+              textDecoration: "none",
+              boxShadow: "0 8px 30px rgba(255,215,0,0.25)",
+            }}
           >
             Join Now
           </Link>
-          <Link href="/leadership" className="text-white/70 hover:text-white transition">
-  Meet the Leadership 👑
-</Link>
-
-
-        </div>
-
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden text-white text-2xl"
-          onClick={() => setOpen(!open)}
-          aria-label="Open menu"
-        >
-          ☰
-        </button>
-
+        </nav>
       </div>
-
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden border-t border-white/10 bg-black/80 backdrop-blur">
-          <div className="flex flex-col px-4 py-4 gap-3">
-
-            <Link
-              href="/"
-              onClick={() => setOpen(false)}
-              className="text-white/80 hover:text-white transition"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/requirements"
-              onClick={() => setOpen(false)}
-              className="text-white/80 hover:text-white transition"
-            >
-              Requirements
-            </Link>
-
-            <Link
-              href="/agents"
-              onClick={() => setOpen(false)}
-              className="text-white/80 hover:text-white transition"
-            >
-              Agents
-            </Link>
-
-            <Link
-              href="/join"
-              onClick={() => setOpen(false)}
-              className="rb-gold-button px-4 py-2 rounded-xl text-sm font-semibold text-center"
-            >
-              Join Now
-            </Link>
-            <Link href="/leadership" onClick={() => setOpen(false)} className="text-white/80 hover:text-white transition">
-  Meet the Leadership 👑
-</Link>
-
-
-          </div>
-        </div>
-      )}
-
     </header>
   );
 }
