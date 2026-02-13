@@ -93,11 +93,11 @@ Also Join Royals Bloodline Server - https://discord.gg/WqSV87wJep`,
     name: "Mike - TeamMisFits",
 
     bioShort:
-      "Short bio will go here.",
+      "Kindness matters, and spreading positivity is what I do live daily. I am also a Content Creator Agency Manager with the Royal Bloodline / New Beginnings Network.",
 
-    bio: `Long bio will go here.`,
+    bio: `I am Gen X and love to follow fellow Gen Xers. I also enjoy meeting new people and making new friends. I enjoy this app because it allows me to do exactly that—we make new friends and have fun together. We work as a team toward success in life. It’s a journey, and it’s not hard—just be consistent and have fun with it.`,
 
-    joinLink: "",
+    joinLink: "https://www.tiktok.com/t/ZTruTAALp/",
     image: "/agents/mike.png",
   },
   {
