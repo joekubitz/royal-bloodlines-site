@@ -64,11 +64,16 @@ Welcome to Team Smoke.`,
     name: "Maranda Brunelle - 🌻K𝐢n𝐝r𝐞d S𝐩i𝐫i𝐭s🌻",
 
     bioShort:
-      "Short bio will go here.",
+      " 🌻K𝐢n𝐝r𝐞d S𝐩i𝐫i𝐭s🌻 are team members who resonate with each other, share similar values, and support one another through challenges. This connection fosters a sense of unity, collaboration, and shared purpose, making the team stronger and more cohesive.",
 
-    bio: `Long bio will go here.`,
+    bio: `Team🌻K𝐢n𝐝r𝐞d S𝐩i𝐫i𝐭s🌻 is part of New Beginnings Creator Network. We are a TikTok Live Streaming Agency based in the USA. I'm one of the Managers who manage creators in the USA, Canada, and the UK. As a Creator Manger for this agency I strive to always do my best to help every creator to the best of my ability. We always put the creators first. We want you to succeed but you have to really want it and put in that work to help grow. How do you do that you may ask? Simply discover your "WHY?" Your "WHY?" will keep you motivated to keep going and to never give up. We will guide you with Tips, Tricks, Perks, Trainings. We also have the ability to message TikTok on behalf of the creator if your ban appeal is denied in the app. As long as its a legit false ban there is a good chance of overturning it and getting you back on that road to success, and having fun doing it. Perks are our Milestone Rewards for achieving a specific amount of diamonds in a single month and we gift you a gift reward in your live stream for this amazing achievement. Monthly Raffle for just going live and wracking up those hours. Rewards for winning in battle tournaments based on wins and some are based on total points. Possibilities to win trips from winning events. We have Rank Rewards for Live hosts and for Gamers. We also provide a incentive to creators by allowing creators to participate in the Scouting/recruiter program to have the potential to earn a commission for brining in New Creators. If your reaching for LIVE PRO BADGE we can help you apply when you get to that point as well Requirement is 10 million diamonds in the last 30 days and have at least 100 average concurrent viewers in the last 30 days or at least 100k followers. In order to have access to all these amazing perks you must hit those min requirements for going live monthly (explained below). I strive to maintain a positive environment for all creators. We have a ZERO TOLERANCE rule in New Beginnings so please if you join be respectful to others as you don't know what others are going through in their lives outside of TikTok. I welcome all creators from gamers, Furries, all VRChat players that stream on TikTok. Battlers, GRWM, podcasters, DV hosts, Mental Health hosts, Box Battlers, Hang out Boxes with friends, Chill with me streams, and more. 
 
-    joinLink: "",
+The minimum requirement for New Beginnings as a Live Streamer is to go LIVE as the HOST for 12 valid days (1 hours each different day is considered a valid day), also stream for 25 hours total each calendar month of being in the agency. If you would like to be part of New Beginnings Team Kindred Spirits please feel free to apply today and don't forget to join Discord. Discord is the fastest way to reach me and where all my information is to help creators and where you can sign up for internal agency events. 
+
+Team 🌻K𝐢n𝐝r𝐞d S𝐩i𝐫i𝐭s🌻 Discord link - https://discord.gg/MCbt4qR7kx
+Also Join Royals Bloodline Server - https://discord.gg/WqSV87wJep`,
+
+    joinLink: "https://www.tiktok.com/t/ZS2AxVbhs/",
     image: "/agents/maranda-brunelle.png",
   },
   {
@@ -76,11 +81,11 @@ Welcome to Team Smoke.`,
     name: "Space_Mystic's - Space_Mystics",
 
     bioShort:
-      "Short bio will go here.",
+      "Being a Space Mystic is all about individualty. Be kind, positive, understanding and strive to be at the top.",
 
-    bio: `Long bio will go here.`,
+    bio: `HELLO, my name is Aisa aka (Space_Mystics) I have been a creator Manager since June 19th, 2025. I do my best to make sure I'm always answering questions to the best of my ability. I thrive on seeing My creators doing what they love in their streams. Keep in mind COMMUNICATION with me is essential. I strive to help get you to the top of your goals, but effort and positive mind sets are key to success.`,
 
-    joinLink: "",
+    joinLink: "https://www.tiktok.com/t/ZMS9RmMRk/",
     image: "/agents/space-mystic.png",
   },
   {
@@ -173,11 +178,11 @@ i’m really doing all that I can because I like helping people and that’s wha
     name: "Underrated",
 
     bioShort:
-      "Short bio will go here.",
+      "we are a friendly family trying to help eachother as much as we can. We ar le filled with a bunch of amazing people who will help as well!",
 
-    bio: `Long bio will go here.`,
+    bio: `my agency is being built around commitment as a agent I am here to help as much as i can and here to help you grow while giving you ideas in order to boost your page and your experience we would love to have you if you would give us a chance!`,
 
-    joinLink: "",
+    joinLink: "https://us.tiktok.com/tcn/scout_creators?use_spark=1&agency_scout_source=qr_code_leads&ShareLinkID=7582339022597521421",
     image: "/agents/underrated.png",
   },
   {
@@ -185,11 +190,13 @@ i’m really doing all that I can because I like helping people and that’s wha
     name: "Sinistersinsin - Scandal",
 
     bioShort:
-      "Short bio will go here.",
+      "We engineer growth — not chaos. Certified TikTok Agent fluent in platform mechanics, compliance strategy, and high-level LIVE monetization. Built correctly. Operated strategically.",
 
-    bio: `Long bio will go here.`,
+    bio: `We are a structured creator development agency focused on strategic growth, preventative compliance, and high-performance LIVE execution. Unlike traditional agencies that react to problems, we educate creators on platform mechanics before issues occur.
 
-    joinLink: "",
+Our approach combines policy literacy, `,
+
+    joinLink: "https://www.tiktok.com/t/ZMBTY3DeS/",
     image: "/agents/sinister.png",
   },
   {
@@ -269,11 +276,11 @@ i’m really doing all that I can because I like helping people and that’s wha
     name: "Viktoriya",
 
     bioShort:
-      "Short bio will go here.",
+      "A TikTok agency dedicated to supporting creators with growth, strategy, and long-term success.",
 
-    bio: `Long bio will go here.`,
+    bio: `We are a creator-focused TikTok agency dedicated to supporting creators through education, platform guidance, and growth strategy. Our goal is to help creators build sustainable accounts while understanding TikTok’s tools, policies, and best practices. We prioritize transparency, creator independence, and long-term success. Our team works alongside creators to provide ongoing support, insights, and resources so they can grow confidently on TikTok.`,
 
-    joinLink: "",
+    joinLink: "https://www.tiktok.com/tcn/scout_creators?use_spark=1&agency_scout_source=qr_code_leads&ShareLinkID=7446958382240238341",
     image: "/agents/viktoriya.png",
   },
   {
@@ -281,9 +288,9 @@ i’m really doing all that I can because I like helping people and that’s wha
     name: "Lisa-LD",
 
     bioShort:
-      "Short bio will go here.",
+      "My team is a mix of battlers, gamers, crafts, coloring, drama, music/djs, & the mix up carries on!! All types of live streamers are welcomed to my team!  ",
 
-    bio: `Long bio will go here.`,
+    bio: `I’ve been a creator manager for almost 3 years now! I’m always looking for serious creators that are goal getters and looking to be successful on TikTok by going live! I am always here to answer any questions or help! My creators will tell you no messages get left unanswered and I answerer in a quick timely manner!! Rather you are just getting started or already established, no creator is left behind!! Let’s get it! `,
 
     joinLink: "",
     image: "/agents/lisa.png",
@@ -299,5 +306,53 @@ i’m really doing all that I can because I like helping people and that’s wha
 
     joinLink: "",
     image: "/agents/getbusy.png",
+  },
+    {
+    slug: "iaana-simmons-smalls",
+    name: "Iaana Simmons-Smalls",
+
+    bioShort:
+      "Short bio will go here.",
+
+    bio: `Long bio will go here.`,
+
+    joinLink: "",
+    image: "/agents/ianna.png",
+  },
+     {
+    slug: "alexus",
+    name: "Alexus",
+
+    bioShort:
+      "This isn’t just TikTok. It’s a space where creators grow, lead, and own their voice.",
+
+    bio: ` Helping creators understand TikTok, find their voice, and grow with intention. Visibility is earned, confidence is built, and the process should still be fun.`,
+
+    joinLink: "https://www.tiktok.com/t/ZTrTymFrw/",
+    image: "/agents/alexus.png",
+  },
+     {
+    slug: "tamara-dean",
+    name: "Tamera Dean",
+
+    bioShort:
+      "hello my name is callsign and i am the agent to Royal Kingdom team and we are looking for trustworthy fun people to join our team.",
+
+    bio: `Royal Kingdom is a team of loyalty and respect and hard work I am the agent of the team and i strive hard to make my team thrive on their platform and have a good time doing it.`,
+
+    joinLink: "https://www.tiktok.com/t/ZThysnDeD/",
+    image: "/agents/tamera.png",
+  },
+     {
+    slug: "taco",
+    name: "TACO",
+
+    bioShort:
+      "Short bio will go here.",
+
+    bio: `Long bio will go here.`,
+
+    joinLink: "",
+    image: "/agents/taco.png",
   },
 ];
