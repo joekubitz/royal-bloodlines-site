@@ -87,7 +87,7 @@ export default function Navbar() {
           </Link>
 
           <Link href="/leadership" style={linkStyle("/leadership")}>
-            Meet the Leadership 👑
+            Meet the Founder
           </Link>
 
           <Link href="/apply" style={linkStyle("/apply")}>

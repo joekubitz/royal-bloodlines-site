@@ -204,12 +204,13 @@ export default function Home() {
               </p>
 
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/camerakings"
-                  className="rounded-2xl border border-white/15 bg-white/10 px-6 py-3 text-sm text-white/90 hover:bg-white/15 transition text-center"
-                >
-                  Meet the Founder →
-                </Link>
+               <Link
+  href="/leadership"
+  className="rounded-2xl border border-white/15 bg-white/10 px-6 py-3 text-sm text-white/90 hover:bg-white/15 transition text-center"
+>
+  Meet the Founder →
+</Link>
+
                 <Link
                   href="/agents"
                   className="rb-gold-button px-6 py-3 rounded-2xl text-sm font-semibold text-center"
