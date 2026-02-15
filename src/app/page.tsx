@@ -39,7 +39,7 @@ export default function Home() {
 
           <h1 className="mt-6 text-5xl md:text-7xl font-bold leading-tight tracking-tight">
             <span className="block rb-gold-text drop-shadow-[0_0_25px_rgba(212,175,55,0.35)]">
-              Royal Bloodlines
+              Royals Bloodline
             </span>
 
             <span className="block text-white/80 mt-2 text-3xl md:text-5xl font-medium">
