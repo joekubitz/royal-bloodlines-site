@@ -11,6 +11,6 @@ export async function trackClick(payload: {
       keepalive: true,
     });
   } catch {
-    // ignore tracking failures
+    // ignore
   }
 }

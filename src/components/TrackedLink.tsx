@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { trackClick } from "../lib/trackClick";
+import { trackClick } from "../app/lib/trackClick";
+
 
 type Props = {
   href: string;
