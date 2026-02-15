@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   return (
     <main style={{ padding: "40px", maxWidth: "400px", margin: "80px auto" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800 }}>Royal Bloodlines Admin Login</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800 }}>Royals Bloodline Admin Login</h1>
 
       <input
         type="email"

@@ -36,7 +36,7 @@ export default async function AgentProfile({ params }: PageProps) {
       </Link>
 
       <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-8 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur">
-        <div className="text-xs tracking-[0.25em] text-white/60">ROYAL BLOODLINES</div>
+        <div className="text-xs tracking-[0.25em] text-white/60">ROYALS BLOODLINE</div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 items-start">
           <div className="w-full">

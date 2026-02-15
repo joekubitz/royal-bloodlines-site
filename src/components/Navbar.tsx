@@ -63,7 +63,7 @@ export default function Navbar() {
               borderRadius: 6,
             }}
           />
-          ROYAL BLOODLINES
+          ROYALS BLOODLINE
         </Link>
 
         {/* RIGHT SIDE — NAV LINKS */}

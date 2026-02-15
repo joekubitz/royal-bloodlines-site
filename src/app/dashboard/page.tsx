@@ -50,7 +50,7 @@ export default async function DashboardPage() {
   return (
     <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900 }}>
-        Royal Bloodlines Analytics
+        Royals Bloodline Analytics
       </h1>
 
       <p style={{ opacity: 0.8, marginTop: 6 }}>

@@ -22,7 +22,7 @@ export default function AgentsPage() {
 
       {/* Header */}
       <div className="text-xs tracking-[0.25em] text-white/60">
-        ROYAL BLOODLINES
+        ROYALS BLOODLINE
       </div>
 
       <div className="mt-3 flex flex-col md:flex-row md:items-end md:justify-between gap-4">

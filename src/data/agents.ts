@@ -15,7 +15,7 @@ export const agents: Agent[] = [
     bioShort:
       "CEO of The Reservation helping creators grow, monetize, and find their voice.",
 
-    bio: `Hi, I'm Momma D, a TikTok agent, CEO of The Reservation, and a proud member of the Royal Bloodlines Agency.
+    bio: `Hi, I'm Momma D, a TikTok agent, CEO of The Reservation, and a proud member of the Royals Bloodline Agency.
 
 I've spent the past year helping creators grow on TikTok, and I bring over 5 years of experience in social media to the table.
 

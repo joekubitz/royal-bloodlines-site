@@ -4,10 +4,10 @@ export default function JoinPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-16">
       <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-10 shadow-[0_0_60px_rgba(0,0,0,0.35)]">
-        <div className="text-xs tracking-[0.25em] text-white/60">ROYAL BLOODLINES</div>
+        <div className="text-xs tracking-[0.25em] text-white/60">ROYALS BLOODLINE</div>
 
         <h1 className="mt-3 text-3xl md:text-5xl font-semibold">
-          Join Royal Bloodlines
+          Join Royals Bloodline
         </h1>
 
         <p className="mt-4 max-w-3xl text-white/70 leading-relaxed">

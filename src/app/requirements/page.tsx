@@ -25,7 +25,7 @@ export default function RequirementsPage() {
           </h1>
 
           <p className="mt-6 max-w-3xl text-white/70 text-base md:text-lg leading-relaxed">
-            Royal Bloodlines is built for creators who want structure, consistency, and real progress.
+            Royals Bloodline is built for creators who want structure, consistency, and real progress.
             These requirements keep the team strong and the results predictable.
           </p>
 <div className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-5 md:p-6">
@@ -36,7 +36,7 @@ export default function RequirementsPage() {
   </div>
 
   <div className="mt-2 text-white/70 text-sm">
-    To be considered active in Royal Bloodlines, you must hit 12 live days and 25 total live hours.
+    To be considered active in Royals Bloodline, you must hit 12 live days and 25 total live hours.
   </div>
 </div>
           <div className="mt-10 flex flex-col sm:flex-row gap-3">
@@ -68,7 +68,7 @@ export default function RequirementsPage() {
   },
   {
     title: "Location Requirement",
-    desc: "You must live in the United States or Canada to join Royal Bloodlines.",
+    desc: "You must live in the United States or Canada to join Royals Bloodline.",
     items: ["United States only", "Canada only", "No exceptions (platform + onboarding logistics)"],
   },
   {

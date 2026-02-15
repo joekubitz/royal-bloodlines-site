@@ -16,7 +16,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 
 export const metadata = {
-  title: "Royal Bloodlines",
+  title: "Royals Bloodline",
   description: "Luxury creator recruiting and growth",
 };
 

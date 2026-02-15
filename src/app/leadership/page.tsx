@@ -4,7 +4,7 @@ export default function LeadershipPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-16">
       <div className="text-xs tracking-[0.25em] text-white/60">
-        ROYAL BLOODLINES
+        ROYALS BLOODLINE
       </div>
 
       <h1 className="mt-3 text-4xl md:text-6xl font-semibold">
@@ -12,7 +12,7 @@ export default function LeadershipPage() {
       </h1>
 
       <p className="mt-4 max-w-3xl text-white/70 leading-relaxed">
-        Royal Bloodlines is led by CameraKings.
+        Royals Bloodline is led by CameraKings.
       </p>
 
       <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8 md:p-10 shadow-[0_0_60px_rgba(0,0,0,0.35)]">
@@ -47,7 +47,7 @@ export default function LeadershipPage() {
             </div>
 
             <div className="mt-5 text-white/75 leading-relaxed whitespace-pre-line">
-              {`CameraKings is the founder and leader of Royal Bloodlines.
+              {`CameraKings is the founder and leader of Royals Bloodline.
 
 This organization is built for creators who want structure, growth, and a real standard — without gatekeeping.
 

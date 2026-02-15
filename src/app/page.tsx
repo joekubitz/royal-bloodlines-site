@@ -128,7 +128,7 @@ export default function Home() {
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-10">
           <div className="text-xs tracking-[0.25em] text-white/60">WHY US</div>
           <h2 className="mt-3 text-2xl md:text-3xl font-semibold">
-            Why creators choose <span className="rb-gold-text">Royal Bloodlines</span>
+            Why creators choose <span className="rb-gold-text">Royals Bloodline</span>
           </h2>
           <p className="mt-3 text-white/70 max-w-2xl">
             We’re not here to “collect recruits.” We’re here to build creators with structure,
@@ -199,7 +199,7 @@ export default function Home() {
                 <span className="rb-gold-text">CameraKings</span>
               </h2>
               <p className="mt-3 text-white/70 max-w-2xl leading-relaxed">
-                Royal Bloodlines was built to create real structure, real growth, and real
+                Royals Bloodline was built to create real structure, real growth, and real
                 leadership in the TikTok LIVE space.
               </p>
 
@@ -222,7 +222,7 @@ export default function Home() {
 
             {/* small visual card */}
             <div className="relative rounded-3xl border border-white/10 bg-white/5 p-6">
-              <div className="text-sm font-semibold">Royal Bloodlines Standard</div>
+              <div className="text-sm font-semibold">Royals Bloodline Standard</div>
               <div className="mt-3 space-y-2 text-sm text-white/70">
                 <div className="flex gap-2">
                   <span className="text-white/60">✓</span>
