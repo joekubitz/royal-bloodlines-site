@@ -183,11 +183,11 @@ export default function Home() {
       {/* GRID */}
       <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
         {[
+          { name: "Camera Kings", handle: "@CameraKings", image: "/camera-kings.jpg" },
           { name: "WomanMarine1", handle: "@WomanMarine1", image: "/womanmarine1.jpg" },
           { name: "Jacob Noah Gaines", handle: "@JacobNoahGaines", image: "/jacon-noah-gaines.jpg" },
           { name: "Iaana Smalls", handle: "@IaanaSmalls", image: "/iaana-smalls.jpg" },
           { name: "$DominicG", handle: "@SDominicG", image: "/doninicg.jpg" },
-          { name: "Camera Kings", handle: "@CameraKings", image: "/camera-kings.jpg" },
           { name: "Cheffi Minaj", handle: "@CheffiMinaj", image: "/cheffi-minaj.jpg" },
         ].map((creator) => (
           <div
