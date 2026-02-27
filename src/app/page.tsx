@@ -1,4 +1,38 @@
+import Image from "next/image";
 import Link from "next/link";
+
+const millionDiamondClub = [
+  {
+    name: "WomanMarine1",
+    handle: "@WomanMarine1",
+    image: "/mdc/womanmarine1.jpg",
+  },
+  {
+    name: "Jacob Noah Gaines",
+    handle: "@JacobNoahGaines",
+    image: "/mdc/jacob-noah-gaines.jpg",
+  },
+  {
+    name: "Iaana Smalls",
+    handle: "@IaanaSmalls",
+    image: "/mdc/iaana-smalls.jpg",
+  },
+  {
+    name: "$DominicG",
+    handle: "@$DominicG",
+    image: "/mdc/dominicg.jpg",
+  },
+  {
+    name: "Camera Kings",
+    handle: "@CameraKings",
+    image: "/mdc/camera-kings.jpg",
+  },
+  {
+    name: "Cheffi Minaj",
+    handle: "@CheffiMinaj",
+    image: "/mdc/cheffi-minaj.jpg",
+  },
+];
 
 export default function Home() {
   return (
@@ -48,8 +82,8 @@ export default function Home() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-white/70 text-base md:text-lg leading-relaxed">
-            This is the official hub recruits get sent to. Choose an agent, use their
-            personal join link, and get onboarded with strategy, support, and accountability.
+            This is the official hub recruits get sent to. Choose an agent, use their personal join
+            link, and get onboarded with strategy, support, and accountability.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3">
@@ -77,9 +111,18 @@ export default function Home() {
           {/* Feature cards */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { h: "Recruiting that converts", p: "A simple path: pick an agent → join link → onboarding." },
-              { h: "Luxury brand, serious results", p: "High standards, real coaching, and real growth." },
-              { h: "Battle-ready structure", p: "Built to support schedules, tracking, and momentum." },
+              {
+                h: "Recruiting that converts",
+                p: "A simple path: pick an agent → join link → onboarding.",
+              },
+              {
+                h: "Luxury brand, serious results",
+                p: "High standards, real coaching, and real growth.",
+              },
+              {
+                h: "Battle-ready structure",
+                p: "Built to support schedules, tracking, and momentum.",
+              },
             ].map((c) => (
               <div
                 key={c.h}
@@ -96,7 +139,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-black/80 pointer-events-none" />
       </section>
 
-      {/* TRUST INDICATORS (NEW) */}
+      {/* TRUST INDICATORS */}
       <section className="mx-auto max-w-6xl px-4 py-10">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -106,10 +149,7 @@ export default function Home() {
               { title: "No fees ever", sub: "Creator-first, always." },
               { title: "Real structure", sub: "Standards + accountability." },
             ].map((i) => (
-              <div
-                key={i.title}
-                className="rounded-2xl border border-white/10 bg-black/10 p-5"
-              >
+              <div key={i.title} className="rounded-2xl border border-white/10 bg-black/10 p-5">
                 <div className="text-sm font-semibold text-white flex items-center gap-2">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 border border-white/10 text-white/80">
                     ✓
@@ -123,7 +163,88 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHY ROYAL BLOODLINES IS DIFFERENT (NEW) */}
+
+{/* 1M DIAMOND CLUB (NO-CROP VERSION) */}
+<section className="mx-auto max-w-6xl px-4 py-20">
+  <div className="rounded-3xl border border-white/10 bg-black/30 p-8 md:p-12 relative overflow-hidden">
+    {/* Gold Glow */}
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,175,55,0.18),transparent_60%)]" />
+
+    <div className="relative">
+      <div className="text-xs tracking-[0.25em] text-white/60">MILESTONE</div>
+      <h2 className="mt-3 text-3xl md:text-4xl font-semibold">
+        <span className="rb-gold-text">1M Diamond Club</span>
+      </h2>
+      <p className="mt-4 text-white/70 max-w-2xl">
+        Creators who hit 1,000,000 diamonds in a single month. This is the standard — and we
+        celebrate it.
+      </p>
+
+      {/* GRID */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        {[
+          { name: "WomanMarine1", handle: "@WomanMarine1", image: "/womanmarine1.jpg" },
+          { name: "Jacob Noah Gaines", handle: "@JacobNoahGaines", image: "/jacon-noah-gaines.jpg" },
+          { name: "Iaana Smalls", handle: "@IaanaSmalls", image: "/iaana-smalls.jpg" },
+          { name: "$DominicG", handle: "@SDominicG", image: "/doninicg.jpg" },
+          { name: "Camera Kings", handle: "@CameraKings", image: "/camera-kings.jpg" },
+          { name: "Cheffi Minaj", handle: "@CheffiMinaj", image: "/cheffi-minaj.jpg" },
+        ].map((creator) => (
+          <div
+            key={creator.name}
+            className="rounded-3xl border border-white/10 bg-white/5 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)] hover:scale-[1.02] transition duration-300"
+          >
+            {/* IMAGE (NO CROP) */}
+            <div className="w-full p-5">
+              <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                {/* soft glow behind image */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(212,175,55,0.16),transparent_60%)]" />
+
+                {/* This keeps it tall like a plaque AND never crops */}
+                <div className="relative w-full aspect-[9/16]">
+                  <img
+                    src={creator.image}
+                    alt={creator.name}
+                    className="absolute inset-0 h-full w-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* NAME + TAG */}
+            <div className="px-6 pb-6">
+              <div className="text-xl font-semibold text-white">{creator.name}</div>
+              <div className="text-sm text-white/60 mt-1">{creator.handle}</div>
+
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-4 py-1 text-xs text-yellow-400">
+                1M Diamond Club
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div className="mt-12 flex flex-col sm:flex-row gap-4">
+        <Link
+          href="/join"
+          className="rb-gold-button px-6 py-3 rounded-2xl text-sm font-semibold text-center"
+        >
+          Join Now
+        </Link>
+
+        <Link
+          href="/agents"
+          className="rounded-2xl border border-white/15 bg-black/20 px-6 py-3 text-sm text-white/80 hover:text-white hover:bg-black/30 transition text-center"
+        >
+          Choose an Agent →
+        </Link>
+      </div>
+    </div>
+  </div>
+</section>
+      {/* WHY ROYAL BLOODLINES IS DIFFERENT */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-10">
           <div className="text-xs tracking-[0.25em] text-white/60">WHY US</div>
@@ -185,7 +306,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CAMERA KINGS AUTHORITY (NEW) */}
+      {/* CAMERA KINGS AUTHORITY */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="rounded-3xl border border-white/10 bg-black/20 p-8 md:p-10 overflow-hidden relative">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(212,175,55,0.18),transparent_55%)]" />
@@ -195,8 +316,7 @@ export default function Home() {
             <div>
               <div className="text-xs tracking-[0.25em] text-white/60">LEADERSHIP</div>
               <h2 className="mt-3 text-2xl md:text-3xl font-semibold">
-                Built by creators, led by{" "}
-                <span className="rb-gold-text">CameraKings</span>
+                Built by creators, led by <span className="rb-gold-text">CameraKings</span>
               </h2>
               <p className="mt-3 text-white/70 max-w-2xl leading-relaxed">
                 Royals Bloodline was built to create real structure, real growth, and real
@@ -204,12 +324,12 @@ export default function Home() {
               </p>
 
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-               <Link
-  href="/leadership"
-  className="rounded-2xl border border-white/15 bg-white/10 px-6 py-3 text-sm text-white/90 hover:bg-white/15 transition text-center"
->
-  Meet the Founder →
-</Link>
+                <Link
+                  href="/leadership"
+                  className="rounded-2xl border border-white/15 bg-white/10 px-6 py-3 text-sm text-white/90 hover:bg-white/15 transition text-center"
+                >
+                  Meet the Founder →
+                </Link>
 
                 <Link
                   href="/agents"
@@ -276,7 +396,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FINAL CTA (NEW) */}
+      {/* FINAL CTA */}
       <section className="mx-auto max-w-6xl px-4 pb-20">
         <div className="rounded-3xl border border-white/10 bg-black/20 p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
