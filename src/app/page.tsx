@@ -189,6 +189,7 @@ export default function Home() {
           { name: "Iaana Smalls", handle: "@IaanaSmalls", image: "/iaana-smalls.jpg" },
           { name: "$DominicG", handle: "@SDominicG", image: "/doninicg.jpg" },
           { name: "Cheffi Minaj", handle: "@CheffiMinaj", image: "/cheffi-minaj.jpg" },
+          { name: "Jr Neal", handle: "@jrneal74", image: "/jr.jpg" },
         ].map((creator) => (
           <div
             key={creator.name}
