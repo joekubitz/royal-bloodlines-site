@@ -262,7 +262,7 @@ export default function Navbar() {
               boxShadow: "0 10px 40px rgba(255,215,0,0.22)",
             }}
           >
-            Join Now
+            Claim Your Crown
           </Link>
         </div>
       </div>
