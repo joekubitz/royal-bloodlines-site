@@ -166,7 +166,7 @@ export default function Navbar() {
 
           {/* Your existing Join page (internal) */}
           <Link href="/join" style={joinNowStyle}>
-            Join Now
+            Claim Your Crown
           </Link>
         </nav>
 

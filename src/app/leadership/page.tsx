@@ -47,11 +47,27 @@ export default function LeadershipPage() {
             </div>
 
             <div className="mt-5 text-white/75 leading-relaxed whitespace-pre-line">
-              {`CameraKings is the founder and leader of Royals Bloodline.
+              {`Camera Kings is the Founder and CEO of Royals Bloodline, a high-performance TikTok LIVE agency built on structure, strategy, and elite execution. Since becoming a talent agent in 2023, he has dedicated himself to mastering the TikTok LIVE ecosystem — from battle mechanics and diamond optimization to creator psychology and long-term brand scaling.
 
-This organization is built for creators who want structure, growth, and a real standard — without gatekeeping.
+Before focusing primarily on agency leadership, Camera Kings was active in battles and tournaments, gaining firsthand experience in competitive LIVE environments. Today, while he still enjoys going live and hosting box battles, his primary mission is developing creators into high-earning, high-impact digital brands.
 
-If you’re ready to build something serious, start by reviewing the requirements and choosing an agent.`}
+His expertise spans:
+	•	Battle strategy & box battle hosting
+	•	Diamond scaling systems
+	•	Creator positioning & optimization
+	•	Agency infrastructure & performance accountability
+	•	Leadership development within LIVE environments
+
+Camera Kings has faced significant personal struggles and adversity throughout his life — experiences that shaped his resilience, discipline, and leadership philosophy. That resilience now defines how he builds. While life has tested him, the TikTok LIVE arena is a space he understands instinctively. He approaches the platform not casually, but strategically — analyzing patterns, studying gifting behavior, and engineering growth systems that produce measurable results.
+
+He doesn’t just build creators. He builds empires.
+
+Under his leadership, Royals Bloodline operates as more than an agency — it is a performance-driven network committed to growth, structure, and excellence. Creators who join are expected to execute with discipline, elevate their standards, and operate with purpose.
+
+This isn’t for the weak.
+This is for creators ready to level up.
+
+Crowning Creators. Building Empires.`}
             </div>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">

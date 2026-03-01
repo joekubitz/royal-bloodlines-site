@@ -412,7 +412,7 @@ export default function Home() {
               href="/join"
               className="rb-gold-button px-6 py-3 rounded-2xl text-sm font-semibold text-center"
             >
-              Apply / Join Now
+              Join Now
             </Link>
             <Link
               href="/agents"
