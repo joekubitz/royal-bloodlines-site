@@ -17,7 +17,10 @@ import Navbar from "@/components/Navbar";
 
 export const metadata = {
   title: "Royals Bloodline",
-  description: "Luxury creator recruiting and growth",
+  description: "Premium Creator Agency",
+  icons: {
+    icon: "/royals-icon.png",
+  },
 };
 
 export default function RootLayout({

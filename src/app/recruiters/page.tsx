@@ -1,4 +1,5 @@
 export default function RecruitersPage() {
+  
   const recruiters = [
     {
       name: "ExoticBlaze",
@@ -59,12 +60,46 @@ export default function RecruitersPage() {
       <p
         style={{
           textAlign: "center",
-          marginBottom: "40px",
+          marginBottom: "28px",
           opacity: 0.7,
         }}
       >
         These are the leaders helping creators join and succeed in Royals Bloodline.
       </p>
+
+      {/* Recruiters Banner */}
+      <div
+        style={{
+          position: "relative",
+          borderRadius: "16px",
+          overflow: "hidden",
+          margin: "0 auto 40px",
+          border: "1px solid rgba(255,255,255,0.10)",
+          background: "rgba(0,0,0,0.35)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.55)",
+        }}
+      >
+        <img
+          src="/recruiters/recruiters.png"
+          alt="Royals Bloodline Recruiters"
+          style={{
+            width: "100%",
+            height: "auto",
+            display: "block",
+            objectFit: "cover",
+          }}
+        />
+
+        <div
+          style={{
+            pointerEvents: "none",
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%)",
+          }}
+        />
+      </div>
 
       <div
         style={{
@@ -114,6 +149,35 @@ export default function RecruitersPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* 🔥 Join CTA Button */}
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: "50px",
+          marginBottom: "20px",
+        }}
+      >
+        <a
+          href="https://www.tiktok.com/t/ZThPkCPs4/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            background: "linear-gradient(90deg, #D4AF37, #FFD700)",
+            color: "#000",
+            padding: "14px 28px",
+            borderRadius: "12px",
+            fontWeight: 700,
+            fontSize: "16px",
+            textDecoration: "none",
+            letterSpacing: "0.5px",
+            transition: "all 0.2s ease",
+          }}
+        >
+          ⚜️ Join Royal Bloodlines
+        </a>
       </div>
     </main>
   );

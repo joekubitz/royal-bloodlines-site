@@ -105,9 +105,13 @@ Also Join Royals Bloodline Server - https://discord.gg/WqSV87wJep`,
     name: "Coach J - Coach J Royals",
 
     bioShort:
-      "Short bio will go here.",
+      "Coach J 👑 | Agency Manager | Creator Growth Specialist | 2 Years Deep in the Game — I help creators LEVEL UP.",
 
-    bio: `Long bio will go here.`,
+    bio: `Coach J is a dedicated TikTok Agency Manager with over two years of experience developing, mentoring, and scaling creators across the platform. Passionate about growth and strategy, she specializes in helping creators increase visibility, strengthen their brand presence, maximize monetization, and build strong communities through intentional battles, tournaments, and engagement strategies.
+
+Known for her leadership, organization, and results-driven mindset, Coach J provides hands-on support with account growth, battle opportunities, bonus structures, viewer traffic exposure, and platform guidance. She hosts weekly meetings, organizes competitive tournaments, and offers direct assistance with account challenges to ensure her creators are positioned to win.
+
+Her mission is simple: help creators elevate, monetize smarter, and build sustainable success on TikTok.`,
 
     joinLink: "",
     image: "/agents/coach-j.png",
@@ -123,18 +127,6 @@ Also Join Royals Bloodline Server - https://discord.gg/WqSV87wJep`,
 
     joinLink: "https://web-ttp2.us.tiktok.com/tcn/scout_creators?use_spark=1&agency_scout_source=qr_code_leads&ShareLinkID=7552617985261748238",
     image: "/agents/jasmine.png",
-  },
-  {
-    slug: "staci",
-    name: "Staci",
-
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/staci.png",
   },
   {
     slug: "penelope-jones",
@@ -200,61 +192,13 @@ Our approach combines policy literacy, `,
     image: "/agents/sinister.png",
   },
   {
-    slug: "icali",
-    name: "ICALI - GreenWithEnvy",
-
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/icali.png",
-  },
-  {
-    slug: "mocha-meema-management",
-    name: "Mocha Meema Management",
-
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/mocha.png",
-  },
-  {
-    slug: "chiquitabonita99",
-    name: "Chiquitabonita99",
-
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/chiq.png",
-  },
-  {
-    slug: "rotale-oliver",
-    name: "Royale Oliver!!",
-
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/oliver.png",
-  },
-  {
     slug: "jill",
     name: "Jill ♥️🌹",
 
     bioShort:
-      "Short bio will go here.",
+      "I’m a Manager dedicated to helping creators grow, monetize, and thrive on TikTok, and my team works behind the scenes to secure opportunities, optimize strategy, and maximize every creator’s potential.",
 
-    bio: `Long bio will go here.`,
+    bio: `Hi, I’m Jill and I’ve been a Manager for 2 years now. I love meeting new creators ☺️ I’ve been with New Beginnings for 2 1/2 years and love it! I joined for the extra protection on my account and have never regretted it! I look forward to meeting you 😊`,
 
     joinLink: "",
     image: "/agents/jill.png",
@@ -300,25 +244,14 @@ Our approach combines policy literacy, `,
     name: "Get-Busy - Busy",
 
     bioShort:
-      "Short bio will go here.",
+      "finding a family is hard, finding somekne that is always having your back Is hard. Well look no further we are here to help, be apart of of the busy family!",
 
-    bio: `Long bio will go here.`,
+    bio: `I’m a medically retired army veteran. i am married with a daughter, living life on the coast in Mississippi. I’m always here to help and give pointers. Everyone in the family is always supportive and willing to help. I’m not here to control what you do and don’t. I would love to see everyone succeed and acheive the success they deserve. Join the busy family and let’s grow together! Starting from a new account or starting as a veteran with some rust on the account, let’s make goals and achieve greatness! I would love to help no matter what, with me or another damily member. we are one team/family and work together to make greatness a reality. come join the family and let’s grow together!`,
 
-    joinLink: "",
+    joinLink: "https://www.tiktok.com/t/ZTh8gmCPq/",
     image: "/agents/getbusy.png",
   },
-    {
-    slug: "iaana-simmons-smalls",
-    name: "Iaana Simmons-Smalls",
 
-    bioShort:
-      "Short bio will go here.",
-
-    bio: `Long bio will go here.`,
-
-    joinLink: "",
-    image: "/agents/ianna.png",
-  },
      {
     slug: "alexus",
     name: "Alexus",
@@ -348,9 +281,9 @@ Our approach combines policy literacy, `,
     name: "TACO",
 
     bioShort:
-      "Short bio will go here.",
+      "I bring a lot good energy to the table and I bring alot people around me and I am grateful for it.",
 
-    bio: `Long bio will go here.`,
+    bio: `I am outgoing and I am very positive person I trying meet new people and trying meet new people.`,
 
     joinLink: "",
     image: "/agents/taco.png",
