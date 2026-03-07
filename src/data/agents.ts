@@ -153,19 +153,6 @@ Her mission is simple: help creators elevate, monetize smarter, and build sustai
     image: "/agents/ari.png",
   },
   {
-    slug: "bigcyn",
-    name: "BigCyn - 3.8.1 Empire",
-
-    bioShort:
-      "crafty creator, spiritual, reads tarot cards, supportive-listener offering advice. Love to have fun come check out me and my communion and have some fun.",
-
-    bio: `my name is bigCyn.I am part of new beginnings/Royal’s bloodline building my own 3.8.1 empire. I am a mother of 5. I am from Baltimore, Maryland, but now reside in West Virginia. I take care of my elderly grandmother that is 87 so that’s what got me into building on TikTok. I’m also in college online. Great person down to earth gets along with people well but like I say to everyone, everybody ain’t for everybody so not everybody wants to be your friend.lol I love animals. I have 11 dogs five puppies, two snakes, a bearded dragon, and four cats. I love working with people. I’m very tough rough around the edges They say lol.
-i’m really doing all that I can because I like helping people and that’s what I want to build in my 3.8.1 empire on TikTok.`,
-
-    joinLink: "http://tictok.com/t/ZTreYuduy/",
-    image: "/agents/bigcyn.png",
-  },
-  {
     slug: "underrated",
     name: "Underrated",
 
