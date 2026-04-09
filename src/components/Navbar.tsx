@@ -21,66 +21,20 @@ export default function Navbar() {
     []
   );
 
-  const closeMobile = () => setMobileOpen(false);
-  const toggleMobile = () => setMobileOpen((v) => !v);
-
   useEffect(() => {
-    closeMobile();
+    setMobileOpen(false);
   }, [pathname]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeMobile();
+      if (e.key === "Escape") setMobileOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const linkStyle = (href: string): React.CSSProperties => ({
-    textDecoration: "none",
-    fontWeight: 600,
-    fontSize: 13.5,
-    letterSpacing: 0.25,
-    padding: "8px 10px",
-    borderRadius: 10,
-    whiteSpace: "nowrap",
-    transition: "all 0.15s ease",
-    color:
-      pathname === href
-        ? "rgba(255,215,0,0.95)"
-        : "rgba(255,255,255,0.78)",
-  });
-
-  const discordBtnStyle: React.CSSProperties = {
-    padding: "9px 14px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,215,0,0.25)",
-    background: "rgba(0,0,0,0.35)",
-    color: "rgba(255,215,0,0.95)",
-    fontWeight: 800,
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    transition: "all 0.15s ease",
-    whiteSpace: "nowrap",
-  };
-
-  const ctaStyle: React.CSSProperties = {
-    padding: "9px 16px",
-    borderRadius: 12,
-    background:
-      "linear-gradient(180deg, rgba(255,215,0,0.98), rgba(255,215,0,0.75))",
-    color: "black",
-    fontWeight: 900,
-    textDecoration: "none",
-    whiteSpace: "nowrap",
-    transition: "all 0.15s ease",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
+  const activeColor = "rgba(255,215,0,0.95)";
+  const inactiveColor = "rgba(255,255,255,0.78)";
 
   return (
     <header
@@ -91,39 +45,18 @@ export default function Navbar() {
         background: "rgba(0,0,0,0.88)",
         backdropFilter: "blur(10px)",
         borderBottom: "1px solid rgba(255,215,0,0.12)",
+        overflow: "visible",
       }}
     >
       <div
         style={{
           maxWidth: 1400,
           margin: "0 auto",
-          padding: "10px 14px",
+          padding: "10px 12px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            minWidth: 0,
-          }}
-        >
-          {/* LEFT — BRAND */}
-          <Link
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              textDecoration: "none",
-              color: "rgba(255,215,0,0.95)",
-              fontWeight: 950,
-              letterSpacing: 0.4,
-              minWidth: 0,
-              flex: "1 1 auto",
-            }}
-          >
+        <div className="rb-nav-row">
+          <Link href="/" className="rb-brand">
             <img
               src="/rb-logo.jpg"
               alt="Royals Bloodline"
@@ -135,101 +68,69 @@ export default function Navbar() {
                 flexShrink: 0,
               }}
             />
-            <span className="rb-brand-text">ROYALS BLOODLINE</span>
+            <span className="rb-brand-full">ROYALS BLOODLINE</span>
+            <span className="rb-brand-short">RB</span>
           </Link>
 
-          {/* CENTER — NAV LINKS */}
-          <nav
-            className="rb-desktop-nav"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 18,
-              flexShrink: 0,
-            }}
-          >
+          <nav className="rb-desktop-nav">
             {navLinks.map((l) => (
-              <Link key={l.href} href={l.href} style={linkStyle(l.href)}>
+              <Link
+                key={l.href}
+                href={l.href}
+                style={{
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 13.5,
+                  letterSpacing: 0.25,
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
+                  color: pathname === l.href ? activeColor : inactiveColor,
+                }}
+              >
                 {l.label}
               </Link>
             ))}
           </nav>
 
-          {/* RIGHT — ACTIONS */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexShrink: 0,
-            }}
-          >
+          <div className="rb-actions">
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="rb-discord-btn"
-              style={discordBtnStyle}
             >
               Join Discord
             </a>
 
-            <Link href="/join" className="rb-cta-btn" style={ctaStyle}>
-              <span className="rb-cta-desktop">Claim Your Crown →</span>
-              <span className="rb-cta-mobile">Join</span>
+            <Link href="/join" className="rb-cta-btn">
+              <span className="rb-cta-long">Claim Your Crown →</span>
+              <span className="rb-cta-short">Join</span>
             </Link>
 
             <button
               className="rb-mobile-btn"
-              onClick={toggleMobile}
+              onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle menu"
               aria-expanded={mobileOpen}
-              style={{
-                display: "none",
-                border: "1px solid rgba(255,215,0,0.25)",
-                background: "rgba(0,0,0,0.35)",
-                color: "rgba(255,215,0,0.95)",
-                borderRadius: 10,
-                padding: "8px 10px",
-                fontSize: 16,
-                lineHeight: 1,
-              }}
+              type="button"
             >
               {mobileOpen ? "✕" : "☰"}
             </button>
           </div>
         </div>
 
-        {/* MOBILE MENU */}
         {mobileOpen && (
-          <div
-            className="rb-mobile-menu"
-            style={{
-              marginTop: 12,
-              padding: 12,
-              border: "1px solid rgba(255,215,0,0.12)",
-              borderRadius: 16,
-              background: "rgba(10,10,10,0.96)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-            }}
-          >
+          <div className="rb-mobile-menu">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                onClick={closeMobile}
+                onClick={() => setMobileOpen(false)}
+                className="rb-mobile-link"
                 style={{
-                  textDecoration: "none",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  padding: "12px 12px",
-                  borderRadius: 10,
-                  color:
-                    pathname === l.href
-                      ? "rgba(255,215,0,0.95)"
-                      : "rgba(255,255,255,0.9)",
+                  color: pathname === l.href ? activeColor : "rgba(255,255,255,0.9)",
                   background:
                     pathname === l.href
                       ? "rgba(255,215,0,0.08)"
@@ -244,12 +145,8 @@ export default function Navbar() {
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={closeMobile}
-              style={{
-                ...discordBtnStyle,
-                width: "100%",
-                marginTop: 4,
-              }}
+              onClick={() => setMobileOpen(false)}
+              className="rb-mobile-discord"
             >
               Join Discord
             </a>
@@ -258,69 +155,166 @@ export default function Navbar() {
       </div>
 
       <style jsx>{`
-        .rb-brand-text {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: 1rem;
+        .rb-nav-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
         }
 
-        .rb-cta-mobile {
+        .rb-brand {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+          text-decoration: none;
+          color: rgba(255, 215, 0, 0.95);
+          font-weight: 950;
+          letter-spacing: 0.4px;
+          white-space: nowrap;
+        }
+
+        .rb-brand-full {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .rb-brand-short {
           display: none;
         }
 
-        @media (max-width: 1050px) {
+        .rb-desktop-nav {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-shrink: 0;
+        }
+
+        .rb-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        .rb-discord-btn {
+          padding: 9px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 215, 0, 0.25);
+          background: rgba(0, 0, 0, 0.35);
+          color: rgba(255, 215, 0, 0.95);
+          font-weight: 800;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
+        }
+
+        .rb-cta-btn {
+          padding: 9px 16px;
+          border-radius: 12px;
+          background: linear-gradient(
+            180deg,
+            rgba(255, 215, 0, 0.98),
+            rgba(255, 215, 0, 0.75)
+          );
+          color: black;
+          font-weight: 900;
+          text-decoration: none;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .rb-cta-short {
+          display: none;
+        }
+
+        .rb-mobile-btn {
+          display: none;
+          border: 1px solid rgba(255, 215, 0, 0.25);
+          background: rgba(0, 0, 0, 0.35);
+          color: rgba(255, 215, 0, 0.95);
+          border-radius: 10px;
+          padding: 8px 10px;
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .rb-mobile-menu {
+          margin-top: 12px;
+          padding: 12px;
+          border: 1px solid rgba(255, 215, 0, 0.12);
+          border-radius: 16px;
+          background: rgba(10, 10, 10, 0.96);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .rb-mobile-link {
+          text-decoration: none;
+          font-weight: 700;
+          font-size: 14px;
+          padding: 12px;
+          border-radius: 10px;
+        }
+
+        .rb-mobile-discord {
+          margin-top: 4px;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 215, 0, 0.25);
+          background: rgba(0, 0, 0, 0.35);
+          color: rgba(255, 215, 0, 0.95);
+          font-weight: 800;
+          text-decoration: none;
+          text-align: center;
+        }
+
+        @media (max-width: 1180px) {
           .rb-desktop-nav {
-            display: none !important;
+            display: none;
           }
 
           .rb-mobile-btn {
-            display: inline-flex !important;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 980px) {
           .rb-discord-btn {
-            display: none !important;
-          }
-
-          .rb-brand-text {
-            font-size: 0.9rem;
-            letter-spacing: 0.25px;
-            max-width: 140px;
-          }
-
-          .rb-cta-btn {
-            padding: 9px 12px !important;
-            font-size: 13px !important;
-          }
-
-          .rb-cta-desktop {
             display: none;
           }
 
-          .rb-cta-mobile {
-            display: inline;
+          .rb-cta-long {
+            display: none;
           }
-        }
 
-        @media (max-width: 420px) {
-          .rb-brand-text {
-            max-width: 115px;
-            font-size: 0.82rem;
+          .rb-cta-short {
+            display: inline;
           }
 
           .rb-cta-btn {
-            padding: 8px 10px !important;
-            border-radius: 10px !important;
+            padding: 9px 12px;
+            font-size: 13px;
           }
         }
 
-        :global(nav a:hover) {
-          color: rgba(255, 215, 0, 0.95) !important;
-          transform: translateY(-1px);
+        @media (max-width: 680px) {
+          .rb-brand-full {
+            display: none;
+          }
+
+          .rb-brand-short {
+            display: inline;
+          }
         }
       `}</style>
     </header>
