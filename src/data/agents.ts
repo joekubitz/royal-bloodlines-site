@@ -88,18 +88,7 @@ Also Join Royals Bloodline Server - https://discord.gg/WqSV87wJep`,
     joinLink: "https://www.tiktok.com/t/ZMS9RmMRk/",
     image: "/agents/space-mystic.png",
   },
-  {
-    slug: "mike",
-    name: "Mike - TeamMisFits",
-
-    bioShort:
-      "Kindness matters, and spreading positivity is what I do live daily. I am also a Content Creator Agency Manager with the Royal Bloodline / New Beginnings Network.",
-
-    bio: `I am Gen X and love to follow fellow Gen Xers. I also enjoy meeting new people and making new friends. I enjoy this app because it allows me to do exactly that—we make new friends and have fun together. We work as a team toward success in life. It’s a journey, and it’s not hard—just be consistent and have fun with it.`,
-
-    joinLink: "https://www.tiktok.com/t/ZTruTAALp/",
-    image: "/agents/mike.png",
-  },
+ 
   {
     slug: "coach-j",
     name: "Coach J - Coach J Royals",
@@ -116,18 +105,7 @@ Her mission is simple: help creators elevate, monetize smarter, and build sustai
     joinLink: "",
     image: "/agents/coach-j.png",
   },
-  {
-    slug: "jasmine",
-    name: "Jasmine - Team Dreamers",
-
-    bioShort:
-      "Here with the best we are drama free! If you want reliability with a personal touch, you’re in the right place. We are a family.",
-
-    bio: `we are here to build a family sisterhood and brotherhood is welcome this is a judgment free zone, we are all still learning we will grow together to become bigger and better.  `,
-
-    joinLink: "https://web-ttp2.us.tiktok.com/tcn/scout_creators?use_spark=1&agency_scout_source=qr_code_leads&ShareLinkID=7552617985261748238",
-    image: "/agents/jasmine.png",
-  },
+ 
   {
     slug: "penelope-jones",
     name: "Penelope Jones - Team D.E.E.P",
@@ -226,19 +204,7 @@ Our approach combines policy literacy, `,
     joinLink: "",
     image: "/agents/lisa.png",
   },
-  {
-    slug: "get-busy",
-    name: "Get-Busy - Busy",
-
-    bioShort:
-      "finding a family is hard, finding somekne that is always having your back Is hard. Well look no further we are here to help, be apart of of the busy family!",
-
-    bio: `I’m a medically retired army veteran. i am married with a daughter, living life on the coast in Mississippi. I’m always here to help and give pointers. Everyone in the family is always supportive and willing to help. I’m not here to control what you do and don’t. I would love to see everyone succeed and acheive the success they deserve. Join the busy family and let’s grow together! Starting from a new account or starting as a veteran with some rust on the account, let’s make goals and achieve greatness! I would love to help no matter what, with me or another damily member. we are one team/family and work together to make greatness a reality. come join the family and let’s grow together!`,
-
-    joinLink: "https://www.tiktok.com/t/ZTh8gmCPq/",
-    image: "/agents/getbusy.png",
-  },
-
+ 
      {
     slug: "alexus",
     name: "Alexus",
