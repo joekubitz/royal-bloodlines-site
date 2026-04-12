@@ -229,16 +229,5 @@ Our approach combines policy literacy, `,
     joinLink: "https://www.tiktok.com/t/ZThysnDeD/",
     image: "/agents/tamera.png",
   },
-     {
-    slug: "taco",
-    name: "TACO",
 
-    bioShort:
-      "I bring a lot good energy to the table and I bring alot people around me and I am grateful for it.",
-
-    bio: `I am outgoing and I am very positive person I trying meet new people and trying meet new people.`,
-
-    joinLink: "",
-    image: "/agents/taco.png",
-  },
 ];
