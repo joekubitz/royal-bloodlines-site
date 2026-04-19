@@ -229,5 +229,19 @@ Our approach combines policy literacy, `,
     joinLink: "https://www.tiktok.com/t/ZThysnDeD/",
     image: "/agents/tamera.png",
   },
+     {
+    slug: "texas_b",
+    name: "Texas B",
+
+    bioShort:
+      "I'm Texas B- I am a proud agent of the Royals Bloodline! I lead with heart, hustle, and high standards—growing not just a network, but people. What started as a vision turned into a movement because I show up, level up, and bring others with me. ",
+
+    bio: `Crown Control is more than a team—it’s a fast-growing network of driven live streamers who show up, stand out, and win together. We’re building a strong, loyal community where creators support each other, grow faster, and dominate every battle.
+Whether you’re new and hungry or experienced and ready to level up, Crown Control gives you the structure, exposure, and team energy to push further. From Battle Royales to exclusive events, we move as a unit and celebrate every win together.
+If you’re serious about growing, competing, and being part of something bigger—this is your spot. Ready to take your place? Join Crown Control today!`,
+
+    joinLink: "https://www.tiktok.com/t/ZTMMrcCV9/",
+    image: "/agents/texas.png",
+  },
 
 ];
