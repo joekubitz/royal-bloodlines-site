@@ -217,18 +217,7 @@ Our approach combines policy literacy, `,
     joinLink: "https://www.tiktok.com/t/ZTrTymFrw/",
     image: "/agents/alexus.png",
   },
-     {
-    slug: "tamara-dean",
-    name: "Tamera Dean",
 
-    bioShort:
-      "hello my name is callsign and i am the agent to Royal Kingdom team and we are looking for trustworthy fun people to join our team.",
-
-    bio: `Royal Kingdom is a team of loyalty and respect and hard work I am the agent of the team and i strive hard to make my team thrive on their platform and have a good time doing it.`,
-
-    joinLink: "https://www.tiktok.com/t/ZThysnDeD/",
-    image: "/agents/tamera.png",
-  },
      {
     slug: "texas_b",
     name: "Texas B",
