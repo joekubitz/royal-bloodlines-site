@@ -233,4 +233,17 @@ If you’re serious about growing, competing, and being part of something bigger
     image: "/agents/texas.png",
   },
 
+   {
+    slug: "michael",
+    name: "Father Of Chaos",
+
+    bioShort:
+      "Hello, I'm Michael. If you're new to live or just looking to start over, I'm here to help with what I can!",
+
+    bio: `I've been a streamer on TikTok for more than 6 years. I have watched people start from nothing and end up on daily. I have also watched people go from daily to nothing. If your looking to have some fun or make some money or even better both give going live a try. Many of us have talents with no wy to show those around us. This app is a perfect way to show off those talents or even work through social anxiety from the comfort of your own homw. I'm looking for new team members with the drive to see what happens!`,
+
+    joinLink: "",
+    image: "/agents/michael.png",
+  },
+
 ];
