@@ -245,5 +245,51 @@ If you’re serious about growing, competing, and being part of something bigger
     joinLink: "",
     image: "/agents/michael.png",
   },
+   {
+    slug: "dnvn",
+    name: "DNVN WHTKR Da DON 👑",
 
+    bioShort:
+      "The EnTRAPreneur Society Network 🌐exists to empower ambitious creators to transform their passions into profitable brands through education, strategy, community, and opportunity. We believe that success is built together—not alone. By combining creator development, authentic relationships, collaborative growth, and behind-the-scenes management, we help every member unlock their full potential, maximize monetization, and build a lasting legacy. We aren’t just creators. We aren’t just managers. We’re EnTRAPreneurs— Hustlers with Purpose. Leaders by Example. Stronger Together.",
+
+    bio: `DNVN WHTKR Da DON 👑
+
+Founder & Lead Agency Manager | The EnTRAPreneur Society Network
+
+I’m DNVN WHTKR Da DON—a designer, photographer, brand builder, creative entrepreneur, and visionary committed to helping creators become the highest version of themselves.
+I founded The EnTRAPreneur Society Network on one simple belief: every creator deserves more than views—they deserve vision, strategy, community, ownership, and long-term success.
+In today’s creator economy, talent alone isn’t enough. Too many creators have the passion but lack the guidance, opportunities, support system, and business structure needed to truly grow. My mission is to bridge that gap by developing creators from the inside out—not only helping them grow their audience, but helping them build a sustainable personal brand, monetize their gifts, and create lasting opportunities that extend far beyond social media.
+As a TikTok Agency Manager, my role goes beyond recruiting creators. I am committed to mentoring, educating, motivating, and strategically positioning every creator to maximize their potential. From livestream growth and battle strategy to content optimization, brand development, monetization opportunities, partnerships, and long-term business planning, my goal is to help every creator unlock the next level of their journey.
+The EnTRAPreneur Society Network is built on the belief that community creates momentum. When creators are surrounded by like-minded individuals who celebrate one another’s wins, push each other through challenges, exchange knowledge, and work together instead of competing against one another, everyone grows stronger. We are creating an ecosystem where collaboration is valued over comparison, accountability replaces excuses, and success is multiplied through unity.
+Behind the scenes, my team works relentlessly to secure opportunities, optimize creator strategy, solve problems, protect accounts, identify new revenue streams, and provide the tools and resources creators need to succeed in an ever-changing digital landscape. We don’t just manage creators—we invest in people.
+Being an EnTRAPreneur means embracing a mindset rooted in discipline, resilience, innovation, leadership, and relentless ambition. It means betting on yourself, putting in the work when no one is watching, refusing to settle for average, and building a legacy that creates opportunities for others.
+
+Our culture is built on a few non-negotiable principles:
+ • Hustle with purpose.
+ • Lead with integrity.
+ • Create with intention.
+ • Support without jealousy.
+ • Learn continuously.
+ • Monetize authentically.
+ • Win together.
+
+ Leave every creator better than you found them.
+ 
+My vision is for The EnTRAPreneur Society Network to become one of the most respected creator communities and management networks in the world—a place where creators don’t simply chase viral moments but build meaningful brands, profitable businesses, powerful relationships, and generational opportunities.
+This is more than an agency.
+This is more than creator management.
+This is a family of dreamers, doers, innovators, leaders, and hustlers committed to growing together.
+If you’re ready to stop chasing success and start building it with people who genuinely want to see you win, welcome home.
+
+Welcome to The EnTRAPreneur Society Network. 🌐
+
+Hustlers with Purpose. 
+Creators with Vision. 
+Leaders by Example.
+Stronger Together. 🌐`,
+
+    joinLink: "",
+    image: "/agents/dnvn.png",
+  },
+  
 ];
