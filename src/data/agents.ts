@@ -242,7 +242,7 @@ If you’re serious about growing, competing, and being part of something bigger
 
     bio: `I've been a streamer on TikTok for more than 6 years. I have watched people start from nothing and end up on daily. I have also watched people go from daily to nothing. If your looking to have some fun or make some money or even better both give going live a try. Many of us have talents with no wy to show those around us. This app is a perfect way to show off those talents or even work through social anxiety from the comfort of your own homw. I'm looking for new team members with the drive to see what happens!`,
 
-    joinLink: "",
+    joinLink: "https://www.tiktok.com/t/ZTB98qEA4/",
     image: "/agents/michael.png",
   },
    {
@@ -291,5 +291,26 @@ Stronger Together. 🌐`,
     joinLink: "",
     image: "/agents/dnvn.png",
   },
-  
+     {
+    slug: "royalty",
+    name: "Divine Royalty👑",
+
+    bioShort:
+      "Divine Royalty👑 | Producer • Strategist • Talent Manager. I help creators become unforgettable by transforming their ideas into engaging LIVE productions, recognizable brands, and thriving communities. 🎬 LIVE Production 📈 Creator Growth Strategy 🤝 Talent Management 💡 Brand Development You bring the talent. I help build the experience.",
+
+    bio: `As an agent, I believe every great production begins with you—the main attraction.
+My goal is to support you in creating, building, and growing not only your platform, but a loyal community that believes in your brand.
+Who is Divine Royalty👑?
+She is a producer, strategist, and leader who develops talent, builds communities, and creates conversations worth watching.
+How can I help you?
+I specialize in helping creators become unforgettable through:
+🎬 LIVE Production
+ 📈 Growth Strategy
+ 🤝 Talent Management
+ 💡 Brand Development
+📩 Let’s build something amazing together.`,
+
+    joinLink: "https://us.tiktok.com/tcn/scout_creators?use_spark=1&agency_scout_source=qr_code_leads&ShareLinkID=7640935750472810509",
+    image: "/agents/royalty.png",
+  },
 ];
