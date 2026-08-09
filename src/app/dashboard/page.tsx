@@ -1,14 +1,16 @@
+import { redirect } from "next/navigation";
 import { createClient } from "../supabase/server";
 
 export default async function DashboardPage() {
-  // DEBUG: Verify env vars are loading
-  console.log("ENV URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log(
-    "ENV KEY starts with:",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20)
-  );
-
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
 
   const { data: clicks, error } = await supabase
     .from("clicks")
@@ -22,6 +24,7 @@ export default async function DashboardPage() {
     return (
       <main style={{ padding: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 900 }}>Dashboard</h1>
+
         <p style={{ color: "red" }}>
           Error loading clicks: {error.message}
         </p>
@@ -32,11 +35,12 @@ export default async function DashboardPage() {
   const byLink: Record<string, number> = {};
   const byAgent: Record<string, number> = {};
 
-  for (const c of clicks ?? []) {
-    byLink[c.link_key] = (byLink[c.link_key] ?? 0) + 1;
+  for (const click of clicks ?? []) {
+    const linkKey = click.link_key || "Unknown";
+    byLink[linkKey] = (byLink[linkKey] ?? 0) + 1;
 
-    const a = (c.agent ?? "Unknown").trim();
-    byAgent[a] = (byAgent[a] ?? 0) + 1;
+    const agent = (click.agent ?? "Unknown").trim();
+    byAgent[agent] = (byAgent[agent] ?? 0) + 1;
   }
 
   const topLinks = Object.entries(byLink)
@@ -48,7 +52,13 @@ export default async function DashboardPage() {
     .slice(0, 15);
 
   return (
-    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <main
+      style={{
+        padding: 24,
+        maxWidth: 1100,
+        margin: "0 auto",
+      }}
+    >
       <h1 style={{ fontSize: 32, fontWeight: 900 }}>
         Royals Bloodline Analytics
       </h1>
@@ -60,7 +70,7 @@ export default async function DashboardPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 18,
           marginTop: 22,
         }}
@@ -78,13 +88,11 @@ export default async function DashboardPage() {
 
           <ol style={{ marginTop: 12 }}>
             {topLinks.length === 0 ? (
-              <li style={{ opacity: 0.8 }}>
-                No clicks yet
-              </li>
+              <li style={{ opacity: 0.8 }}>No clicks yet</li>
             ) : (
-              topLinks.map(([k, v]) => (
-                <li key={k} style={{ padding: "6px 0" }}>
-                  <b>{k}</b> — {v}
+              topLinks.map(([key, total]) => (
+                <li key={key} style={{ padding: "6px 0" }}>
+                  <b>{key}</b> — {total}
                 </li>
               ))
             )}
@@ -104,13 +112,11 @@ export default async function DashboardPage() {
 
           <ol style={{ marginTop: 12 }}>
             {topAgents.length === 0 ? (
-              <li style={{ opacity: 0.8 }}>
-                No clicks yet
-              </li>
+              <li style={{ opacity: 0.8 }}>No clicks yet</li>
             ) : (
-              topAgents.map(([k, v]) => (
-                <li key={k} style={{ padding: "6px 0" }}>
-                  <b>{k}</b> — {v}
+              topAgents.map(([agent, total]) => (
+                <li key={agent} style={{ padding: "6px 0" }}>
+                  <b>{agent}</b> — {total}
                 </li>
               ))
             )}
@@ -137,26 +143,30 @@ export default async function DashboardPage() {
             marginTop: 12,
           }}
         >
-          {(clicks ?? []).slice(0, 25).map((c) => (
-            <div
-              key={c.id}
-              style={{
-                padding: 10,
-                border: "1px solid #222",
-                borderRadius: 12,
-              }}
-            >
-              <div style={{ fontWeight: 800 }}>
-                {c.link_key}
-              </div>
+          {(clicks ?? []).length === 0 ? (
+            <p style={{ opacity: 0.8 }}>No clicks yet</p>
+          ) : (
+            (clicks ?? []).slice(0, 25).map((click) => (
+              <div
+                key={click.id}
+                style={{
+                  padding: 10,
+                  border: "1px solid #222",
+                  borderRadius: 12,
+                }}
+              >
+                <div style={{ fontWeight: 800 }}>
+                  {click.link_key || "Unknown link"}
+                </div>
 
-              <div style={{ opacity: 0.8 }}>
-                Agent: {c.agent || "Unknown"} • Page:{" "}
-                {c.page_path || "-"} •{" "}
-                {new Date(c.created_at).toLocaleString()}
+                <div style={{ opacity: 0.8 }}>
+                  Agent: {click.agent || "Unknown"} • Page:{" "}
+                  {click.page_path || "-"} •{" "}
+                  {new Date(click.created_at).toLocaleString()}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </main>
