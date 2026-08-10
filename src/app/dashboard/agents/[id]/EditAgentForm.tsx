@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../supabase/client";
 import type { Agent } from "./page";
@@ -8,6 +13,14 @@ import type { Agent } from "./page";
 type EditAgentFormProps = {
   agent: Agent;
 };
+
+const MAX_IMAGE_SIZE = 6 * 1024 * 1024;
+
+const allowedImageTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
 const inputStyle = {
   width: "100%",
@@ -29,31 +42,175 @@ export default function EditAgentForm({
   agent,
 }: EditAgentFormProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [slug, setSlug] = useState(agent.slug);
   const [name, setName] = useState(agent.name);
   const [bioShort, setBioShort] = useState(agent.bio_short);
   const [bio, setBio] = useState(agent.bio);
-  const [joinLink, setJoinLink] = useState(agent.join_link ?? "");
-  const [image, setImage] = useState(agent.image ?? "");
+  const [joinLink, setJoinLink] = useState(
+    agent.join_link ?? ""
+  );
+  const [currentImage, setCurrentImage] = useState(
+    agent.image ?? ""
+  );
+  const [newImageFile, setNewImageFile] =
+    useState<File | null>(null);
+  const [newImagePreview, setNewImagePreview] =
+    useState("");
   const [sortOrder, setSortOrder] = useState(
     agent.sort_order.toString()
   );
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [message, setMessage] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function makeSlug(value: string) {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-+/g, "-");
+  }
+
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFile = event.target.files?.[0] ?? null;
+
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!selectedFile) {
+      setNewImageFile(null);
+      setNewImagePreview("");
+      return;
+    }
+
+    if (!allowedImageTypes.includes(selectedFile.type)) {
+      setErrorMessage(
+        "Please choose a JPG, PNG, or WebP image."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (selectedFile.size > MAX_IMAGE_SIZE) {
+      setErrorMessage(
+        "The image must be 6 MB or smaller."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (newImagePreview) {
+      URL.revokeObjectURL(newImagePreview);
+    }
+
+    setNewImageFile(selectedFile);
+    setNewImagePreview(URL.createObjectURL(selectedFile));
+  }
+
+  function getFileExtension(file: File) {
+    const extensionFromName = file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+    if (
+      extensionFromName &&
+      ["jpg", "jpeg", "png", "webp"].includes(
+        extensionFromName
+      )
+    ) {
+      return extensionFromName === "jpeg"
+        ? "jpg"
+        : extensionFromName;
+    }
+
+    if (file.type === "image/png") {
+      return "png";
+    }
+
+    if (file.type === "image/webp") {
+      return "webp";
+    }
+
+    return "jpg";
+  }
+
+  function getStorageFilePath(imageUrl: string) {
+    const marker =
+      "/storage/v1/object/public/agent-images/";
+
+    if (!imageUrl.includes(marker)) {
+      return null;
+    }
+
+    try {
+      const url = new URL(imageUrl);
+      const pathStart = url.pathname.indexOf(marker);
+
+      if (pathStart === -1) {
+        return null;
+      }
+
+      return decodeURIComponent(
+        url.pathname.slice(pathStart + marker.length)
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async function uploadAgentImage(
+    file: File,
+    agentSlug: string
+  ) {
+    const extension = getFileExtension(file);
+    const uniquePart = crypto.randomUUID();
+    const filePath =
+      `${agentSlug}/${Date.now()}-${uniquePart}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("agent-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(
+        `Image upload failed: ${uploadError.message}`
+      );
+    }
+
+    const { data } = supabase.storage
+      .from("agent-images")
+      .getPublicUrl(filePath);
+
+    return {
+      imageUrl: data.publicUrl,
+      filePath,
+    };
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setIsSaving(true);
-    setMessage("");
+    setStatusMessage("");
+    setSuccessMessage("");
     setErrorMessage("");
 
-    const trimmedSlug = slug.trim();
+    const trimmedSlug = makeSlug(slug);
     const trimmedName = name.trim();
     const trimmedBioShort = bioShort.trim();
     const trimmedBio = bio.trim();
@@ -73,41 +230,101 @@ export default function EditAgentForm({
     }
 
     if (!Number.isInteger(parsedSortOrder)) {
-      setErrorMessage("Display order must be a whole number.");
+      setErrorMessage(
+        "Display order must be a whole number."
+      );
       setIsSaving(false);
       return;
     }
 
-    const { error } = await supabase
-      .from("agents")
-      .update({
-        slug: trimmedSlug,
-        name: trimmedName,
-        bio_short: trimmedBioShort,
-        bio: trimmedBio,
-        join_link: joinLink.trim() || null,
-        image: image.trim() || null,
-        sort_order: parsedSortOrder,
-      })
-      .eq("id", agent.id);
+    let imageUrlToSave = currentImage || null;
+    let newlyUploadedPath: string | null = null;
 
-    if (error) {
-      if (error.code === "23505") {
-        setErrorMessage(
-          "That slug is already being used by another agent."
+    try {
+      if (newImageFile) {
+        setStatusMessage("Uploading new profile picture...");
+
+        const uploadResult = await uploadAgentImage(
+          newImageFile,
+          trimmedSlug
         );
-      } else {
-        setErrorMessage(`Unable to save changes: ${error.message}`);
+
+        imageUrlToSave = uploadResult.imageUrl;
+        newlyUploadedPath = uploadResult.filePath;
       }
 
+      setStatusMessage("Saving agent changes...");
+
+      const { error: updateError } = await supabase
+        .from("agents")
+        .update({
+          slug: trimmedSlug,
+          name: trimmedName,
+          bio_short: trimmedBioShort,
+          bio: trimmedBio,
+          join_link: joinLink.trim() || null,
+          image: imageUrlToSave,
+          sort_order: parsedSortOrder,
+        })
+        .eq("id", agent.id);
+
+      if (updateError) {
+        if (newlyUploadedPath) {
+          await supabase.storage
+            .from("agent-images")
+            .remove([newlyUploadedPath]);
+        }
+
+        if (updateError.code === "23505") {
+          throw new Error(
+            "That slug is already being used by another agent."
+          );
+        }
+
+        throw new Error(
+          `Unable to save changes: ${updateError.message}`
+        );
+      }
+
+      if (newImageFile && currentImage) {
+        const oldImagePath =
+          getStorageFilePath(currentImage);
+
+        if (oldImagePath) {
+          await supabase.storage
+            .from("agent-images")
+            .remove([oldImagePath]);
+        }
+      }
+
+      if (newImageFile && imageUrlToSave) {
+        setCurrentImage(imageUrlToSave);
+        setNewImageFile(null);
+
+        if (newImagePreview) {
+          URL.revokeObjectURL(newImagePreview);
+        }
+
+        setNewImagePreview("");
+      }
+
+      setSlug(trimmedSlug);
+      setStatusMessage("");
+      setSuccessMessage(
+        "Agent changes saved successfully."
+      );
       setIsSaving(false);
-      return;
+
+      router.refresh();
+    } catch (error) {
+      setStatusMessage("");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while saving the agent."
+      );
+      setIsSaving(false);
     }
-
-    setMessage("Agent changes saved successfully.");
-    setIsSaving(false);
-
-    router.refresh();
   }
 
   async function handleDelete() {
@@ -120,23 +337,40 @@ export default function EditAgentForm({
     }
 
     setIsDeleting(true);
-    setMessage("");
+    setStatusMessage("Deleting agent...");
+    setSuccessMessage("");
     setErrorMessage("");
 
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from("agents")
       .delete()
       .eq("id", agent.id);
 
-    if (error) {
-      setErrorMessage(`Unable to delete agent: ${error.message}`);
+    if (deleteError) {
+      setStatusMessage("");
+      setErrorMessage(
+        `Unable to delete agent: ${deleteError.message}`
+      );
       setIsDeleting(false);
       return;
+    }
+
+    if (currentImage) {
+      const imagePath = getStorageFilePath(currentImage);
+
+      if (imagePath) {
+        await supabase.storage
+          .from("agent-images")
+          .remove([imagePath]);
+      }
     }
 
     router.push("/dashboard/agents");
     router.refresh();
   }
+
+  const displayedImage =
+    newImagePreview || currentImage;
 
   return (
     <form
@@ -154,7 +388,9 @@ export default function EditAgentForm({
         <input
           type="text"
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) =>
+            setName(event.target.value)
+          }
           style={inputStyle}
           required
         />
@@ -166,12 +402,7 @@ export default function EditAgentForm({
           type="text"
           value={slug}
           onChange={(event) =>
-            setSlug(
-              event.target.value
-                .toLowerCase()
-                .replace(/[^a-z0-9-]/g, "-")
-                .replace(/-+/g, "-")
-            )
+            setSlug(makeSlug(event.target.value))
           }
           style={inputStyle}
           required
@@ -192,7 +423,9 @@ export default function EditAgentForm({
         Short Bio
         <textarea
           value={bioShort}
-          onChange={(event) => setBioShort(event.target.value)}
+          onChange={(event) =>
+            setBioShort(event.target.value)
+          }
           rows={4}
           style={{
             ...inputStyle,
@@ -207,7 +440,9 @@ export default function EditAgentForm({
         Full Bio
         <textarea
           value={bio}
-          onChange={(event) => setBio(event.target.value)}
+          onChange={(event) =>
+            setBio(event.target.value)
+          }
           rows={14}
           style={{
             ...inputStyle,
@@ -224,20 +459,25 @@ export default function EditAgentForm({
         <input
           type="url"
           value={joinLink}
-          onChange={(event) => setJoinLink(event.target.value)}
+          onChange={(event) =>
+            setJoinLink(event.target.value)
+          }
           placeholder="https://..."
           style={inputStyle}
         />
       </label>
 
       <label style={labelStyle}>
-        Image Path
+        Replace Profile Picture
         <input
-          type="text"
-          value={image}
-          onChange={(event) => setImage(event.target.value)}
-          placeholder="/agents/example.png"
-          style={inputStyle}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleImageChange}
+          disabled={isSaving || isDeleting}
+          style={{
+            ...inputStyle,
+            cursor: "pointer",
+          }}
         />
 
         <span
@@ -247,12 +487,12 @@ export default function EditAgentForm({
             fontWeight: 400,
           }}
         >
-          For now, use the existing image filename, such as
-          /agents/momma-d.jpg.
+          Leave this blank to keep the current picture. JPG,
+          PNG, or WebP; maximum size 6 MB.
         </span>
       </label>
 
-      {image && (
+      {displayedImage && (
         <div>
           <p
             style={{
@@ -260,15 +500,17 @@ export default function EditAgentForm({
               marginBottom: 10,
             }}
           >
-            Image Preview
+            {newImagePreview
+              ? "New Image Preview"
+              : "Current Image"}
           </p>
 
           <img
-            src={image}
-            alt="Agent preview"
+            src={displayedImage}
+            alt={`${name || "Agent"} preview`}
             style={{
-              width: 140,
-              height: 140,
+              width: 160,
+              height: 160,
               objectFit: "cover",
               borderRadius: 14,
               border: "1px solid #444",
@@ -282,20 +524,33 @@ export default function EditAgentForm({
         <input
           type="number"
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value)}
+          onChange={(event) =>
+            setSortOrder(event.target.value)
+          }
           style={inputStyle}
           required
         />
       </label>
 
-      {message && (
+      {statusMessage && (
+        <p
+          style={{
+            color: "#d4af37",
+            fontWeight: 700,
+          }}
+        >
+          {statusMessage}
+        </p>
+      )}
+
+      {successMessage && (
         <p
           style={{
             color: "#76db8c",
             fontWeight: 700,
           }}
         >
-          {message}
+          {successMessage}
         </p>
       )}
 
@@ -330,11 +585,17 @@ export default function EditAgentForm({
             padding: "12px 18px",
             borderRadius: 10,
             fontWeight: 800,
-            cursor: "pointer",
-            opacity: isDeleting || isSaving ? 0.6 : 1,
+            cursor:
+              isDeleting || isSaving
+                ? "not-allowed"
+                : "pointer",
+            opacity:
+              isDeleting || isSaving ? 0.6 : 1,
           }}
         >
-          {isDeleting ? "Deleting..." : "Delete Agent"}
+          {isDeleting
+            ? "Deleting..."
+            : "Delete Agent"}
         </button>
 
         <button
@@ -347,11 +608,17 @@ export default function EditAgentForm({
             padding: "12px 22px",
             borderRadius: 10,
             fontWeight: 900,
-            cursor: "pointer",
-            opacity: isSaving || isDeleting ? 0.6 : 1,
+            cursor:
+              isSaving || isDeleting
+                ? "not-allowed"
+                : "pointer",
+            opacity:
+              isSaving || isDeleting ? 0.6 : 1,
           }}
         >
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving
+            ? "Saving..."
+            : "Save Changes"}
         </button>
       </div>
     </form>
