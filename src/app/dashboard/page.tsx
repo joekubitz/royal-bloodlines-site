@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../supabase/server";
 
@@ -22,12 +23,36 @@ export default async function DashboardPage() {
     console.log("SUPABASE ERROR:", error);
 
     return (
-      <main style={{ padding: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 900 }}>Dashboard</h1>
+      <main
+        style={{
+          padding: 24,
+          maxWidth: 1100,
+          margin: "0 auto",
+        }}
+      >
+        <h1 style={{ fontSize: 28, fontWeight: 900 }}>
+          Dashboard
+        </h1>
 
-        <p style={{ color: "red" }}>
+        <p style={{ color: "red", marginTop: 12 }}>
           Error loading clicks: {error.message}
         </p>
+
+        <Link
+          href="/dashboard/agents"
+          style={{
+            display: "inline-block",
+            marginTop: 20,
+            background: "#d4af37",
+            color: "#000",
+            padding: "12px 18px",
+            borderRadius: 10,
+            fontWeight: 900,
+            textDecoration: "none",
+          }}
+        >
+          Manage Agents
+        </Link>
       </main>
     );
   }
@@ -60,19 +85,67 @@ export default async function DashboardPage() {
       }}
     >
       <h1 style={{ fontSize: 32, fontWeight: 900 }}>
-        Royals Bloodline Analytics
+        Royals Bloodline Admin
       </h1>
 
       <p style={{ opacity: 0.8, marginTop: 6 }}>
-        Admin dashboard (click tracking)
+        Manage agents and view website analytics.
       </p>
 
       <div
         style={{
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          marginTop: 20,
+        }}
+      >
+        <Link
+          href="/dashboard/agents"
+          style={{
+            background: "#d4af37",
+            color: "#000",
+            padding: "12px 18px",
+            borderRadius: 10,
+            fontWeight: 900,
+            textDecoration: "none",
+          }}
+        >
+          Manage Agents
+        </Link>
+
+        <Link
+          href="/dashboard/agents/new"
+          style={{
+            border: "1px solid #d4af37",
+            color: "#d4af37",
+            padding: "12px 18px",
+            borderRadius: 10,
+            fontWeight: 800,
+            textDecoration: "none",
+          }}
+        >
+          + Add Agent
+        </Link>
+      </div>
+
+      <h2
+        style={{
+          fontSize: 24,
+          fontWeight: 900,
+          marginTop: 34,
+        }}
+      >
+        Analytics
+      </h2>
+
+      <div
+        style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 18,
-          marginTop: 22,
+          marginTop: 16,
         }}
       >
         <section
@@ -82,16 +155,21 @@ export default async function DashboardPage() {
             padding: 16,
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 800 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800 }}>
             Top Links
-          </h2>
+          </h3>
 
           <ol style={{ marginTop: 12 }}>
             {topLinks.length === 0 ? (
-              <li style={{ opacity: 0.8 }}>No clicks yet</li>
+              <li style={{ opacity: 0.8 }}>
+                No clicks yet
+              </li>
             ) : (
               topLinks.map(([key, total]) => (
-                <li key={key} style={{ padding: "6px 0" }}>
+                <li
+                  key={key}
+                  style={{ padding: "6px 0" }}
+                >
                   <b>{key}</b> — {total}
                 </li>
               ))
@@ -106,16 +184,21 @@ export default async function DashboardPage() {
             padding: 16,
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 800 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800 }}>
             Top Agents
-          </h2>
+          </h3>
 
           <ol style={{ marginTop: 12 }}>
             {topAgents.length === 0 ? (
-              <li style={{ opacity: 0.8 }}>No clicks yet</li>
+              <li style={{ opacity: 0.8 }}>
+                No clicks yet
+              </li>
             ) : (
               topAgents.map(([agent, total]) => (
-                <li key={agent} style={{ padding: "6px 0" }}>
+                <li
+                  key={agent}
+                  style={{ padding: "6px 0" }}
+                >
                   <b>{agent}</b> — {total}
                 </li>
               ))
@@ -132,9 +215,9 @@ export default async function DashboardPage() {
           padding: 16,
         }}
       >
-        <h2 style={{ fontSize: 20, fontWeight: 800 }}>
+        <h3 style={{ fontSize: 20, fontWeight: 800 }}>
           Recent Clicks
-        </h2>
+        </h3>
 
         <div
           style={{
@@ -144,7 +227,9 @@ export default async function DashboardPage() {
           }}
         >
           {(clicks ?? []).length === 0 ? (
-            <p style={{ opacity: 0.8 }}>No clicks yet</p>
+            <p style={{ opacity: 0.8 }}>
+              No clicks yet
+            </p>
           ) : (
             (clicks ?? []).slice(0, 25).map((click) => (
               <div
@@ -160,9 +245,11 @@ export default async function DashboardPage() {
                 </div>
 
                 <div style={{ opacity: 0.8 }}>
-                  Agent: {click.agent || "Unknown"} • Page:{" "}
-                  {click.page_path || "-"} •{" "}
-                  {new Date(click.created_at).toLocaleString()}
+                  Agent: {click.agent || "Unknown"} •
+                  Page: {click.page_path || "-"} •{" "}
+                  {new Date(
+                    click.created_at
+                  ).toLocaleString()}
                 </div>
               </div>
             ))
