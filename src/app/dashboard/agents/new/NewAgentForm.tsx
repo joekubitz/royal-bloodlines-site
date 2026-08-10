@@ -1,12 +1,25 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../supabase/client";
 
 type NewAgentFormProps = {
   suggestedSortOrder: number;
 };
+
+const MAX_IMAGE_SIZE = 6 * 1024 * 1024;
+
+const allowedImageTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
 const inputStyle = {
   width: "100%",
@@ -28,19 +41,21 @@ export default function NewAgentForm({
   suggestedSortOrder,
 }: NewAgentFormProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [bioShort, setBioShort] = useState("");
   const [bio, setBio] = useState("");
   const [joinLink, setJoinLink] = useState("");
-  const [image, setImage] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [sortOrder, setSortOrder] = useState(
     suggestedSortOrder.toString()
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   function makeSlug(value: string) {
@@ -53,17 +68,116 @@ export default function NewAgentForm({
   }
 
   function handleNameChange(value: string) {
+    const previousAutomaticSlug = makeSlug(name);
+
     setName(value);
 
-    if (!slug || slug === makeSlug(name)) {
+    if (!slug || slug === previousAutomaticSlug) {
       setSlug(makeSlug(value));
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFile = event.target.files?.[0] ?? null;
+
+    setErrorMessage("");
+
+    if (!selectedFile) {
+      setImageFile(null);
+      setImagePreview("");
+      return;
+    }
+
+    if (!allowedImageTypes.includes(selectedFile.type)) {
+      setErrorMessage(
+        "Please choose a JPG, PNG, or WebP image."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (selectedFile.size > MAX_IMAGE_SIZE) {
+      setErrorMessage(
+        "The image must be 6 MB or smaller."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    setImageFile(selectedFile);
+    setImagePreview(URL.createObjectURL(selectedFile));
+  }
+
+  function getFileExtension(file: File) {
+    const extensionFromName = file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+    if (
+      extensionFromName &&
+      ["jpg", "jpeg", "png", "webp"].includes(
+        extensionFromName
+      )
+    ) {
+      return extensionFromName === "jpeg"
+        ? "jpg"
+        : extensionFromName;
+    }
+
+    if (file.type === "image/png") {
+      return "png";
+    }
+
+    if (file.type === "image/webp") {
+      return "webp";
+    }
+
+    return "jpg";
+  }
+
+  async function uploadAgentImage(
+    file: File,
+    agentSlug: string
+  ) {
+    const extension = getFileExtension(file);
+    const uniquePart = crypto.randomUUID();
+    const filePath =
+      `${agentSlug}/${Date.now()}-${uniquePart}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("agent-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(
+        `Image upload failed: ${uploadError.message}`
+      );
+    }
+
+    const { data } = supabase.storage
+      .from("agent-images")
+      .getPublicUrl(filePath);
+
+    return {
+      imageUrl: data.publicUrl,
+      filePath,
+    };
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setIsSaving(true);
+    setStatusMessage("");
     setErrorMessage("");
 
     const trimmedName = name.trim();
@@ -86,36 +200,74 @@ export default function NewAgentForm({
     }
 
     if (!Number.isInteger(parsedSortOrder)) {
-      setErrorMessage("Display order must be a whole number.");
+      setErrorMessage(
+        "Display order must be a whole number."
+      );
       setIsSaving(false);
       return;
     }
 
-    const { error } = await supabase.from("agents").insert({
-      name: trimmedName,
-      slug: trimmedSlug,
-      bio_short: trimmedBioShort,
-      bio: trimmedBio,
-      join_link: joinLink.trim() || null,
-      image: image.trim() || null,
-      sort_order: parsedSortOrder,
-    });
+    let uploadedImageUrl: string | null = null;
+    let uploadedFilePath: string | null = null;
 
-    if (error) {
-      if (error.code === "23505") {
-        setErrorMessage(
-          "That slug is already being used by another agent."
+    try {
+      if (imageFile) {
+        setStatusMessage("Uploading profile picture...");
+
+        const uploadedImage = await uploadAgentImage(
+          imageFile,
+          trimmedSlug
         );
-      } else {
-        setErrorMessage(`Unable to add agent: ${error.message}`);
+
+        uploadedImageUrl = uploadedImage.imageUrl;
+        uploadedFilePath = uploadedImage.filePath;
       }
 
-      setIsSaving(false);
-      return;
-    }
+      setStatusMessage("Adding agent...");
 
-    router.push("/dashboard/agents");
-    router.refresh();
+      const { error: insertError } = await supabase
+        .from("agents")
+        .insert({
+          name: trimmedName,
+          slug: trimmedSlug,
+          bio_short: trimmedBioShort,
+          bio: trimmedBio,
+          join_link: joinLink.trim() || null,
+          image: uploadedImageUrl,
+          sort_order: parsedSortOrder,
+        });
+
+      if (insertError) {
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from("agent-images")
+            .remove([uploadedFilePath]);
+        }
+
+        if (insertError.code === "23505") {
+          throw new Error(
+            "That slug is already being used by another agent."
+          );
+        }
+
+        throw new Error(
+          `Unable to add agent: ${insertError.message}`
+        );
+      }
+
+      router.push("/dashboard/agents");
+      router.refresh();
+    } catch (error) {
+      setStatusMessage("");
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while adding the agent."
+      );
+
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -134,7 +286,9 @@ export default function NewAgentForm({
         <input
           type="text"
           value={name}
-          onChange={(event) => handleNameChange(event.target.value)}
+          onChange={(event) =>
+            handleNameChange(event.target.value)
+          }
           placeholder="Example: Jane Doe - Team Royal"
           style={inputStyle}
           required
@@ -146,7 +300,9 @@ export default function NewAgentForm({
         <input
           type="text"
           value={slug}
-          onChange={(event) => setSlug(makeSlug(event.target.value))}
+          onChange={(event) =>
+            setSlug(makeSlug(event.target.value))
+          }
           placeholder="jane-doe"
           style={inputStyle}
           required
@@ -167,7 +323,9 @@ export default function NewAgentForm({
         Short Bio
         <textarea
           value={bioShort}
-          onChange={(event) => setBioShort(event.target.value)}
+          onChange={(event) =>
+            setBioShort(event.target.value)
+          }
           rows={4}
           placeholder="A short description shown on the agent list."
           style={{
@@ -183,7 +341,9 @@ export default function NewAgentForm({
         Full Bio
         <textarea
           value={bio}
-          onChange={(event) => setBio(event.target.value)}
+          onChange={(event) =>
+            setBio(event.target.value)
+          }
           rows={14}
           placeholder="The full agent bio shown on their profile page."
           style={{
@@ -201,20 +361,25 @@ export default function NewAgentForm({
         <input
           type="url"
           value={joinLink}
-          onChange={(event) => setJoinLink(event.target.value)}
+          onChange={(event) =>
+            setJoinLink(event.target.value)
+          }
           placeholder="https://..."
           style={inputStyle}
         />
       </label>
 
       <label style={labelStyle}>
-        Image Path
+        Profile Picture
         <input
-          type="text"
-          value={image}
-          onChange={(event) => setImage(event.target.value)}
-          placeholder="/agents/example.png"
-          style={inputStyle}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleImageChange}
+          disabled={isSaving}
+          style={{
+            ...inputStyle,
+            cursor: "pointer",
+          }}
         />
 
         <span
@@ -224,11 +389,11 @@ export default function NewAgentForm({
             fontWeight: 400,
           }}
         >
-          Leave this blank for now if the image has not been added yet.
+          JPG, PNG, or WebP. Maximum size: 6 MB.
         </span>
       </label>
 
-      {image && (
+      {imagePreview && (
         <div>
           <p
             style={{
@@ -240,11 +405,11 @@ export default function NewAgentForm({
           </p>
 
           <img
-            src={image}
-            alt="Agent preview"
+            src={imagePreview}
+            alt="Selected agent preview"
             style={{
-              width: 140,
-              height: 140,
+              width: 160,
+              height: 160,
               objectFit: "cover",
               borderRadius: 14,
               border: "1px solid #444",
@@ -258,11 +423,24 @@ export default function NewAgentForm({
         <input
           type="number"
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value)}
+          onChange={(event) =>
+            setSortOrder(event.target.value)
+          }
           style={inputStyle}
           required
         />
       </label>
+
+      {statusMessage && (
+        <p
+          style={{
+            color: "#d4af37",
+            fontWeight: 700,
+          }}
+        >
+          {statusMessage}
+        </p>
+      )}
 
       {errorMessage && (
         <p
@@ -292,11 +470,15 @@ export default function NewAgentForm({
             padding: "12px 22px",
             borderRadius: 10,
             fontWeight: 900,
-            cursor: "pointer",
+            cursor: isSaving
+              ? "not-allowed"
+              : "pointer",
             opacity: isSaving ? 0.6 : 1,
           }}
         >
-          {isSaving ? "Adding Agent..." : "Add Agent"}
+          {isSaving
+            ? "Adding Agent..."
+            : "Add Agent"}
         </button>
       </div>
     </form>
