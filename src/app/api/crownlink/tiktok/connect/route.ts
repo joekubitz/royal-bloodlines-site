@@ -42,19 +42,33 @@ export async function GET() {
       "https://www.tiktok.com/v2/auth/authorize/"
     );
 
-    authUrl.searchParams.set("client_key", clientKey);
-    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set(
+      "client_key",
+      clientKey
+    );
+
+    authUrl.searchParams.set(
+      "response_type",
+      "code"
+    );
+
     authUrl.searchParams.set(
       "scope",
-      "user.info.basic"
+      "user.info.basic,user.info.profile"
     );
+
     authUrl.searchParams.set(
       "redirect_uri",
       redirectUri
     );
-    authUrl.searchParams.set("state", state);
 
-    const response = NextResponse.redirect(authUrl);
+    authUrl.searchParams.set(
+      "state",
+      state
+    );
+
+    const response =
+      NextResponse.redirect(authUrl);
 
     response.cookies.set(
       "crownlink_tiktok_state",

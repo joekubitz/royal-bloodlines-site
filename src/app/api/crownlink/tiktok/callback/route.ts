@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     }
 
     const profileResponse = await fetch(
-      "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",
+      "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,username",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -162,6 +162,24 @@ export async function GET(request: NextRequest) {
         )
       );
     }
+
+    if (!tiktokUser?.username) {
+      console.error(
+        "TikTok username missing from profile response:",
+        profileData
+      );
+
+      return NextResponse.redirect(
+        new URL(
+          "/crownlink/profile/setup?tiktok_error=missing_username",
+          request.url
+        )
+      );
+    }
+
+    const cleanUsername = String(tiktokUser.username)
+      .trim()
+      .replace(/^@/, "");
 
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
@@ -227,17 +245,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const { data: existingUsernameProfile } = await supabase
+      .from("crownlink_profiles")
+      .select("user_id")
+      .eq("tiktok_username", cleanUsername)
+      .neq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingUsernameProfile) {
+      return NextResponse.redirect(
+        new URL(
+          "/crownlink/profile/setup?tiktok_error=username_already_connected",
+          request.url
+        )
+      );
+    }
+
     const { data: existingProfile } = await supabase
       .from("crownlink_profiles")
-      .select("id, tiktok_username, diamond_level")
+      .select("id, diamond_level")
       .eq("user_id", user.id)
       .maybeSingle();
 
     const profileDataToSave = {
       user_id: user.id,
       tiktok_open_id: tiktokUser.open_id,
+      tiktok_username: cleanUsername,
       display_name: tiktokUser.display_name || null,
       profile_photo_url: tiktokUser.avatar_url || null,
+      tiktok_profile_url:
+        `https://www.tiktok.com/@${cleanUsername}`,
       agency_name: agency.name,
       tiktok_connected_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -263,22 +300,10 @@ export async function GET(request: NextRequest) {
         );
       }
     } else {
-      /*
-        tiktok_username is currently required by the database,
-        so we need a temporary unique placeholder until the creator
-        finishes profile setup.
-
-        Once we add TikTok's username permission, this can be replaced
-        automatically with their actual @username.
-      */
-      const temporaryUsername =
-        `pending_${user.id.replace(/-/g, "")}`;
-
       const { error: insertError } = await supabase
         .from("crownlink_profiles")
         .insert({
           ...profileDataToSave,
-          tiktok_username: temporaryUsername,
           diamond_level: 0,
         });
 

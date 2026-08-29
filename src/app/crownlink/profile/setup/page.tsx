@@ -30,7 +30,9 @@ export default function CrownLinkProfileSetupPage() {
       const tiktokError = params.get("tiktok_error");
 
       if (connected === "1") {
-        setTiktokMessage("TikTok connected successfully.");
+        setTiktokMessage(
+          "TikTok connected successfully. Your profile information was imported."
+        );
       }
 
       if (tiktokError) {
@@ -47,6 +49,8 @@ export default function CrownLinkProfileSetupPage() {
             "We could not retrieve your TikTok profile.",
           missing_profile:
             "TikTok did not return your profile information.",
+          missing_username:
+            "TikTok did not return your username. Please reconnect your TikTok account.",
           profile_lookup_failed:
             "Your Crown Link profile could not be loaded.",
           profile_update_failed:
@@ -61,6 +65,8 @@ export default function CrownLinkProfileSetupPage() {
             "Your assigned agency could not be verified.",
           tiktok_already_connected:
             "That TikTok account is already connected to another Crown Link creator.",
+          username_already_connected:
+            "That TikTok username is already connected to another Crown Link creator.",
           unexpected:
             "Something unexpected happened while connecting TikTok.",
         };
@@ -143,20 +149,35 @@ export default function CrownLinkProfileSetupPage() {
 
       setAgencyName(agency.name);
 
-      const { data: existingProfile } = await supabase
-        .from("crownlink_profiles")
-        .select(
-          `
-            display_name,
-            tiktok_username,
-            diamond_level,
-            profile_photo_url,
-            tiktok_open_id,
-            tiktok_connected_at
-          `
-        )
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: existingProfile, error: profileError } =
+        await supabase
+          .from("crownlink_profiles")
+          .select(
+            `
+              display_name,
+              tiktok_username,
+              diamond_level,
+              profile_photo_url,
+              tiktok_open_id,
+              tiktok_connected_at
+            `
+          )
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+      if (profileError) {
+        console.error(
+          "CROWN LINK PROFILE ERROR:",
+          profileError
+        );
+
+        setError(
+          "Your Crown Link profile could not be loaded."
+        );
+
+        setLoading(false);
+        return;
+      }
 
       if (existingProfile) {
         setDisplayName(
@@ -262,12 +283,16 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    const cleanUsername = tiktokUsername
-      .trim()
-      .replace(/^@/, "");
+    /*
+      TikTok must be connected before the creator can finish
+      their Crown Link profile. The username now comes directly
+      from TikTok instead of being manually entered.
+    */
+    if (!tiktokConnected || !tiktokUsername) {
+      setError(
+        "Please connect your TikTok account before saving your Crown Link profile."
+      );
 
-    if (!cleanUsername) {
-      setError("Please enter your TikTok username.");
       setSaving(false);
       return;
     }
@@ -284,44 +309,29 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    const tiktokProfileUrl =
-      `https://www.tiktok.com/@${cleanUsername}`;
+    /*
+      Only Crown Link-editable information is updated here.
 
+      TikTok username, profile photo, TikTok ID, and TikTok
+      profile URL were already saved by the secure TikTok
+      callback and are intentionally not overwritten here.
+    */
     const { error: saveError } = await supabase
       .from("crownlink_profiles")
-      .upsert(
-        {
-          user_id: user.id,
-          display_name: displayName.trim() || null,
-          tiktok_username: cleanUsername,
-          agency_name: agency.name,
-          diamond_level: diamonds,
-          profile_photo_url:
-            profilePhotoUrl.trim() || null,
-          tiktok_profile_url: tiktokProfileUrl,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
+      .update({
+        display_name: displayName.trim() || null,
+        agency_name: agency.name,
+        diamond_level: diamonds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id);
 
     if (saveError) {
       console.error(saveError);
 
-      if (
-        saveError.message
-          .toLowerCase()
-          .includes("tiktok_username")
-      ) {
-        setError(
-          "That TikTok username is already connected to another Crown Link account."
-        );
-      } else {
-        setError(
-          "We couldn't save your profile. Please try again."
-        );
-      }
+      setError(
+        "We couldn't save your profile. Please try again."
+      );
 
       setSaving(false);
       return;
@@ -378,7 +388,7 @@ export default function CrownLinkProfileSetupPage() {
             <h2>Your Creator Profile</h2>
 
             <p>
-              Connect your TikTok profile and complete
+              Connect your TikTok account and complete
               your Crown Link information.
             </p>
           </div>
@@ -394,8 +404,8 @@ export default function CrownLinkProfileSetupPage() {
                   <strong>Connect your TikTok</strong>
 
                   <span>
-                    Import your TikTok display name and
-                    profile photo automatically.
+                    Import your TikTok username, display
+                    name, and profile photo automatically.
                   </span>
                 </div>
 
@@ -462,7 +472,7 @@ export default function CrownLinkProfileSetupPage() {
 
             <input
               type="text"
-              placeholder="Joe"
+              placeholder="Display Name"
               value={displayName}
               onChange={(e) =>
                 setDisplayName(e.target.value)
@@ -471,41 +481,40 @@ export default function CrownLinkProfileSetupPage() {
 
             {tiktokConnected && (
               <small>
-                Imported from TikTok. You can adjust it
-                for Crown Link if needed.
+                Imported from TikTok. You can adjust your
+                Crown Link display name if needed.
               </small>
             )}
           </div>
 
           <div className="cl-field">
-            <label>TikTok Username *</label>
+            <label>TikTok Username</label>
 
-            <div className="username-input">
-              <span>@</span>
+            <div
+              className={`username-display ${
+                !tiktokConnected ? "not-connected" : ""
+              }`}
+            >
+              <span className="username-at">@</span>
 
-              <input
-                type="text"
-                placeholder="username"
-                value={tiktokUsername}
-                onChange={(e) =>
-                  setTiktokUsername(e.target.value)
-                }
-                required
-              />
+              <strong>
+                {tiktokConnected && tiktokUsername
+                  ? tiktokUsername
+                  : "Connect TikTok to import username"}
+              </strong>
+
+              {tiktokConnected && (
+                <span className="verified">
+                  ✓ VERIFIED
+                </span>
+              )}
             </div>
 
-            {tiktokConnected ? (
-              <small>
-                TikTok is connected. Enter your current
-                @username so Crown Link can link directly
-                to your profile.
-              </small>
-            ) : (
-              <small>
-                Enter the username shown on your TikTok
-                profile.
-              </small>
-            )}
+            <small>
+              {tiktokConnected
+                ? "Your username is verified directly through TikTok and cannot be edited here."
+                : "Connect your TikTok account above to import and verify your username."}
+            </small>
           </div>
 
           <div className="cl-field">
@@ -562,12 +571,19 @@ export default function CrownLinkProfileSetupPage() {
 
           <button
             type="submit"
-            disabled={saving || !agencyName}
+            disabled={
+              saving ||
+              !agencyName ||
+              !tiktokConnected ||
+              !tiktokUsername
+            }
             className="cl-save"
           >
             {saving
               ? "Saving Profile..."
-              : "Save Creator Profile"}
+              : tiktokConnected
+                ? "Save Creator Profile"
+                : "Connect TikTok to Continue"}
           </button>
 
           <div className="legal-links">
@@ -839,29 +855,47 @@ export default function CrownLinkProfileSetupPage() {
           line-height: 1.5;
         }
 
-        .username-input {
+        .username-display {
           display: flex;
           align-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(0, 0, 0, 0.45);
+          gap: 6px;
+          min-height: 50px;
+          padding: 0 15px;
+          box-sizing: border-box;
           border-radius: 12px;
-          overflow: hidden;
+          border: 1px solid rgba(80, 210, 110, 0.24);
+          background: rgba(60, 180, 90, 0.05);
         }
 
-        .username-input span {
-          padding-left: 15px;
+        .username-display.not-connected {
+          border-color: rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.35);
+        }
+
+        .username-at {
           color: #d3a33c;
           font-weight: 900;
         }
 
-        .username-input input {
-          border: none;
-          background: transparent;
+        .username-display strong {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 14px;
         }
 
-        .username-input:focus-within {
-          border-color: rgba(211, 163, 60, 0.7);
-          box-shadow: 0 0 0 3px rgba(211, 163, 60, 0.08);
+        .username-display.not-connected strong {
+          color: rgba(255, 255, 255, 0.35);
+          font-weight: 600;
+        }
+
+        .verified {
+          margin-left: auto;
+          color: #90e6a2;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          white-space: nowrap;
         }
 
         .agency-display {
@@ -959,6 +993,10 @@ export default function CrownLinkProfileSetupPage() {
 
           .cl-brand h1 {
             font-size: 44px;
+          }
+
+          .verified {
+            display: none;
           }
         }
       `}</style>
