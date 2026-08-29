@@ -16,11 +16,60 @@ export default function CrownLinkProfileSetupPage() {
   const [diamondLevel, setDiamondLevel] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
 
+  const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [tiktokMessage, setTiktokMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function checkUser() {
       const supabase = createClient();
+
+      const params = new URLSearchParams(window.location.search);
+
+      const connected = params.get("tiktok_connected");
+      const tiktokError = params.get("tiktok_error");
+
+      if (connected === "1") {
+        setTiktokMessage("TikTok connected successfully.");
+      }
+
+      if (tiktokError) {
+        const messages: Record<string, string> = {
+          missing_code:
+            "TikTok did not return an authorization code.",
+          invalid_state:
+            "The TikTok connection could not be verified. Please try again.",
+          token_exchange_failed:
+            "TikTok authorization could not be completed.",
+          missing_access_token:
+            "TikTok did not return the required access information.",
+          profile_fetch_failed:
+            "We could not retrieve your TikTok profile.",
+          missing_profile:
+            "TikTok did not return your profile information.",
+          profile_lookup_failed:
+            "Your Crown Link profile could not be loaded.",
+          profile_update_failed:
+            "Your TikTok information could not be saved.",
+          profile_creation_failed:
+            "Your Crown Link profile could not be created.",
+          invalid_creator_account:
+            "Your Crown Link creator account could not be verified.",
+          missing_agency:
+            "Your Crown Link account does not have an assigned agency.",
+          invalid_agency:
+            "Your assigned agency could not be verified.",
+          tiktok_already_connected:
+            "That TikTok account is already connected to another Crown Link creator.",
+          unexpected:
+            "Something unexpected happened while connecting TikTok.",
+        };
+
+        setError(
+          messages[tiktokError] ||
+            decodeURIComponent(tiktokError)
+        );
+      }
 
       const {
         data: { user },
@@ -31,7 +80,6 @@ export default function CrownLinkProfileSetupPage() {
         return;
       }
 
-      // Get the creator's official Crown Link role + agency assignment
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role, status, agency_id")
@@ -40,9 +88,11 @@ export default function CrownLinkProfileSetupPage() {
 
       if (roleError || !roleData) {
         console.error("CROWN LINK ROLE ERROR:", roleError);
+
         setError(
           "We couldn't verify your Crown Link account."
         );
+
         setLoading(false);
         return;
       }
@@ -62,11 +112,11 @@ export default function CrownLinkProfileSetupPage() {
         setError(
           "No agency has been assigned to your Crown Link account. Please contact an administrator."
         );
+
         setLoading(false);
         return;
       }
 
-      // Look up the official agency assigned by the admin
       const { data: agency, error: agencyError } = await supabase
         .from("crownlink_agencies")
         .select("id, name, status")
@@ -78,7 +128,10 @@ export default function CrownLinkProfileSetupPage() {
         !agency ||
         agency.status !== "active"
       ) {
-        console.error("CROWN LINK AGENCY ERROR:", agencyError);
+        console.error(
+          "CROWN LINK AGENCY ERROR:",
+          agencyError
+        );
 
         setError(
           "Your assigned agency could not be loaded. Please contact an administrator."
@@ -90,20 +143,37 @@ export default function CrownLinkProfileSetupPage() {
 
       setAgencyName(agency.name);
 
-      // Load existing creator profile if one already exists
       const { data: existingProfile } = await supabase
         .from("crownlink_profiles")
         .select(
-          "display_name, tiktok_username, diamond_level, profile_photo_url"
+          `
+            display_name,
+            tiktok_username,
+            diamond_level,
+            profile_photo_url,
+            tiktok_open_id,
+            tiktok_connected_at
+          `
         )
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (existingProfile) {
-        setDisplayName(existingProfile.display_name || "");
-        setTiktokUsername(
-          existingProfile.tiktok_username || ""
+        setDisplayName(
+          existingProfile.display_name || ""
         );
+
+        const savedUsername =
+          existingProfile.tiktok_username || "";
+
+        if (
+          savedUsername &&
+          !savedUsername.startsWith("pending_")
+        ) {
+          setTiktokUsername(savedUsername);
+        } else {
+          setTiktokUsername("");
+        }
 
         setDiamondLevel(
           existingProfile.diamond_level !== null &&
@@ -114,6 +184,10 @@ export default function CrownLinkProfileSetupPage() {
 
         setProfilePhotoUrl(
           existingProfile.profile_photo_url || ""
+        );
+
+        setTiktokConnected(
+          Boolean(existingProfile.tiktok_open_id)
         );
       }
 
@@ -140,7 +214,6 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    // Re-check the official agency assignment before saving
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role, status, agency_id")
@@ -156,6 +229,7 @@ export default function CrownLinkProfileSetupPage() {
       setError(
         "We couldn't verify your Crown Link account."
       );
+
       setSaving(false);
       return;
     }
@@ -164,6 +238,7 @@ export default function CrownLinkProfileSetupPage() {
       setError(
         "No agency has been assigned to your account."
       );
+
       setSaving(false);
       return;
     }
@@ -182,6 +257,7 @@ export default function CrownLinkProfileSetupPage() {
       setError(
         "Your assigned agency could not be verified."
       );
+
       setSaving(false);
       return;
     }
@@ -218,10 +294,7 @@ export default function CrownLinkProfileSetupPage() {
           user_id: user.id,
           display_name: displayName.trim() || null,
           tiktok_username: cleanUsername,
-
-          // Agency comes from the admin assignment
           agency_name: agency.name,
-
           diamond_level: diamonds,
           profile_photo_url:
             profilePhotoUrl.trim() || null,
@@ -260,17 +333,20 @@ export default function CrownLinkProfileSetupPage() {
 
   if (loading) {
     return (
-      <main className="cl-page">
+      <main className="cl-page loading">
         <p>Loading Crown Link...</p>
 
         <style jsx>{`
           .cl-page {
             min-height: 100vh;
+            background: #080303;
+            color: white;
+          }
+
+          .loading {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #080303;
-            color: white;
           }
         `}</style>
       </main>
@@ -302,9 +378,83 @@ export default function CrownLinkProfileSetupPage() {
             <h2>Your Creator Profile</h2>
 
             <p>
-              This information will be used for Crown Link
-              events and battle matchmaking.
+              Connect your TikTok profile and complete
+              your Crown Link information.
             </p>
+          </div>
+
+          <div className="tiktok-section">
+            {!tiktokConnected ? (
+              <>
+                <div className="tiktok-icon">
+                  ♪
+                </div>
+
+                <div className="tiktok-copy">
+                  <strong>Connect your TikTok</strong>
+
+                  <span>
+                    Import your TikTok display name and
+                    profile photo automatically.
+                  </span>
+                </div>
+
+                <a
+                  href="/api/crownlink/tiktok/connect"
+                  className="tiktok-button"
+                >
+                  Continue with TikTok
+                </a>
+              </>
+            ) : (
+              <>
+                <div className="connected-profile">
+                  {profilePhotoUrl ? (
+                    <img
+                      src={profilePhotoUrl}
+                      alt="TikTok profile"
+                    />
+                  ) : (
+                    <div className="profile-placeholder">
+                      ♪
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="connected-label">
+                      ✓ TIKTOK CONNECTED
+                    </span>
+
+                    <strong>
+                      {displayName || "TikTok Creator"}
+                    </strong>
+
+                    {tiktokUsername && (
+                      <small>
+                        @{tiktokUsername}
+                      </small>
+                    )}
+                  </div>
+                </div>
+
+                <a
+                  href="/api/crownlink/tiktok/connect"
+                  className="reconnect-button"
+                >
+                  Connect Different TikTok
+                </a>
+              </>
+            )}
+          </div>
+
+          {tiktokMessage && (
+            <div className="cl-success">
+              ✓ {tiktokMessage}
+            </div>
+          )}
+
+          <div className="cl-divider">
+            <span>PROFILE DETAILS</span>
           </div>
 
           <div className="cl-field">
@@ -318,6 +468,13 @@ export default function CrownLinkProfileSetupPage() {
                 setDisplayName(e.target.value)
               }
             />
+
+            {tiktokConnected && (
+              <small>
+                Imported from TikTok. You can adjust it
+                for Crown Link if needed.
+              </small>
+            )}
           </div>
 
           <div className="cl-field">
@@ -336,6 +493,19 @@ export default function CrownLinkProfileSetupPage() {
                 required
               />
             </div>
+
+            {tiktokConnected ? (
+              <small>
+                TikTok is connected. Enter your current
+                @username so Crown Link can link directly
+                to your profile.
+              </small>
+            ) : (
+              <small>
+                Enter the username shown on your TikTok
+                profile.
+              </small>
+            )}
           </div>
 
           <div className="cl-field">
@@ -352,7 +522,9 @@ export default function CrownLinkProfileSetupPage() {
                 </strong>
               </div>
 
-              <span className="agency-lock">🔒</span>
+              <span className="agency-lock">
+                🔒
+              </span>
             </div>
 
             <small>
@@ -382,24 +554,6 @@ export default function CrownLinkProfileSetupPage() {
             </small>
           </div>
 
-          <div className="cl-field">
-            <label>Profile Photo URL</label>
-
-            <input
-              type="url"
-              placeholder="https://..."
-              value={profilePhotoUrl}
-              onChange={(e) =>
-                setProfilePhotoUrl(e.target.value)
-              }
-            />
-
-            <small>
-              We'll replace this with an easier profile
-              photo uploader later.
-            </small>
-          </div>
-
           {error && (
             <div className="cl-error">
               {error}
@@ -415,6 +569,18 @@ export default function CrownLinkProfileSetupPage() {
               ? "Saving Profile..."
               : "Save Creator Profile"}
           </button>
+
+          <div className="legal-links">
+            By connecting TikTok, you agree to the{" "}
+            <a href="/crownlink/terms">
+              Terms of Service
+            </a>{" "}
+            and acknowledge the{" "}
+            <a href="/crownlink/privacy">
+              Privacy Policy
+            </a>
+            .
+          </div>
         </form>
       </div>
 
@@ -482,7 +648,7 @@ export default function CrownLinkProfileSetupPage() {
         }
 
         .cl-heading {
-          margin-bottom: 28px;
+          margin-bottom: 24px;
         }
 
         .cl-heading h2 {
@@ -495,6 +661,146 @@ export default function CrownLinkProfileSetupPage() {
           color: rgba(255, 255, 255, 0.5);
           font-size: 14px;
           line-height: 1.6;
+        }
+
+        .tiktok-section {
+          padding: 20px;
+          margin-bottom: 25px;
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(0, 0, 0, 0.32);
+        }
+
+        .tiktok-icon {
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+          background: white;
+          color: black;
+          font-size: 24px;
+          font-weight: 900;
+        }
+
+        .tiktok-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .tiktok-copy strong {
+          font-size: 17px;
+        }
+
+        .tiktok-copy span {
+          color: rgba(255, 255, 255, 0.48);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .tiktok-button {
+          display: block;
+          box-sizing: border-box;
+          width: 100%;
+          margin-top: 15px;
+          padding: 13px;
+          border-radius: 11px;
+          background: white;
+          color: #050505;
+          text-align: center;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 900;
+        }
+
+        .connected-profile {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .connected-profile img,
+        .profile-placeholder {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          object-fit: cover;
+          flex-shrink: 0;
+          border: 2px solid rgba(211, 163, 60, 0.6);
+        }
+
+        .profile-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.07);
+          color: #d3a33c;
+          font-size: 24px;
+        }
+
+        .connected-profile div {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .connected-label {
+          color: #90e6a2;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 1.4px;
+        }
+
+        .connected-profile strong {
+          font-size: 18px;
+        }
+
+        .connected-profile small {
+          color: #d3a33c;
+        }
+
+        .reconnect-button {
+          display: inline-block;
+          margin-top: 14px;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 11px;
+          font-weight: 700;
+          text-decoration: none;
+        }
+
+        .cl-success {
+          padding: 12px 14px;
+          margin-bottom: 20px;
+          border-radius: 10px;
+          background: rgba(60, 180, 90, 0.08);
+          border: 1px solid rgba(80, 210, 110, 0.22);
+          color: #b8f5c2;
+          font-size: 13px;
+        }
+
+        .cl-divider {
+          display: flex;
+          align-items: center;
+          margin: 28px 0 22px;
+          color: rgba(255, 255, 255, 0.25);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 2px;
+        }
+
+        .cl-divider::before,
+        .cl-divider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        .cl-divider span {
+          padding: 0 12px;
         }
 
         .cl-field {
@@ -627,6 +933,19 @@ export default function CrownLinkProfileSetupPage() {
           opacity: 0.55;
           cursor: not-allowed;
           transform: none;
+        }
+
+        .legal-links {
+          margin-top: 16px;
+          text-align: center;
+          color: rgba(255, 255, 255, 0.3);
+          font-size: 10px;
+          line-height: 1.6;
+        }
+
+        .legal-links a {
+          color: rgba(211, 163, 60, 0.8);
+          text-decoration: none;
         }
 
         @media (max-width: 600px) {
