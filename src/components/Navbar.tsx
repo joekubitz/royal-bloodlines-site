@@ -27,11 +27,23 @@ export default function Navbar() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+      }
     };
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
+
+  // Crown Link is its own app experience.
+  // Hide the regular Royals Bloodline navbar on all /crownlink pages.
+  if (pathname.startsWith("/crownlink")) {
+    return null;
+  }
 
   const activeColor = "rgba(255,215,0,0.95)";
   const inactiveColor = "rgba(255,255,255,0.78)";
@@ -68,6 +80,7 @@ export default function Navbar() {
                 flexShrink: 0,
               }}
             />
+
             <span className="rb-brand-full">ROYALS BLOODLINE</span>
             <span className="rb-brand-short">RB</span>
           </Link>
@@ -86,7 +99,10 @@ export default function Navbar() {
                   borderRadius: 10,
                   whiteSpace: "nowrap",
                   transition: "all 0.15s ease",
-                  color: pathname === l.href ? activeColor : inactiveColor,
+                  color:
+                    pathname === l.href
+                      ? activeColor
+                      : inactiveColor,
                 }}
               >
                 {l.label}
@@ -105,8 +121,13 @@ export default function Navbar() {
             </a>
 
             <Link href="/join" className="rb-cta-btn">
-              <span className="rb-cta-long">Claim Your Crown →</span>
-              <span className="rb-cta-short">Join</span>
+              <span className="rb-cta-long">
+                Claim Your Crown →
+              </span>
+
+              <span className="rb-cta-short">
+                Join
+              </span>
             </Link>
 
             <button
@@ -130,7 +151,11 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="rb-mobile-link"
                 style={{
-                  color: pathname === l.href ? activeColor : "rgba(255,255,255,0.9)",
+                  color:
+                    pathname === l.href
+                      ? activeColor
+                      : "rgba(255,255,255,0.9)",
+
                   background:
                     pathname === l.href
                       ? "rgba(255,215,0,0.08)"

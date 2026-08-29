@@ -12,7 +12,19 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+const { data: userRole, error: roleError } = await supabase
+  .from("user_roles")
+  .select("role, status")
+  .eq("user_id", user.id)
+  .single();
 
+if (roleError || !userRole) {
+  redirect("/login");
+}
+
+if (userRole.role !== "admin" || userRole.status !== "active") {
+  redirect("/crownlink");
+}
   const { data: clicks, error } = await supabase
     .from("clicks")
     .select("id, created_at, agent, link_key, page_path")
