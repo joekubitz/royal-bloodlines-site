@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useMemo,
   useState,
@@ -8,6 +7,12 @@ import {
 
 import CreatorPerformanceTable from "./CreatorPerformanceTable";
 import AgentPerformanceTable from "./AgentPerformanceTable";
+import AgentTrendCharts, {
+  type AgentTrendPoint,
+} from "./AgentTrendCharts";
+import DashboardAlerts, {
+  type DashboardAlert,
+} from "./DashboardAlerts";
 
 export type CreatorStat = {
   id: string;
@@ -40,41 +45,19 @@ export type CreatorStat = {
   imported_at: string;
 };
 
-function formatImportTime(
-  value: string | null
-) {
-  if (!value) {
-    return "Never";
-  }
-
-  const date = new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(
-    "en-US",
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }
-  ).format(date);
-}
+export type AgentTrendHistory =
+  Record<
+    string,
+    AgentTrendPoint[]
+  >;
 
 export default function AnalyticsDashboardClient({
   creators,
-  latestImport,
+  agentTrendHistory = {},
 }: {
   creators: CreatorStat[];
-  latestImport: string | null;
+  latestImport?: string | null;
+  agentTrendHistory?: AgentTrendHistory;
 }) {
   const [
     agentFilter,
@@ -122,12 +105,34 @@ export default function AnalyticsDashboardClient({
 
       return creators.filter(
         (creator) =>
-          creator.manager ===
+          creator.manager?.trim() ===
           agentFilter
       );
     }, [
       creators,
       agentFilter,
+    ]);
+
+  /*
+    SELECTED AGENT HISTORY
+  */
+
+  const selectedAgentHistory =
+    useMemo(() => {
+      if (
+        agentFilter === "all"
+      ) {
+        return [];
+      }
+
+      return (
+        agentTrendHistory[
+          agentFilter
+        ] ?? []
+      );
+    }, [
+      agentFilter,
+      agentTrendHistory,
     ]);
 
   /*
@@ -197,16 +202,6 @@ export default function AnalyticsDashboardClient({
 
   /*
     DIAMOND INCREASES
-
-    Camera Kings rule:
-
-    Current diamonds must be
-    at least 100,000
-
-    AND
-
-    Current diamonds must be
-    greater than last month.
   */
 
   const diamondIncreases =
@@ -304,6 +299,313 @@ export default function AnalyticsDashboardClient({
       : 0;
 
   /*
+    DASHBOARD ALERTS
+  */
+
+  const alerts =
+    useMemo<
+      DashboardAlert[]
+    >(() => {
+      const results:
+        DashboardAlert[] = [];
+
+      if (
+        filteredCreators.length === 0
+      ) {
+        return results;
+      }
+
+      /*
+        TEAM DIAMOND CHANGE
+      */
+
+      if (
+        lastMonthDiamonds > 0 &&
+        diamondChangePercent !== null
+      ) {
+        if (
+          diamondChangePercent <= -20
+        ) {
+          results.push({
+            id: "major-diamond-drop",
+            type: "danger",
+            title:
+              "Major Diamond Drop",
+            message: `Diamonds are down ${Math.abs(
+              diamondChangePercent
+            ).toFixed(
+              1
+            )}% compared with last month.`,
+          });
+        } else if (
+          diamondChangePercent <= -10
+        ) {
+          results.push({
+            id: "diamond-drop",
+            type: "warning",
+            title:
+              "Diamonds Are Trending Down",
+            message: `Diamonds are down ${Math.abs(
+              diamondChangePercent
+            ).toFixed(
+              1
+            )}% compared with last month.`,
+          });
+        } else if (
+          diamondChangePercent >= 10
+        ) {
+          results.push({
+            id: "diamond-growth",
+            type: "success",
+            title:
+              "Strong Diamond Growth",
+            message: `Diamonds are up ${diamondChangePercent.toFixed(
+              1
+            )}% compared with last month.`,
+          });
+        }
+      }
+
+      /*
+        REQUIREMENT COMPLETION
+      */
+
+      const completionRate =
+        totalCreators > 0
+          ? (complete /
+              totalCreators) *
+            100
+          : 0;
+
+      if (
+        completionRate < 25
+      ) {
+        results.push({
+          id: "low-completion",
+          type: "danger",
+          title:
+            "Low Requirement Completion",
+          message: `Only ${Math.round(
+            completionRate
+          )}% of creators currently meet both the 12 day and 25 hour requirements.`,
+        });
+      } else if (
+        completionRate < 50
+      ) {
+        results.push({
+          id: "completion-watch",
+          type: "warning",
+          title:
+            "Requirement Completion Watch",
+          message: `${Math.round(
+            completionRate
+          )}% of creators currently meet both requirements.`,
+        });
+      } else if (
+        completionRate >= 75
+      ) {
+        results.push({
+          id: "strong-completion",
+          type: "success",
+          title:
+            "Strong Requirement Completion",
+          message: `${Math.round(
+            completionRate
+          )}% of creators currently meet both the 12 day and 25 hour requirements.`,
+        });
+      }
+
+      /*
+        CLOSE TO COMPLETING
+      */
+
+      const closeToComplete =
+        filteredCreators.filter(
+          (creator) => {
+            const days =
+              Number(
+                creator.live_days ??
+                  0
+              );
+
+            const hours =
+              Number(
+                creator.live_duration ??
+                  0
+              );
+
+            const isComplete =
+              days >= 12 &&
+              hours >= 25;
+
+            if (isComplete) {
+              return false;
+            }
+
+            return (
+              days >= 10 &&
+              hours >= 20
+            );
+          }
+        ).length;
+
+      if (
+        closeToComplete > 0
+      ) {
+        results.push({
+          id: "close-to-complete",
+          type: "info",
+          title:
+            "Creators Close to Completion",
+          message: `${closeToComplete.toLocaleString()} ${
+            closeToComplete === 1
+              ? "creator is"
+              : "creators are"
+          } currently at 10+ valid days and 20+ LIVE hours but have not completed both requirements yet.`,
+        });
+      }
+
+      /*
+        HIGH DIAMOND CREATORS
+        MISSING REQUIREMENTS
+      */
+
+      const highDiamondAttention =
+        filteredCreators.filter(
+          (creator) => {
+            const diamonds =
+              Number(
+                creator.diamonds ??
+                  0
+              );
+
+            const days =
+              Number(
+                creator.live_days ??
+                  0
+              );
+
+            const hours =
+              Number(
+                creator.live_duration ??
+                  0
+              );
+
+            return (
+              diamonds >= 100000 &&
+              !(
+                days >= 12 &&
+                hours >= 25
+              )
+            );
+          }
+        ).length;
+
+      if (
+        highDiamondAttention > 0
+      ) {
+        results.push({
+          id:
+            "high-diamond-attention",
+          type: "warning",
+          title:
+            "High Diamond Creators Missing Requirements",
+          message: `${highDiamondAttention.toLocaleString()} ${
+            highDiamondAttention ===
+            1
+              ? "creator has"
+              : "creators have"
+          } at least 100,000 diamonds but have not yet completed both LIVE requirements.`,
+        });
+      }
+
+      /*
+        LARGE INDIVIDUAL
+        DIAMOND DROPS
+      */
+
+      const majorCreatorDrops =
+        filteredCreators.filter(
+          (creator) => {
+            const current =
+              Number(
+                creator.diamonds ??
+                  0
+              );
+
+            const previous =
+              Number(
+                creator.last_month_diamonds ??
+                  0
+              );
+
+            if (
+              previous < 100000
+            ) {
+              return false;
+            }
+
+            const change =
+              ((current -
+                previous) /
+                previous) *
+              100;
+
+            return (
+              change <= -50
+            );
+          }
+        ).length;
+
+      if (
+        majorCreatorDrops > 0
+      ) {
+        results.push({
+          id:
+            "major-creator-drops",
+          type: "warning",
+          title:
+            "Large Creator Diamond Drops",
+          message: `${majorCreatorDrops.toLocaleString()} ${
+            majorCreatorDrops === 1
+              ? "creator is"
+              : "creators are"
+          } down at least 50% in diamonds compared with last month after previously producing at least 100,000 diamonds.`,
+        });
+      }
+
+      /*
+        100K+ DIAMOND INCREASES
+      */
+
+      if (
+        diamondIncreases > 0
+      ) {
+        results.push({
+          id:
+            "diamond-increases",
+          type: "success",
+          title:
+            "100K+ Diamond Increases",
+          message: `${diamondIncreases.toLocaleString()} ${
+            diamondIncreases === 1
+              ? "creator has"
+              : "creators have"
+          } reached at least 100,000 diamonds and increased from last month.`,
+        });
+      }
+
+      return results;
+    }, [
+      filteredCreators,
+      totalCreators,
+      complete,
+      lastMonthDiamonds,
+      diamondChangePercent,
+      diamondIncreases,
+    ]);
+
+  /*
     AGENT RANKING CLICK
   */
 
@@ -319,434 +621,358 @@ export default function AnalyticsDashboardClient({
   }
 
   return (
-    <main className="min-h-screen bg-black px-6 py-10 text-white">
+    <div className="text-white">
 
-      <div className="mx-auto max-w-[1700px]">
+      {/* AGENT FILTER */}
 
-        {/* HEADER */}
-
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-
-            <p className="text-sm uppercase tracking-[0.3em] text-red-500">
-              Royals Bloodline
+            <p className="text-sm font-semibold text-white">
+              Dashboard View
             </p>
 
-            <h1 className="mt-2 text-3xl font-bold md:text-4xl">
-              Backstage Analytics
-            </h1>
-
-            <p className="mt-2 text-gray-400">
-              Creator performance and
-              12 day / 25 hour
-              requirement tracking.
+            <p className="mt-1 text-sm text-gray-400">
+              Select an agent to
+              recalculate the entire
+              dashboard for their
+              creator roster.
             </p>
+          </div>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Last updated:{" "}
-              {formatImportTime(
-                latestImport
+          <div className="w-full lg:w-[350px]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Agent
+            </label>
+
+            <select
+              value={
+                agentFilter
+              }
+              onChange={(
+                event
+              ) =>
+                setAgentFilter(
+                  event.target
+                    .value
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
+            >
+              <option value="all">
+                All Agents
+              </option>
+
+              {agents.map(
+                (agent) => (
+                  <option
+                    key={
+                      agent
+                    }
+                    value={
+                      agent
+                    }
+                  >
+                    {
+                      agent
+                    }
+                  </option>
+                )
               )}
-            </p>
-
+            </select>
           </div>
-
-          <Link
-            href="/admin/analytics/upload"
-            className="rounded-xl bg-red-700 px-5 py-3 text-center font-semibold transition hover:bg-red-600"
-          >
-            Upload Creator Data
-          </Link>
-
         </div>
 
-        {/* AGENT FILTER */}
-
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-
-            <div>
-
-              <p className="text-sm font-semibold text-white">
-                Dashboard View
-              </p>
-
-              <p className="mt-1 text-sm text-gray-400">
-                Select an agent to
-                recalculate the entire
-                dashboard for their
-                creator roster.
-              </p>
-
-            </div>
-
-            <div className="w-full lg:w-[350px]">
-
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Agent
-              </label>
-
-              <select
-                value={agentFilter}
-                onChange={(event) =>
-                  setAgentFilter(
-                    event.target.value
-                  )
+        {agentFilter !==
+          "all" && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+            <p className="text-sm text-gray-400">
+              Viewing analytics
+              for{" "}
+              <span className="font-semibold text-white">
+                {
+                  agentFilter
                 }
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
-              >
+              </span>
+            </p>
 
-                <option value="all">
-                  All Agents
-                </option>
-
-                {agents.map(
-                  (agent) => (
-                    <option
-                      key={agent}
-                      value={agent}
-                    >
-                      {agent}
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
+            <button
+              type="button"
+              onClick={() =>
+                setAgentFilter(
+                  "all"
+                )
+              }
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
+            >
+              View All Agents
+            </button>
           </div>
+        )}
+      </div>
 
-          {agentFilter !==
-            "all" && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+      {/* DASHBOARD ALERTS */}
 
-              <p className="text-sm text-gray-400">
-                Viewing analytics for{" "}
-                <span className="font-semibold text-white">
-                  {agentFilter}
-                </span>
-              </p>
+      <DashboardAlerts
+        alerts={alerts}
+      />
 
-              <button
-                type="button"
-                onClick={() =>
-                  setAgentFilter(
-                    "all"
-                  )
-                }
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
-              >
-                View All Agents
-              </button>
+      {/* SUMMARY CARDS */}
 
-            </div>
-          )}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Creators
+          </p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {totalCreators.toLocaleString()}
+          </p>
         </div>
 
-        {/* SUMMARY CARDS */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Diamonds
+          </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <p className="mt-2 text-3xl font-bold">
+            {totalDiamonds.toLocaleString()}
+          </p>
 
-          {/* CREATORS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Creators
-            </p>
-
-            <p className="mt-2 text-3xl font-bold">
-              {totalCreators.toLocaleString()}
-            </p>
-
-          </div>
-
-          {/* DIAMONDS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Diamonds
-            </p>
-
-            <p className="mt-2 text-3xl font-bold">
-              {totalDiamonds.toLocaleString()}
-            </p>
-
-            {diamondChangePercent !==
-              null && (
-              <p
-                className={`mt-1 text-xs font-semibold ${
-                  diamondChangePercent >=
-                  0
-                    ? "text-green-300"
-                    : "text-red-300"
-                }`}
-              >
-                {diamondChangePercent >=
+          {diamondChangePercent !==
+            null && (
+            <p
+              className={`mt-1 text-xs font-semibold ${
+                diamondChangePercent >=
                 0
-                  ? "▲"
-                  : "▼"}{" "}
-                {Math.abs(
-                  diamondChangePercent
-                ).toFixed(1)}
-                % vs last month
-              </p>
-            )}
-
-          </div>
-
-          {/* LAST MONTH */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Last Month
+                  ? "text-green-300"
+                  : "text-red-300"
+              }`}
+            >
+              {diamondChangePercent >=
+              0
+                ? "▲"
+                : "▼"}{" "}
+              {Math.abs(
+                diamondChangePercent
+              ).toFixed(1)}
+              % vs last month
             </p>
-
-            <p className="mt-2 text-3xl font-bold">
-              {lastMonthDiamonds.toLocaleString()}
-            </p>
-
-            <p className="mt-1 text-xs text-gray-500">
-              diamonds
-            </p>
-
-          </div>
-
-          {/* MATCHES */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Matches
-            </p>
-
-            <p className="mt-2 text-3xl font-bold">
-              {totalMatches.toLocaleString()}
-            </p>
-
-          </div>
-
-          {/* MATCH DIAMONDS */}
-
-          <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Match Diamonds
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-purple-300">
-              {totalMatchDiamonds.toLocaleString()}
-            </p>
-
-            <p className="mt-1 text-xs text-gray-500">
-              diamonds from matches
-            </p>
-
-          </div>
-
-          {/* DIAMOND INCREASES */}
-
-          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Diamond Increases
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-blue-300">
-              {diamondIncreases.toLocaleString()}
-            </p>
-
-            <p className="mt-1 text-xs text-gray-500">
-              100K+ and increased
-            </p>
-
-          </div>
-
-          {/* MEET DAYS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Meet 12 Days
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-green-300">
-              {meetingDays.toLocaleString()}
-            </p>
-
-          </div>
-
-          {/* MEET HOURS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Meet 25 Hours
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-green-300">
-              {meetingHours.toLocaleString()}
-            </p>
-
-          </div>
-
-          {/* COMPLETE */}
-
-          <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Complete
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-green-300">
-              {complete.toLocaleString()}
-            </p>
-
-          </div>
-
-          {/* NEED ATTENTION */}
-
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
-
-            <p className="text-sm text-gray-400">
-              Need Attention
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-red-300">
-              {needsAttention.toLocaleString()}
-            </p>
-
-          </div>
-
+          )}
         </div>
 
-        {/* REQUIREMENT PROGRESS */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Last Month
+          </p>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <p className="mt-2 text-3xl font-bold">
+            {lastMonthDiamonds.toLocaleString()}
+          </p>
 
-          {/* DAYS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-
-            <div className="flex items-end justify-between gap-4">
-
-              <div>
-
-                <p className="text-sm text-gray-400">
-                  12 Day Requirement
-                </p>
-
-                <p className="mt-1 text-2xl font-bold">
-                  {meetingDays.toLocaleString()}{" "}
-                  /{" "}
-                  {totalCreators.toLocaleString()}
-                </p>
-
-              </div>
-
-              <p className="text-sm text-gray-400">
-                {Math.round(
-                  dayPercent
-                )}
-                %
-              </p>
-
-            </div>
-
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
-
-              <div
-                className="h-full bg-green-500"
-                style={{
-                  width: `${Math.min(
-                    dayPercent,
-                    100
-                  )}%`,
-                }}
-              />
-
-            </div>
-
-          </div>
-
-          {/* HOURS */}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-
-            <div className="flex items-end justify-between gap-4">
-
-              <div>
-
-                <p className="text-sm text-gray-400">
-                  25 Hour Requirement
-                </p>
-
-                <p className="mt-1 text-2xl font-bold">
-                  {meetingHours.toLocaleString()}{" "}
-                  /{" "}
-                  {totalCreators.toLocaleString()}
-                </p>
-
-              </div>
-
-              <p className="text-sm text-gray-400">
-                {Math.round(
-                  hourPercent
-                )}
-                %
-              </p>
-
-            </div>
-
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
-
-              <div
-                className="h-full bg-green-500"
-                style={{
-                  width: `${Math.min(
-                    hourPercent,
-                    100
-                  )}%`,
-                }}
-              />
-
-            </div>
-
-          </div>
-
+          <p className="mt-1 text-xs text-gray-500">
+            diamonds
+          </p>
         </div>
 
-        {/* AGENT PERFORMANCE */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Matches
+          </p>
 
-        <AgentPerformanceTable
-          creators={creators}
-          selectedAgent={
-            agentFilter
-          }
-          onSelectAgent={
-            handleSelectAgent
-          }
-        />
+          <p className="mt-2 text-3xl font-bold">
+            {totalMatches.toLocaleString()}
+          </p>
+        </div>
 
-        {/* CREATOR PERFORMANCE */}
+        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-5">
+          <p className="text-sm text-gray-400">
+            Match Diamonds
+          </p>
 
-        <CreatorPerformanceTable
-          creators={
-            filteredCreators
-          }
-          selectedAgent={
-            agentFilter
-          }
-        />
+          <p className="mt-2 text-3xl font-bold text-purple-300">
+            {totalMatchDiamonds.toLocaleString()}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-500">
+            diamonds from matches
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
+          <p className="text-sm text-gray-400">
+            Diamond Increases
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-blue-300">
+            {diamondIncreases.toLocaleString()}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-500">
+            100K+ and increased
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Meet 12 Days
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-green-300">
+            {meetingDays.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-gray-400">
+            Meet 25 Hours
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-green-300">
+            {meetingHours.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-5">
+          <p className="text-sm text-gray-400">
+            Complete
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-green-300">
+            {complete.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
+          <p className="text-sm text-gray-400">
+            Need Attention
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-red-300">
+            {needsAttention.toLocaleString()}
+          </p>
+        </div>
 
       </div>
 
-    </main>
+      {/* REQUIREMENT PROGRESS */}
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-400">
+                12 Day Requirement
+              </p>
+
+              <p className="mt-1 text-2xl font-bold">
+                {meetingDays.toLocaleString()}{" "}
+                /{" "}
+                {totalCreators.toLocaleString()}
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-400">
+              {Math.round(
+                dayPercent
+              )}
+              %
+            </p>
+          </div>
+
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full bg-green-500"
+              style={{
+                width: `${Math.min(
+                  dayPercent,
+                  100
+                )}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-400">
+                25 Hour Requirement
+              </p>
+
+              <p className="mt-1 text-2xl font-bold">
+                {meetingHours.toLocaleString()}{" "}
+                /{" "}
+                {totalCreators.toLocaleString()}
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-400">
+              {Math.round(
+                hourPercent
+              )}
+              %
+            </p>
+          </div>
+
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full bg-green-500"
+              style={{
+                width: `${Math.min(
+                  hourPercent,
+                  100
+                )}%`,
+              }}
+            />
+          </div>
+        </div>
+
+      </div>
+
+      {/* AGENT TREND TRACKING */}
+
+      {agentFilter !==
+        "all" && (
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <AgentTrendCharts
+            agent={
+              agentFilter
+            }
+            history={
+              selectedAgentHistory
+            }
+          />
+        </div>
+      )}
+
+      {/* AGENT PERFORMANCE */}
+
+      <AgentPerformanceTable
+        creators={
+          creators
+        }
+        selectedAgent={
+          agentFilter
+        }
+        onSelectAgent={
+          handleSelectAgent
+        }
+      />
+
+      {/* CREATOR PERFORMANCE */}
+
+      <CreatorPerformanceTable
+        creators={
+          filteredCreators
+        }
+        selectedAgent={
+          agentFilter
+        }
+      />
+
+    </div>
   );
 }

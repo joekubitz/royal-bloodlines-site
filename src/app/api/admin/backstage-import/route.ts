@@ -15,9 +15,7 @@ type ImportCreatorRow = {
   last_month_hours?: number | null;
 };
 
-function cleanNumber(
-  value: unknown
-) {
+function cleanNumber(value: unknown) {
   const number = Number(value);
 
   return Number.isFinite(number)
@@ -25,12 +23,9 @@ function cleanNumber(
     : 0;
 }
 
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
-    const supabase =
-      await createClient();
+    const supabase = await createClient();
 
     /*
       AUTH
@@ -38,14 +33,12 @@ export async function POST(
 
     const {
       data: { user },
-    } =
-      await supabase.auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json(
         {
-          error:
-            "Not authenticated.",
+          error: "Not authenticated.",
         },
         {
           status: 401,
@@ -57,27 +50,20 @@ export async function POST(
       ADMIN CHECK
     */
 
-    const { data: userRole } =
-      await supabase
-        .from("user_roles")
-        .select("role, status")
-        .eq(
-          "user_id",
-          user.id
-        )
-        .single();
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .single();
 
     if (
       !userRole ||
-      userRole.role !==
-        "admin" ||
-      userRole.status !==
-        "active"
+      userRole.role !== "admin" ||
+      userRole.status !== "active"
     ) {
       return NextResponse.json(
         {
-          error:
-            "Admin access required.",
+          error: "Admin access required.",
         },
         {
           status: 403,
@@ -89,19 +75,21 @@ export async function POST(
       READ BODY
     */
 
-    const body =
-      await request.json();
+    const body = await request.json();
 
-    const rows =
-      Array.isArray(body.rows)
-        ? (body.rows as ImportCreatorRow[])
-        : [];
+    const rows = Array.isArray(body.rows)
+      ? (body.rows as ImportCreatorRow[])
+      : [];
+
+    const dataPeriod =
+      typeof body.dataPeriod === "string"
+        ? body.dataPeriod.trim()
+        : null;
 
     if (rows.length === 0) {
       return NextResponse.json(
         {
-          error:
-            "No creator rows were provided.",
+          error: "No creator rows were provided.",
         },
         {
           status: 400,
@@ -111,14 +99,9 @@ export async function POST(
 
     /*
       SHARED IMPORT TIME
-
-      Every creator in this upload
-      receives the same imported_at
-      value.
     */
 
-    const importedAt =
-      new Date().toISOString();
+    const importedAt = new Date().toISOString();
 
     /*
       CLEAN ROWS
@@ -195,8 +178,7 @@ export async function POST(
               row.last_month_hours
             ),
 
-          imported_at:
-            importedAt,
+          imported_at: importedAt,
         };
       })
       .filter(
@@ -204,13 +186,10 @@ export async function POST(
           row.username.length > 0
       );
 
-    if (
-      cleanedRows.length === 0
-    ) {
+    if (cleanedRows.length === 0) {
       return NextResponse.json(
         {
-          error:
-            "No valid creators were found.",
+          error: "No valid creators were found.",
         },
         {
           status: 400,
@@ -219,10 +198,56 @@ export async function POST(
     }
 
     /*
-      INSERT IN BATCHES
+      CREATE IMPORT HISTORY RECORD
+    */
 
-      Keeps large Backstage
-      reports reliable.
+    const {
+      data: importRecord,
+      error: importRecordError,
+    } = await supabase
+      .from("backstage_imports")
+      .insert({
+        data_period: dataPeriod,
+        creator_count: cleanedRows.length,
+        uploaded_by: user.id,
+        imported_at: importedAt,
+      })
+      .select("id")
+      .single();
+
+    if (
+      importRecordError ||
+      !importRecord
+    ) {
+      console.error(
+        "Backstage import history error:",
+        importRecordError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            importRecordError?.message ||
+            "Unable to create import history record.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /*
+      ATTACH IMPORT ID TO ALL ROWS
+    */
+
+    const rowsWithImportId =
+      cleanedRows.map((row) => ({
+        ...row,
+        import_id: importRecord.id,
+      }));
+
+    /*
+      INSERT IN BATCHES
     */
 
     const batchSize = 250;
@@ -231,11 +256,11 @@ export async function POST(
 
     for (
       let i = 0;
-      i < cleanedRows.length;
+      i < rowsWithImportId.length;
       i += batchSize
     ) {
       const batch =
-        cleanedRows.slice(
+        rowsWithImportId.slice(
           i,
           i + batchSize
         );
@@ -249,14 +274,23 @@ export async function POST(
 
       if (error) {
         console.error(
-          "Backstage import error:",
+          "Backstage creator import error:",
           error
         );
 
+        /*
+          CLEAN UP EMPTY HISTORY RECORD
+          IF CREATOR IMPORT FAILS
+        */
+
+        await supabase
+          .from("backstage_imports")
+          .delete()
+          .eq("id", importRecord.id);
+
         return NextResponse.json(
           {
-            error:
-              error.message,
+            error: error.message,
           },
           {
             status: 500,
@@ -264,13 +298,15 @@ export async function POST(
         );
       }
 
-      importedCount +=
-        batch.length;
+      importedCount += batch.length;
     }
 
     return NextResponse.json({
       success: true,
       count: importedCount,
+      importId: importRecord.id,
+      dataPeriod,
+      importedAt,
     });
   } catch (error) {
     console.error(

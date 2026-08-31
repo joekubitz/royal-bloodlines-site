@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
 import CreatorPdfDownloadButton from "./CreatorPdfDownloadButton";
+import CreatorTrendCharts from "./CreatorTrendCharts";
 
 type CreatorStat = {
   id: string;
@@ -844,6 +845,12 @@ export default async function CreatorAnalyticsPage({
 
           </div>
 
+        </div>
+
+        {/* PERFORMANCE TRENDS */}
+
+        <div className="mt-8">
+          <CreatorTrendCharts history={history} />
         </div>
 
         {/* IMPORT HISTORY */}

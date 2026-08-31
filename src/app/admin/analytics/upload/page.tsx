@@ -34,7 +34,9 @@ function cleanNumber(value: unknown) {
   }
 
   if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
+    return Number.isFinite(value)
+      ? value
+      : 0;
   }
 
   const cleaned = String(value)
@@ -44,10 +46,14 @@ function cleanNumber(value: unknown) {
 
   const parsed = Number(cleaned);
 
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
 }
 
-function parseDurationToHours(value: unknown) {
+function parseDurationToHours(
+  value: unknown
+) {
   if (
     value === null ||
     value === undefined ||
@@ -57,7 +63,9 @@ function parseDurationToHours(value: unknown) {
   }
 
   if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
+    return Number.isFinite(value)
+      ? value
+      : 0;
   }
 
   const text = String(value)
@@ -69,11 +77,8 @@ function parseDurationToHours(value: unknown) {
   }
 
   /*
-    Handles values already supplied
-    as decimal hours.
-
-    Example:
-    103.60
+    If TikTok already gives us
+    a plain decimal number.
   */
 
   if (/^\d+(\.\d+)?$/.test(text)) {
@@ -81,9 +86,8 @@ function parseDurationToHours(value: unknown) {
   }
 
   /*
-    Handles TikTok duration format.
+    TikTok duration examples:
 
-    Examples:
     103h 36m 2s
     24h 15m
     45m 20s
@@ -104,7 +108,9 @@ function parseDurationToHours(value: unknown) {
   );
 
   if (hourMatch) {
-    totalHours += Number(hourMatch[1]);
+    totalHours += Number(
+      hourMatch[1]
+    );
   }
 
   if (minuteMatch) {
@@ -141,6 +147,9 @@ export default function AnalyticsUploadPage() {
   const [fileName, setFileName] =
     useState("");
 
+  const [dataPeriod, setDataPeriod] =
+    useState("");
+
   const [error, setError] =
     useState("");
 
@@ -150,17 +159,25 @@ export default function AnalyticsUploadPage() {
   const [uploading, setUploading] =
     useState(false);
 
-  async function handleFile(file: File) {
+  async function handleFile(
+    file: File
+  ) {
     setError("");
     setSuccess("");
     setRows([]);
+    setDataPeriod("");
     setFileName(file.name);
 
     try {
+      /*
+        READ SPREADSHEET
+      */
+
       const buffer =
         await file.arrayBuffer();
 
-      const workbook = XLSX.read(buffer);
+      const workbook =
+        XLSX.read(buffer);
 
       const sheetName =
         workbook.SheetNames[0];
@@ -193,12 +210,19 @@ export default function AnalyticsUploadPage() {
         HEADER ROW
       */
 
-      const headers = rawRows[0];
+      const headers =
+        rawRows[0];
 
       /*
-        FIND EXACT TIKTOK BACKSTAGE
-        COLUMN HEADERS
+        FIND EXACT TIKTOK
+        BACKSTAGE HEADERS
       */
+
+      const dataPeriodIndex =
+        findHeaderIndex(
+          headers,
+          "Data period"
+        );
 
       const usernameIndex =
         findHeaderIndex(
@@ -272,6 +296,12 @@ export default function AnalyticsUploadPage() {
 
       const missingHeaders: string[] =
         [];
+
+      if (dataPeriodIndex === -1) {
+        missingHeaders.push(
+          "Data period"
+        );
+      }
 
       if (usernameIndex === -1) {
         missingHeaders.push(
@@ -360,6 +390,41 @@ export default function AnalyticsUploadPage() {
       }
 
       /*
+        FIND DATA PERIOD
+
+        TikTok normally repeats the
+        Data period on every creator row.
+
+        We grab the first non-empty one.
+      */
+
+      let detectedDataPeriod = "";
+
+      for (
+        let i = 1;
+        i < rawRows.length;
+        i++
+      ) {
+        const period = String(
+          rawRows[i]?.[
+            dataPeriodIndex
+          ] ?? ""
+        ).trim();
+
+        if (period) {
+          detectedDataPeriod =
+            period;
+          break;
+        }
+      }
+
+      if (!detectedDataPeriod) {
+        throw new Error(
+          "The spreadsheet contains a Data period column, but no data period value was found."
+        );
+      }
+
+      /*
         PARSE CREATOR DATA
       */
 
@@ -368,24 +433,23 @@ export default function AnalyticsUploadPage() {
           .slice(1)
           .map((row) => {
             const username = String(
-              row[usernameIndex] ?? ""
+              row[
+                usernameIndex
+              ] ?? ""
             )
               .trim()
               .replace(/^@/, "");
 
             const manager = String(
-              row[managerIndex] ?? ""
+              row[
+                managerIndex
+              ] ?? ""
             ).trim();
 
             return {
               username,
 
               manager,
-
-              /*
-                COLUMN G
-                Days since joining
-              */
 
               days_since_joining:
                 Math.round(
@@ -396,49 +460,37 @@ export default function AnalyticsUploadPage() {
                   )
                 ),
 
-              /*
-                CURRENT DIAMONDS
-              */
-
               diamonds:
                 Math.round(
                   cleanNumber(
-                    row[diamondsIndex]
+                    row[
+                      diamondsIndex
+                    ]
                   )
                 ),
 
-              /*
-                CURRENT VALID LIVE DAYS
-              */
-
               live_days:
                 cleanNumber(
-                  row[daysIndex]
+                  row[
+                    daysIndex
+                  ]
                 ),
-
-              /*
-                CURRENT LIVE HOURS
-              */
 
               live_duration:
                 parseDurationToHours(
-                  row[durationIndex]
+                  row[
+                    durationIndex
+                  ]
                 ),
-
-              /*
-                MATCHES
-              */
 
               matches:
                 Math.round(
                   cleanNumber(
-                    row[matchesIndex]
+                    row[
+                      matchesIndex
+                    ]
                   )
                 ),
-
-              /*
-                DIAMONDS FROM MATCHES
-              */
 
               diamonds_from_matches:
                 Math.round(
@@ -449,10 +501,6 @@ export default function AnalyticsUploadPage() {
                   )
                 ),
 
-              /*
-                LAST MONTH DIAMONDS
-              */
-
               last_month_diamonds:
                 Math.round(
                   cleanNumber(
@@ -462,29 +510,12 @@ export default function AnalyticsUploadPage() {
                   )
                 ),
 
-              /*
-                LAST MONTH VALID LIVE DAYS
-              */
-
               last_month_days:
                 cleanNumber(
                   row[
                     lastMonthDaysIndex
                   ]
                 ),
-
-              /*
-                LAST MONTH LIVE HOURS
-
-                IMPORTANT:
-                This uses the duration parser
-                because TikTok may provide
-                values such as:
-
-                82h 15m 22s
-
-                instead of a plain number.
-              */
 
               last_month_hours:
                 parseDurationToHours(
@@ -507,9 +538,20 @@ export default function AnalyticsUploadPage() {
         );
       }
 
+      /*
+        STORE PREVIEW
+      */
+
+      setDataPeriod(
+        detectedDataPeriod
+      );
+
       setRows(parsedRows);
     } catch (err) {
       console.error(err);
+
+      setRows([]);
+      setDataPeriod("");
 
       setError(
         err instanceof Error
@@ -520,7 +562,10 @@ export default function AnalyticsUploadPage() {
   }
 
   async function publishImport() {
-    if (rows.length === 0) {
+    if (
+      rows.length === 0 ||
+      uploading
+    ) {
       return;
     }
 
@@ -529,21 +574,28 @@ export default function AnalyticsUploadPage() {
     setSuccess("");
 
     try {
-      const response = await fetch(
-        "/api/admin/backstage-import",
-        {
-          method: "POST",
+      /*
+        SEND ROWS + DATA PERIOD
+        TO IMPORT API
+      */
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+      const response =
+        await fetch(
+          "/api/admin/backstage-import",
+          {
+            method: "POST",
 
-          body: JSON.stringify({
-            rows,
-          }),
-        }
-      );
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              rows,
+              dataPeriod,
+            }),
+          }
+        );
 
       const result =
         await response.json();
@@ -557,8 +609,13 @@ export default function AnalyticsUploadPage() {
 
       setSuccess(
         `${Number(
-          result.count ?? rows.length
-        ).toLocaleString()} creators imported successfully.`
+          result.count ??
+            rows.length
+        ).toLocaleString()} creators imported successfully.${
+          dataPeriod
+            ? ` Data period: ${dataPeriod}.`
+            : ""
+        }`
       );
     } catch (err) {
       console.error(err);
@@ -576,7 +633,6 @@ export default function AnalyticsUploadPage() {
   return (
     <main className="min-h-screen bg-black px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-
         {/* HEADER */}
 
         <div>
@@ -597,9 +653,7 @@ export default function AnalyticsUploadPage() {
         {/* FILE UPLOAD */}
 
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-
           <label className="block">
-
             <span className="text-sm font-semibold">
               Backstage Spreadsheet
             </span>
@@ -607,24 +661,40 @@ export default function AnalyticsUploadPage() {
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
-              onChange={(event) => {
+              onChange={(
+                event
+              ) => {
                 const file =
                   event.target
                     .files?.[0];
 
                 if (file) {
-                  handleFile(file);
+                  handleFile(
+                    file
+                  );
                 }
               }}
               className="mt-3 block w-full rounded-xl border border-white/10 bg-black p-4 text-sm text-gray-300"
             />
-
           </label>
 
           {fileName && (
             <p className="mt-3 text-sm text-gray-500">
-              Selected: {fileName}
+              Selected:{" "}
+              {fileName}
             </p>
+          )}
+
+          {dataPeriod && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2">
+              <span className="text-xs uppercase tracking-wider text-gray-400">
+                Data Period
+              </span>
+
+              <span className="text-sm font-semibold text-red-300">
+                {dataPeriod}
+              </span>
+            </div>
           )}
 
           {error && (
@@ -638,16 +708,13 @@ export default function AnalyticsUploadPage() {
               {success}
             </div>
           )}
-
         </div>
 
         {/* PREVIEW */}
 
         {rows.length > 0 && (
           <>
-
             <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
               <div>
                 <h2 className="text-2xl font-bold">
                   Review Import
@@ -657,28 +724,37 @@ export default function AnalyticsUploadPage() {
                   {rows.length.toLocaleString()}{" "}
                   creators detected.
                 </p>
+
+                {dataPeriod && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Reporting period:{" "}
+                    <span className="font-medium text-gray-300">
+                      {dataPeriod}
+                    </span>
+                  </p>
+                )}
               </div>
 
               <button
                 type="button"
-                disabled={uploading}
-                onClick={publishImport}
+                disabled={
+                  uploading
+                }
+                onClick={
+                  publishImport
+                }
                 className="rounded-xl bg-red-700 px-6 py-3 font-semibold transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {uploading
                   ? "Importing..."
                   : "Import Creator Data"}
               </button>
-
             </div>
 
             <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
-
               <table className="w-full min-w-[1650px] text-sm">
-
                 <thead className="bg-white/10 text-left">
                   <tr>
-
                     <th className="p-4">
                       Creator
                     </th>
@@ -688,7 +764,8 @@ export default function AnalyticsUploadPage() {
                     </th>
 
                     <th className="p-4">
-                      Days Since Joining
+                      Days Since
+                      Joining
                     </th>
 
                     <th className="p-4">
@@ -712,7 +789,8 @@ export default function AnalyticsUploadPage() {
                     </th>
 
                     <th className="p-4">
-                      Last Month Diamonds
+                      Last Month
+                      Diamonds
                     </th>
 
                     <th className="p-4">
@@ -722,12 +800,10 @@ export default function AnalyticsUploadPage() {
                     <th className="p-4">
                       Last Month Hours
                     </th>
-
                   </tr>
                 </thead>
 
                 <tbody>
-
                   {rows
                     .slice(0, 50)
                     .map(
@@ -739,7 +815,6 @@ export default function AnalyticsUploadPage() {
                           key={`${creator.username}-${index}`}
                           className="border-t border-white/10"
                         >
-
                           <td className="p-4 font-semibold">
                             @
                             {
@@ -795,29 +870,24 @@ export default function AnalyticsUploadPage() {
                               2
                             )}
                           </td>
-
                         </tr>
                       )
                     )}
-
                 </tbody>
-
               </table>
-
             </div>
 
-            {rows.length > 50 && (
+            {rows.length >
+              50 && (
               <p className="mt-3 text-sm text-gray-500">
-                Previewing the first 50
-                of{" "}
+                Previewing the
+                first 50 of{" "}
                 {rows.length.toLocaleString()}{" "}
                 creators.
               </p>
             )}
-
           </>
         )}
-
       </div>
     </main>
   );
