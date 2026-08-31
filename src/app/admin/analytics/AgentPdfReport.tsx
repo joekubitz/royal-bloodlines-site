@@ -476,32 +476,33 @@ function StatCard({
   label: string;
   value: string;
   sub?: string;
-  valueStyle?: object;
+  valueStyle?: typeof styles.greenText;
   last?: boolean;
 }) {
   return (
     <View
-      style={[
-        styles.card,
-        last ? styles.lastCard : {},
-      ]}
+      style={
+        last
+          ? [styles.card, styles.lastCard]
+          : styles.card
+      }
     >
       <Text style={styles.cardLabel}>
         {label}
       </Text>
 
       <Text
-  style={
-    valueStyle
-      ? [
-          styles.cardValue,
-          valueStyle,
-        ]
-      : styles.cardValue
-  }
->
-  {value}
-</Text>
+        style={
+          valueStyle
+            ? [
+                styles.cardValue,
+                valueStyle,
+              ]
+            : styles.cardValue
+        }
+      >
+        {value}
+      </Text>
 
       {sub && (
         <Text style={styles.cardSub}>
