@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 import AddEventForm from "./AddEventForm";
+import RestoreSignupButton from "./RestoreSignupButton";
+import AddEventDateForm from "./AddEventDateForm";
+import RemoveEventDateButton from "./RemoveEventDateButton";
+import GenerateScheduleSlotsButton from "./GenerateScheduleSlotsButton";
 
 export default async function CrownLinkEventsAdminPage() {
   const supabase = await createClient();
@@ -31,72 +35,148 @@ export default async function CrownLinkEventsAdminPage() {
 
   const adminSupabase = createAdminClient();
 
-  const { data: events, error: eventsError } = await adminSupabase
-    .from("crownlink_events")
-    .select(`
-      id,
-      name,
-      event_date,
-      event_time,
-      status,
-      created_at
-    `)
-    .order("event_date", { ascending: true })
-    .order("event_time", { ascending: true });
+  const { data: events, error: eventsError } =
+    await adminSupabase
+      .from("crownlink_events")
+      .select(`
+        id,
+        name,
+        event_date,
+        event_time,
+        battle_interval_minutes,
+        status,
+        created_at
+      `)
+      .order("event_date", {
+        ascending: true,
+      })
+      .order("event_time", {
+        ascending: true,
+      });
 
   if (eventsError) {
-    console.error("ADMIN EVENTS ERROR:", eventsError);
+    console.error(
+      "ADMIN EVENTS ERROR:",
+      eventsError
+    );
   }
 
-  const { data: signups, error: signupsError } = await adminSupabase
-    .from("crownlink_event_signups")
+  const { data: eventDates, error: eventDatesError } =
+    await adminSupabase
+      .from("crownlink_event_dates")
+      .select(`
+        id,
+        event_id,
+        event_date
+      `)
+      .order("event_date", {
+        ascending: true,
+      });
+
+  if (eventDatesError) {
+    console.error(
+      "ADMIN EVENT DATES ERROR:",
+      eventDatesError
+    );
+  }
+
+  const {
+    data: generatedScheduleSlots,
+    error: generatedScheduleSlotsError,
+  } = await adminSupabase
+    .from("crownlink_schedule_slots")
     .select(`
       id,
       event_id,
-      user_id,
-      status,
+      event_date_id,
+      slot_time,
       created_at
     `)
-    .eq("status", "signed_up");
+    .order("slot_time", {
+      ascending: true,
+    });
+
+  if (generatedScheduleSlotsError) {
+    console.error(
+      "ADMIN GENERATED SCHEDULE SLOTS ERROR:",
+      generatedScheduleSlotsError
+    );
+  }
+
+  /*
+   * Load active AND admin-removed signups.
+   *
+   * Normal creator cancellations stay hidden
+   * from this admin management list.
+   */
+  const { data: signups, error: signupsError } =
+    await adminSupabase
+      .from("crownlink_event_signups")
+      .select(`
+        id,
+        event_id,
+        user_id,
+        status,
+        created_at
+      `)
+      .in("status", [
+        "signed_up",
+        "removed",
+      ]);
 
   if (signupsError) {
-    console.error("ADMIN EVENT SIGNUPS ERROR:", signupsError);
+    console.error(
+      "ADMIN EVENT SIGNUPS ERROR:",
+      signupsError
+    );
   }
 
-  const { data: profiles, error: profilesError } = await adminSupabase
-    .from("crownlink_profiles")
-    .select(`
-      user_id,
-      display_name,
-      tiktok_username,
-      diamond_level
-    `);
+  const { data: profiles, error: profilesError } =
+    await adminSupabase
+      .from("crownlink_profiles")
+      .select(`
+        user_id,
+        display_name,
+        tiktok_username,
+        diamond_level
+      `);
 
   if (profilesError) {
-    console.error("ADMIN PROFILE ERROR:", profilesError);
+    console.error(
+      "ADMIN PROFILE ERROR:",
+      profilesError
+    );
   }
 
-  const { data: roles, error: rolesError } = await adminSupabase
-    .from("user_roles")
-    .select(`
-      user_id,
-      agency_id
-    `)
-    .eq("role", "creator");
+  const { data: roles, error: rolesError } =
+    await adminSupabase
+      .from("user_roles")
+      .select(`
+        user_id,
+        agency_id
+      `)
+      .eq("role", "creator");
 
   if (rolesError) {
-    console.error("ADMIN CREATOR ROLE ERROR:", rolesError);
+    console.error(
+      "ADMIN CREATOR ROLE ERROR:",
+      rolesError
+    );
   }
 
-  const { data: agencies, error: agenciesError } = await adminSupabase
-    .from("crownlink_agencies")
-    .select(`
-      id,
-      name
-    `);
+  const { data: agencies, error: agenciesError } =
+    await adminSupabase
+      .from("crownlink_agencies")
+      .select(`
+        id,
+        name
+      `);
 
   if (agenciesError) {
-    console.error("ADMIN AGENCY ERROR:", agenciesError);
+    console.error(
+      "ADMIN AGENCY ERROR:",
+      agenciesError
+    );
   }
 
   const profileMap = new Map(
@@ -121,23 +201,31 @@ export default async function CrownLinkEventsAdminPage() {
   );
 
   function formatDate(dateString: string) {
-    const date = new Date(`${dateString}T12:00:00`);
+    const date = new Date(
+      `${dateString}T12:00:00`
+    );
 
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    return date.toLocaleDateString(
+      "en-US",
+      {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }
+    );
   }
 
   function formatTime(timeString: string) {
-    const [hourString, minuteString] = timeString.split(":");
+    const [hourString, minuteString] =
+      timeString.split(":");
 
     let hour = Number(hourString);
-    const minute = minuteString || "00";
+    const minute =
+      minuteString || "00";
 
-    const suffix = hour >= 12 ? "PM" : "AM";
+    const suffix =
+      hour >= 12 ? "PM" : "AM";
 
     hour = hour % 12 || 12;
 
@@ -204,18 +292,16 @@ export default async function CrownLinkEventsAdminPage() {
           <p
             style={{
               marginTop: 10,
-              color: "rgba(255,255,255,0.55)",
+              color:
+                "rgba(255,255,255,0.55)",
             }}
           >
-            Create events and view creator signups.
+            Create events and manage creator
+            signups.
           </p>
         </div>
 
-        {/* CREATE EVENT */}
-
         <AddEventForm />
-
-        {/* EVENT LIST */}
 
         <div
           style={{
@@ -232,7 +318,8 @@ export default async function CrownLinkEventsAdminPage() {
             Current Events
           </h2>
 
-          {!events || events.length === 0 ? (
+          {!events ||
+          events.length === 0 ? (
             <div
               style={{
                 padding: 24,
@@ -245,7 +332,8 @@ export default async function CrownLinkEventsAdminPage() {
                   "rgba(255,255,255,0.5)",
               }}
             >
-              No Crown Link events have been created yet.
+              No Crown Link events have been
+              created yet.
             </div>
           ) : (
             <div
@@ -255,11 +343,40 @@ export default async function CrownLinkEventsAdminPage() {
               }}
             >
               {events.map((event) => {
+                const eventRequiredDates =
+                  eventDates?.filter(
+                    (eventDate) =>
+                      eventDate.event_id ===
+                      event.id
+                  ) ?? [];
+
+                const eventGeneratedScheduleSlots =
+                  generatedScheduleSlots?.filter(
+                    (slot) =>
+                      slot.event_id ===
+                      event.id
+                  ) ?? [];
+
                 const eventSignups =
                   signups?.filter(
                     (signup) =>
-                      signup.event_id === event.id
+                      signup.event_id ===
+                      event.id
                   ) ?? [];
+
+                const activeSignups =
+                  eventSignups.filter(
+                    (signup) =>
+                      signup.status ===
+                      "signed_up"
+                  );
+
+                const removedSignups =
+                  eventSignups.filter(
+                    (signup) =>
+                      signup.status ===
+                      "removed"
+                  );
 
                 return (
                   <div
@@ -273,15 +390,14 @@ export default async function CrownLinkEventsAdminPage() {
                       overflow: "hidden",
                     }}
                   >
-                    {/* EVENT HEADER */}
-
                     <div
                       style={{
                         padding: 24,
                         display: "flex",
                         justifyContent:
                           "space-between",
-                        alignItems: "flex-start",
+                        alignItems:
+                          "flex-start",
                         gap: 20,
                         flexWrap: "wrap",
                       }}
@@ -303,7 +419,8 @@ export default async function CrownLinkEventsAdminPage() {
 
                         <h3
                           style={{
-                            margin: "8px 0 0",
+                            margin:
+                              "8px 0 0",
                             fontSize: 22,
                             fontWeight: 900,
                           }}
@@ -332,45 +449,356 @@ export default async function CrownLinkEventsAdminPage() {
 
                       <div
                         style={{
-                          padding:
-                            "10px 14px",
-                          borderRadius: 12,
-                          background:
-                            "rgba(211,163,60,0.08)",
-                          border:
-                            "1px solid rgba(211,163,60,0.18)",
-                          textAlign: "center",
-                          minWidth: 100,
+                          display: "flex",
+                          gap: 10,
+                          flexWrap: "wrap",
                         }}
                       >
                         <div
                           style={{
-                            fontSize: 22,
-                            fontWeight: 900,
-                            color: "#d3a33c",
+                            padding:
+                              "10px 14px",
+                            borderRadius: 12,
+                            background:
+                              "rgba(211,163,60,0.08)",
+                            border:
+                              "1px solid rgba(211,163,60,0.18)",
+                            textAlign:
+                              "center",
+                            minWidth: 100,
                           }}
                         >
-                          {eventSignups.length}
+                          <div
+                            style={{
+                              fontSize: 22,
+                              fontWeight: 900,
+                              color:
+                                "#d3a33c",
+                            }}
+                          >
+                            {
+                              activeSignups.length
+                            }
+                          </div>
+
+                          <div
+                            style={{
+                              marginTop: 3,
+                              color:
+                                "rgba(255,255,255,0.45)",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              textTransform:
+                                "uppercase",
+                              letterSpacing: 1,
+                            }}
+                          >
+                            Signed Up
+                          </div>
                         </div>
 
-                        <div
-                          style={{
-                            marginTop: 3,
-                            color:
-                              "rgba(255,255,255,0.45)",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            textTransform:
-                              "uppercase",
-                            letterSpacing: 1,
-                          }}
-                        >
-                          Signed Up
-                        </div>
+                        {removedSignups.length >
+                          0 && (
+                          <div
+                            style={{
+                              padding:
+                                "10px 14px",
+                              borderRadius: 12,
+                              background:
+                                "rgba(255,90,90,0.07)",
+                              border:
+                                "1px solid rgba(255,90,90,0.18)",
+                              textAlign:
+                                "center",
+                              minWidth: 100,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 22,
+                                fontWeight: 900,
+                                color:
+                                  "#ffaaaa",
+                              }}
+                            >
+                              {
+                                removedSignups.length
+                              }
+                            </div>
+
+                            <div
+                              style={{
+                                marginTop: 3,
+                                color:
+                                  "rgba(255,255,255,0.45)",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                textTransform:
+                                  "uppercase",
+                                letterSpacing: 1,
+                              }}
+                            >
+                              Removed
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* SIGNUPS */}
+                    <div
+                      style={{
+                        borderTop:
+                          "1px solid rgba(255,255,255,0.06)",
+                        padding: 24,
+                        background:
+                          "rgba(211,163,60,0.025)",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          margin: 0,
+                          fontSize: 15,
+                          fontWeight: 800,
+                        }}
+                      >
+                        Required Battle Dates
+                      </h4>
+
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          color:
+                            "rgba(255,255,255,0.4)",
+                          fontSize: 12,
+                        }}
+                      >
+                        Everyone who signs up is expected to battle once on every required date.
+                      </p>
+
+                      <AddEventDateForm eventId={event.id} />
+
+                      {eventRequiredDates.length === 0 ? (
+                        <p
+                          style={{
+                            margin: "16px 0 0",
+                            color:
+                              "rgba(255,255,255,0.35)",
+                            fontSize: 13,
+                          }}
+                        >
+                          No required battle dates have been added yet.
+                        </p>
+                      ) : (
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 8,
+                            marginTop: 16,
+                          }}
+                        >
+                          {eventRequiredDates.map((eventDate) => (
+                            <div
+                              key={eventDate.id}
+                              style={{
+                                padding: "10px 12px",
+                                borderRadius: 12,
+                                background:
+                                  "rgba(255,255,255,0.035)",
+                                border:
+                                  "1px solid rgba(255,255,255,0.07)",
+                                display: "flex",
+                                justifyContent:
+                                  "space-between",
+                                alignItems: "center",
+                                gap: 12,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {formatDate(eventDate.event_date)}
+                              </span>
+
+                              <RemoveEventDateButton
+                                eventDateId={eventDate.id}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          marginTop: 24,
+                          paddingTop: 22,
+                          borderTop:
+                            "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontSize: 15,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Automatic Schedule Times
+                        </h4>
+
+                        <p
+                          style={{
+                            margin: "6px 0 0",
+                            color:
+                              "rgba(255,255,255,0.4)",
+                            fontSize: 12,
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          Crown Link will create enough battle times for the signed-up creators using the event&apos;s first battle time and interval.
+                        </p>
+
+                        <p
+                          style={{
+                            margin: "8px 0 0",
+                            color: "#d3a33c",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          First battle: {formatTime(event.event_time)}
+                          {" • "}
+                          Every {event.battle_interval_minutes ?? 10} minutes
+                        </p>
+
+                        <div style={{ marginTop: 14 }}>
+                          <GenerateScheduleSlotsButton
+                            eventId={event.id}
+                          />
+                        </div>
+
+                        {activeSignups.length % 2 !== 0 &&
+                          activeSignups.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: 14,
+                                padding: 12,
+                                borderRadius: 12,
+                                background:
+                                  "rgba(255,90,90,0.07)",
+                                border:
+                                  "1px solid rgba(255,90,90,0.2)",
+                                color: "#ffaaaa",
+                                fontSize: 12,
+                                lineHeight: 1.5,
+                                fontWeight: 700,
+                              }}
+                            >
+                              This event currently has an odd number of signed-up creators. The schedule cannot be finalized until every creator has an opponent.
+                            </div>
+                          )}
+
+                        {eventGeneratedScheduleSlots.length === 0 ? (
+                          <p
+                            style={{
+                              margin: "16px 0 0",
+                              color:
+                                "rgba(255,255,255,0.35)",
+                              fontSize: 13,
+                            }}
+                          >
+                            No automatic schedule times have been generated yet.
+                          </p>
+                        ) : (
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 14,
+                              marginTop: 18,
+                            }}
+                          >
+                            {eventRequiredDates.map((eventDate) => {
+                              const dateSlots =
+                                eventGeneratedScheduleSlots.filter(
+                                  (slot) =>
+                                    slot.event_date_id ===
+                                    eventDate.id
+                                );
+
+                              return (
+                                <div
+                                  key={eventDate.id}
+                                  style={{
+                                    padding: 14,
+                                    borderRadius: 14,
+                                    background:
+                                      "rgba(0,0,0,0.18)",
+                                    border:
+                                      "1px solid rgba(211,163,60,0.14)",
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      margin: 0,
+                                      color: "#d3a33c",
+                                      fontSize: 12,
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    {formatDate(eventDate.event_date)}
+                                  </p>
+
+                                  {dateSlots.length === 0 ? (
+                                    <p
+                                      style={{
+                                        margin: "9px 0 0",
+                                        color:
+                                          "rgba(255,255,255,0.35)",
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      No generated times for this date.
+                                    </p>
+                                  ) : (
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 8,
+                                        marginTop: 10,
+                                      }}
+                                    >
+                                      {dateSlots.map((slot) => (
+                                        <div
+                                          key={slot.id}
+                                          style={{
+                                            padding:
+                                              "8px 11px",
+                                            borderRadius: 999,
+                                            background:
+                                              "rgba(211,163,60,0.08)",
+                                            border:
+                                              "1px solid rgba(211,163,60,0.2)",
+                                            color: "#d3a33c",
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                          }}
+                                        >
+                                          {formatTime(slot.slot_time)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     <div
                       style={{
@@ -402,7 +830,8 @@ export default async function CrownLinkEventsAdminPage() {
                             fontSize: 13,
                           }}
                         >
-                          No creators have signed up yet.
+                          No creators have
+                          signed up yet.
                         </p>
                       ) : (
                         <div
@@ -433,10 +862,13 @@ export default async function CrownLinkEventsAdminPage() {
 
                               const creatorName =
                                 profile?.display_name?.trim() ||
-                                profile?.tiktok_username
-                                  ? profile?.display_name?.trim() ||
-                                    `@${profile?.tiktok_username}`
-                                  : "Creator";
+                                (profile?.tiktok_username
+                                  ? `@${profile.tiktok_username}`
+                                  : "Creator");
+
+                              const isRemoved =
+                                signup.status ===
+                                "removed";
 
                               return (
                                 <div
@@ -448,9 +880,13 @@ export default async function CrownLinkEventsAdminPage() {
                                       "15px 16px",
                                     borderRadius: 14,
                                     background:
-                                      "rgba(255,255,255,0.035)",
+                                      isRemoved
+                                        ? "rgba(255,80,80,0.035)"
+                                        : "rgba(255,255,255,0.035)",
                                     border:
-                                      "1px solid rgba(255,255,255,0.07)",
+                                      isRemoved
+                                        ? "1px solid rgba(255,100,100,0.16)"
+                                        : "1px solid rgba(255,255,255,0.07)",
                                     display:
                                       "flex",
                                     justifyContent:
@@ -463,17 +899,50 @@ export default async function CrownLinkEventsAdminPage() {
                                   }}
                                 >
                                   <div>
-                                    <p
+                                    <div
                                       style={{
-                                        margin: 0,
-                                        fontSize: 15,
-                                        fontWeight: 800,
+                                        display:
+                                          "flex",
+                                        gap: 9,
+                                        alignItems:
+                                          "center",
+                                        flexWrap:
+                                          "wrap",
                                       }}
                                     >
-                                      {
-                                        creatorName
-                                      }
-                                    </p>
+                                      <p
+                                        style={{
+                                          margin: 0,
+                                          fontSize: 15,
+                                          fontWeight: 800,
+                                        }}
+                                      >
+                                        {
+                                          creatorName
+                                        }
+                                      </p>
+
+                                      {isRemoved && (
+                                        <span
+                                          style={{
+                                            padding:
+                                              "4px 8px",
+                                            borderRadius: 999,
+                                            background:
+                                              "rgba(255,90,90,0.08)",
+                                            border:
+                                              "1px solid rgba(255,90,90,0.22)",
+                                            color:
+                                              "#ffaaaa",
+                                            fontSize: 9,
+                                            fontWeight: 900,
+                                            letterSpacing: 1,
+                                          }}
+                                        >
+                                          REMOVED
+                                        </span>
+                                      )}
+                                    </div>
 
                                     {profile?.tiktok_username && (
                                       <p
@@ -502,46 +971,65 @@ export default async function CrownLinkEventsAdminPage() {
                                         fontWeight: 700,
                                       }}
                                     >
-                                      {
-                                        agencyName
-                                      }
+                                      {agencyName}
                                     </p>
                                   </div>
 
                                   <div
                                     style={{
-                                      textAlign:
-                                        "right",
+                                      display:
+                                        "flex",
+                                      gap: 14,
+                                      alignItems:
+                                        "center",
+                                      flexWrap:
+                                        "wrap",
                                     }}
                                   >
-                                    <p
+                                    <div
                                       style={{
-                                        margin: 0,
-                                        color:
-                                          "rgba(255,255,255,0.4)",
-                                        fontSize: 10,
-                                        fontWeight: 800,
-                                        letterSpacing: 1,
-                                        textTransform:
-                                          "uppercase",
+                                        textAlign:
+                                          "right",
                                       }}
                                     >
-                                      Diamond Level
-                                    </p>
+                                      <p
+                                        style={{
+                                          margin: 0,
+                                          color:
+                                            "rgba(255,255,255,0.4)",
+                                          fontSize: 10,
+                                          fontWeight: 800,
+                                          letterSpacing: 1,
+                                          textTransform:
+                                            "uppercase",
+                                        }}
+                                      >
+                                        Diamond
+                                        Level
+                                      </p>
 
-                                    <p
-                                      style={{
-                                        margin:
-                                          "5px 0 0",
-                                        fontSize: 17,
-                                        fontWeight: 900,
-                                      }}
-                                    >
-                                      {(
-                                        profile?.diamond_level ??
-                                        0
-                                      ).toLocaleString()}
-                                    </p>
+                                      <p
+                                        style={{
+                                          margin:
+                                            "5px 0 0",
+                                          fontSize: 17,
+                                          fontWeight: 900,
+                                        }}
+                                      >
+                                        {(
+                                          profile?.diamond_level ??
+                                          0
+                                        ).toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    {isRemoved && (
+                                      <RestoreSignupButton
+                                        signupId={
+                                          signup.id
+                                        }
+                                      />
+                                    )}
                                   </div>
                                 </div>
                               );

@@ -37,12 +37,40 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const name = String(body.name || "").trim();
-    const eventDate = String(body.eventDate || "").trim();
-    const eventTime = String(body.eventTime || "").trim();
+
+    const description = String(
+      body.description || ""
+    ).trim();
+
+    const prizeInformation = String(
+      body.prizeInformation || ""
+    ).trim();
+
+    const eventDate = String(
+      body.eventDate || ""
+    ).trim();
+
+    const eventTime = String(
+      body.eventTime || ""
+    ).trim();
+
+    const battleIntervalMinutes = Number(
+      body.battleIntervalMinutes
+    );
 
     if (!name) {
       return NextResponse.json(
         { error: "Event name is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!description) {
+      return NextResponse.json(
+        {
+          error:
+            "Event description is required.",
+        },
         { status: 400 }
       );
     }
@@ -56,25 +84,67 @@ export async function POST(request: Request) {
 
     if (!eventTime) {
       return NextResponse.json(
-        { error: "Event time is required." },
+        {
+          error:
+            "First battle time is required.",
+        },
         { status: 400 }
       );
     }
 
-    const adminSupabase = createAdminClient();
+    if (
+      !Number.isInteger(
+        battleIntervalMinutes
+      ) ||
+      battleIntervalMinutes <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Battle interval must be at least 1 minute.",
+        },
+        { status: 400 }
+      );
+    }
 
-    const { data: event, error: createEventError } =
-      await adminSupabase
-        .from("crownlink_events")
-        .insert({
-          name,
-          event_date: eventDate,
-          event_time: eventTime,
-          status: "active",
-          created_by: user.id,
-        })
-        .select()
-        .single();
+    const adminSupabase =
+      createAdminClient();
+
+    /*
+     * Create the main event.
+     */
+    const {
+      data: event,
+      error: createEventError,
+    } = await adminSupabase
+      .from("crownlink_events")
+      .insert({
+        name,
+        description,
+        prize_information:
+          prizeInformation || null,
+
+        /*
+         * Keep these existing fields for now
+         * so we don't break the rest of the site.
+         *
+         * event_date currently acts as the first
+         * required date.
+         *
+         * event_time now acts as the first battle
+         * time for each required date.
+         */
+        event_date: eventDate,
+        event_time: eventTime,
+
+        battle_interval_minutes:
+          battleIntervalMinutes,
+
+        status: "active",
+        created_by: user.id,
+      })
+      .select()
+      .single();
 
     if (createEventError) {
       console.error(
@@ -83,7 +153,50 @@ export async function POST(request: Request) {
       );
 
       return NextResponse.json(
-        { error: createEventError.message },
+        {
+          error:
+            createEventError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    /*
+     * Automatically create the first required
+     * event date.
+     */
+    const {
+      error: createDateError,
+    } = await adminSupabase
+      .from("crownlink_event_dates")
+      .insert({
+        event_id: event.id,
+        event_date: eventDate,
+      });
+
+    if (createDateError) {
+      console.error(
+        "CREATE CROWN LINK EVENT DATE ERROR:",
+        createDateError
+      );
+
+      /*
+       * Remove the event if its first required
+       * date could not be created.
+       *
+       * This prevents us from leaving behind
+       * a partially-created event.
+       */
+      await adminSupabase
+        .from("crownlink_events")
+        .delete()
+        .eq("id", event.id);
+
+      return NextResponse.json(
+        {
+          error:
+            "The event could not be completed because its first event date could not be created.",
+        },
         { status: 500 }
       );
     }
@@ -99,7 +212,10 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { error: "Unexpected server error." },
+      {
+        error:
+          "Unexpected server error.",
+      },
       { status: 500 }
     );
   }

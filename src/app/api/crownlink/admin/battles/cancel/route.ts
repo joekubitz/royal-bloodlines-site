@@ -140,21 +140,21 @@ export async function POST(request: Request) {
       const { error: signupError } = await adminSupabase
         .from("crownlink_event_signups")
         .update({
-          status: "cancelled",
+          status: "removed",
         })
         .eq("event_id", match.event_id)
         .in("user_id", creatorsToRemove);
 
       if (signupError) {
         console.error(
-          "Battle cancelled but signup update failed:",
+          "Battle cancelled but signup removal failed:",
           signupError
         );
 
         return NextResponse.json(
           {
             error:
-              "The battle was cancelled, but one or more creator signups could not be updated.",
+              "The battle was cancelled, but one or more creators could not be removed from the event.",
           },
           { status: 500 }
         );
@@ -170,17 +170,17 @@ export async function POST(request: Request) {
 
     if (cancelMode === "remove_creator_one") {
       message =
-        "Battle cancelled. Creator One was removed from the event.";
+        "Battle cancelled. Creator One was removed from the event and cannot rejoin unless restored by an admin.";
     }
 
     if (cancelMode === "remove_creator_two") {
       message =
-        "Battle cancelled. Creator Two was removed from the event.";
+        "Battle cancelled. Creator Two was removed from the event and cannot rejoin unless restored by an admin.";
     }
 
     if (cancelMode === "remove_both") {
       message =
-        "Battle cancelled. Both creators were removed from the event.";
+        "Battle cancelled. Both creators were removed from the event and cannot rejoin unless restored by an admin.";
     }
 
     return NextResponse.json({

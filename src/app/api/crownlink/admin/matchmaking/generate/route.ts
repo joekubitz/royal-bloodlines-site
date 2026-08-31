@@ -73,22 +73,43 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: existingMatches } = await adminSupabase
+    /*
+     * Find creators who are already involved in an active
+     * suggested or approved match for this event.
+     *
+     * These creators are considered occupied and will NOT
+     * be matched again.
+     *
+     * Cancelled matches do not count.
+     */
+    const {
+      data: existingMatches,
+      error: existingMatchesError,
+    } = await adminSupabase
       .from("crownlink_matches")
-      .select("id")
+      .select(
+        "id, creator_one_id, creator_two_id, status"
+      )
       .eq("event_id", eventId)
       .in("status", ["suggested", "approved"]);
 
-    if (existingMatches && existingMatches.length > 0) {
+    if (existingMatchesError) {
       return NextResponse.json(
-        {
-          error:
-            "This event already has suggested or approved matches.",
-        },
-        { status: 400 }
+        { error: existingMatchesError.message },
+        { status: 500 }
       );
     }
 
+    const occupiedCreatorIds = new Set<string>();
+
+    for (const match of existingMatches ?? []) {
+      occupiedCreatorIds.add(match.creator_one_id);
+      occupiedCreatorIds.add(match.creator_two_id);
+    }
+
+    /*
+     * Load everyone who is currently signed up.
+     */
     const { data: signups, error: signupError } =
       await adminSupabase
         .from("crownlink_event_signups")
@@ -103,18 +124,46 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!signups || signups.length < 2) {
+    if (!signups || signups.length === 0) {
       return NextResponse.json(
         {
           error:
-            "At least two creators must be signed up before generating matches.",
+            "There are no creators currently signed up for this event.",
         },
         { status: 400 }
       );
     }
 
-    const userIds = signups.map((signup) => signup.user_id);
+    /*
+     * Only creators who are:
+     *
+     * 1. still signed up
+     * 2. not already in an active match
+     *
+     * are eligible for matching.
+     */
+    const availableSignups = signups.filter(
+      (signup) =>
+        !occupiedCreatorIds.has(signup.user_id)
+    );
 
+    if (availableSignups.length < 2) {
+      return NextResponse.json(
+        {
+          error:
+            "There are not enough unmatched creators to generate another match.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const userIds = availableSignups.map(
+      (signup) => signup.user_id
+    );
+
+    /*
+     * Get creator roles and agencies.
+     */
     const { data: roles, error: rolesError } =
       await adminSupabase
         .from("user_roles")
@@ -129,6 +178,9 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+     * Get diamond levels.
+     */
     const { data: profiles, error: profilesError } =
       await adminSupabase
         .from("crownlink_profiles")
@@ -158,9 +210,16 @@ export async function POST(request: Request) {
 
     const pool: CreatorPoolItem[] = [];
 
-    for (const signup of signups) {
+    /*
+     * Build the final eligible creator pool.
+     *
+     * Suspended/inactive creators are skipped.
+     */
+    for (const signup of availableSignups) {
       const role = roleMap.get(signup.user_id);
-      const profile = profileMap.get(signup.user_id);
+      const profile = profileMap.get(
+        signup.user_id
+      );
 
       if (!role) continue;
       if (role.status !== "active") continue;
@@ -178,17 +237,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "There are not enough active creators to generate matches.",
+            "There are not enough active unmatched creators to generate another match.",
         },
         { status: 400 }
       );
     }
 
+    /*
+     * Sort creators by diamond level so closer creators
+     * naturally sit closer together in the pool.
+     */
     pool.sort(
       (a, b) => a.diamondLevel - b.diamondLevel
     );
 
     const unmatched = [...pool];
+
     const suggestedMatches: {
       event_id: string;
       creator_one_id: string;
@@ -196,6 +260,15 @@ export async function POST(request: Request) {
       status: "suggested";
     }[] = [];
 
+    /*
+     * Generate matches.
+     *
+     * First preference:
+     * different agency + closest diamond level.
+     *
+     * Fallback:
+     * same agency if no cross-agency creator exists.
+     */
     while (unmatched.length >= 2) {
       const creatorOne = unmatched.shift();
 
@@ -204,13 +277,22 @@ export async function POST(request: Request) {
       let bestIndex = -1;
       let bestDifference = Infinity;
 
-      for (let i = 0; i < unmatched.length; i++) {
+      /*
+       * First attempt:
+       * closest creator from another agency.
+       */
+      for (
+        let i = 0;
+        i < unmatched.length;
+        i++
+      ) {
         const candidate = unmatched[i];
 
         if (
           creatorOne.agencyId &&
           candidate.agencyId &&
-          creatorOne.agencyId === candidate.agencyId
+          creatorOne.agencyId ===
+            candidate.agencyId
         ) {
           continue;
         }
@@ -226,11 +308,20 @@ export async function POST(request: Request) {
         }
       }
 
+      /*
+       * Fallback:
+       * allow same-agency matching if no
+       * cross-agency option exists.
+       */
       if (bestIndex === -1) {
         let fallbackIndex = -1;
         let fallbackDifference = Infinity;
 
-        for (let i = 0; i < unmatched.length; i++) {
+        for (
+          let i = 0;
+          i < unmatched.length;
+          i++
+        ) {
           const candidate = unmatched[i];
 
           const difference = Math.abs(
@@ -238,7 +329,9 @@ export async function POST(request: Request) {
               candidate.diamondLevel
           );
 
-          if (difference < fallbackDifference) {
+          if (
+            difference < fallbackDifference
+          ) {
             fallbackDifference = difference;
             fallbackIndex = i;
           }
@@ -269,17 +362,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "No valid matches could be generated.",
+            "No valid new matches could be generated.",
         },
         { status: 400 }
       );
     }
 
-    const { data: createdMatches, error: insertError } =
-      await adminSupabase
-        .from("crownlink_matches")
-        .insert(suggestedMatches)
-        .select();
+    /*
+     * Insert only the newly generated matches.
+     *
+     * Existing suggested/approved matches are untouched.
+     */
+    const {
+      data: createdMatches,
+      error: insertError,
+    } = await adminSupabase
+      .from("crownlink_matches")
+      .insert(suggestedMatches)
+      .select();
 
     if (insertError) {
       console.error(
@@ -296,7 +396,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       eventName: event.name,
-      matchesCreated: createdMatches?.length ?? 0,
+      matchesCreated:
+        createdMatches?.length ?? 0,
+      existingMatches:
+        existingMatches?.length ?? 0,
+      occupiedCreators:
+        occupiedCreatorIds.size,
       unmatchedCreators: unmatched.map(
         (creator) => creator.userId
       ),

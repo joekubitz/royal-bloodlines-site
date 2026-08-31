@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/app/supabase/client";
 
 type Props = {
@@ -8,18 +9,31 @@ type Props = {
   initiallySignedUp: boolean;
 };
 
+type SignupStatus =
+  | "signed_up"
+  | "cancelled"
+  | "removed"
+  | null;
+
 export default function EventSignupButton({
   eventId,
   initiallySignedUp,
 }: Props) {
-  const [signedUp, setSignedUp] = useState(initiallySignedUp);
+  const router = useRouter();
+
+  const [signupStatus, setSignupStatus] =
+    useState<SignupStatus>(
+      initiallySignedUp ? "signed_up" : null
+    );
+
   const [matched, setMatched] = useState(false);
-  const [checkingMatch, setCheckingMatch] = useState(true);
+  const [checkingStatus, setCheckingStatus] =
+    useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function checkApprovedMatch() {
+    async function loadStatus() {
       const supabase = createClient();
 
       const {
@@ -27,11 +41,37 @@ export default function EventSignupButton({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        setCheckingMatch(false);
+        setCheckingStatus(false);
         return;
       }
 
-      const { data: approvedMatch, error: matchError } = await supabase
+      const {
+        data: signup,
+        error: signupError,
+      } = await supabase
+        .from("crownlink_event_signups")
+        .select("status")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (signupError) {
+        console.error(
+          "Signup status check error:",
+          signupError
+        );
+      } else if (signup) {
+        setSignupStatus(
+          signup.status as SignupStatus
+        );
+      } else {
+        setSignupStatus(null);
+      }
+
+      const {
+        data: approvedMatch,
+        error: matchError,
+      } = await supabase
         .from("crownlink_matches")
         .select("id")
         .eq("event_id", eventId)
@@ -42,18 +82,24 @@ export default function EventSignupButton({
         .maybeSingle();
 
       if (matchError) {
-        console.error("Match check error:", matchError);
+        console.error(
+          "Match check error:",
+          matchError
+        );
       }
 
       setMatched(Boolean(approvedMatch));
-      setCheckingMatch(false);
+      setCheckingStatus(false);
     }
 
-    checkApprovedMatch();
+    loadStatus();
   }, [eventId]);
 
   async function handleClick() {
-    if (matched) {
+    if (
+      matched ||
+      signupStatus === "removed"
+    ) {
       return;
     }
 
@@ -71,11 +117,38 @@ export default function EventSignupButton({
       return;
     }
 
-    if (signedUp) {
-      // Re-check immediately before cancelling.
-      // This prevents cancellation if the match was approved
-      // after the page originally loaded.
-      const { data: approvedMatch, error: matchError } = await supabase
+    const {
+      data: currentSignup,
+      error: currentSignupError,
+    } = await supabase
+      .from("crownlink_event_signups")
+      .select("id, status")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (currentSignupError) {
+      setError(currentSignupError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (currentSignup?.status === "removed") {
+      setSignupStatus("removed");
+
+      setError(
+        "You were removed from this event by an admin and cannot rejoin unless an admin restores your signup."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    if (currentSignup?.status === "signed_up") {
+      const {
+        data: approvedMatch,
+        error: matchError,
+      } = await supabase
         .from("crownlink_matches")
         .select("id")
         .eq("event_id", eventId)
@@ -93,20 +166,22 @@ export default function EventSignupButton({
 
       if (approvedMatch) {
         setMatched(true);
+
         setError(
           "Your signup is locked because your battle has already been approved."
         );
+
         setLoading(false);
         return;
       }
 
-      const { error: cancelError } = await supabase
-        .from("crownlink_event_signups")
-        .update({
-          status: "cancelled",
-        })
-        .eq("event_id", eventId)
-        .eq("user_id", user.id);
+      const { error: cancelError } =
+        await supabase
+          .from("crownlink_event_signups")
+          .update({
+            status: "cancelled",
+          })
+          .eq("id", currentSignup.id);
 
       if (cancelError) {
         setError(cancelError.message);
@@ -114,33 +189,38 @@ export default function EventSignupButton({
         return;
       }
 
-      setSignedUp(false);
+      setSignupStatus("cancelled");
       setLoading(false);
+
+      router.refresh();
       return;
     }
 
-    const { data: existingSignup } = await supabase
-      .from("crownlink_event_signups")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existingSignup) {
-      const { error: updateError } = await supabase
-        .from("crownlink_event_signups")
-        .update({
-          status: "signed_up",
-        })
-        .eq("id", existingSignup.id);
+    if (currentSignup?.status === "cancelled") {
+      const { error: updateError } =
+        await supabase
+          .from("crownlink_event_signups")
+          .update({
+            status: "signed_up",
+          })
+          .eq("id", currentSignup.id)
+          .eq("status", "cancelled");
 
       if (updateError) {
         setError(updateError.message);
         setLoading(false);
         return;
       }
-    } else {
-      const { error: insertError } = await supabase
+
+      setSignupStatus("signed_up");
+      setLoading(false);
+
+      router.refresh();
+      return;
+    }
+
+    const { error: insertError } =
+      await supabase
         .from("crownlink_event_signups")
         .insert({
           event_id: eventId,
@@ -148,18 +228,29 @@ export default function EventSignupButton({
           status: "signed_up",
         });
 
-      if (insertError) {
-        setError(insertError.message);
-        setLoading(false);
-        return;
-      }
+    if (insertError) {
+      setError(insertError.message);
+      setLoading(false);
+      return;
     }
 
-    setSignedUp(true);
+    setSignupStatus("signed_up");
     setLoading(false);
+
+    router.refresh();
   }
 
-  const isDisabled = loading || checkingMatch || matched;
+  const signedUp =
+    signupStatus === "signed_up";
+
+  const removed =
+    signupStatus === "removed";
+
+  const isDisabled =
+    loading ||
+    checkingStatus ||
+    matched ||
+    removed;
 
   return (
     <div
@@ -174,30 +265,40 @@ export default function EventSignupButton({
         style={{
           padding: "12px 18px",
           borderRadius: 12,
-          border: matched
-            ? "1px solid rgba(211,163,60,0.28)"
-            : signedUp
-            ? "1px solid rgba(255,255,255,0.15)"
-            : "none",
-          background: matched
-            ? "rgba(211,163,60,0.08)"
-            : signedUp
-            ? "rgba(255,255,255,0.05)"
-            : "linear-gradient(135deg, #d3a33c, #9e6f22)",
-          color: matched
-            ? "#d3a33c"
-            : signedUp
-            ? "white"
-            : "#080503",
+          border:
+            matched || removed
+              ? "1px solid rgba(211,163,60,0.28)"
+              : signedUp
+              ? "1px solid rgba(255,255,255,0.15)"
+              : "none",
+          background:
+            matched || removed
+              ? "rgba(211,163,60,0.08)"
+              : signedUp
+              ? "rgba(255,255,255,0.05)"
+              : "linear-gradient(135deg, #d3a33c, #9e6f22)",
+          color:
+            matched || removed
+              ? "#d3a33c"
+              : signedUp
+              ? "white"
+              : "#080503",
           fontWeight: 900,
-          cursor: isDisabled ? "not-allowed" : "pointer",
-          opacity: loading || checkingMatch ? 0.6 : 1,
+          cursor: isDisabled
+            ? "not-allowed"
+            : "pointer",
+          opacity:
+            loading || checkingStatus
+              ? 0.6
+              : 1,
         }}
       >
-        {checkingMatch
+        {checkingStatus
           ? "Checking..."
           : loading
           ? "Saving..."
+          : removed
+          ? "🔒 Removed from Event"
           : matched
           ? "🔒 Matched — Signup Locked"
           : signedUp
@@ -205,7 +306,18 @@ export default function EventSignupButton({
           : "Sign Up"}
       </button>
 
-      {matched ? (
+      {removed ? (
+        <span
+          style={{
+            marginLeft: 12,
+            color: "#ffb3b3",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          Admin approval required to rejoin
+        </span>
+      ) : matched ? (
         <span
           style={{
             marginLeft: 12,

@@ -4,8 +4,15 @@ import { FormEvent, useState } from "react";
 
 export default function AddEventForm() {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [prizeInformation, setPrizeInformation] =
+    useState("");
+
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
+
+  const [battleIntervalMinutes, setBattleIntervalMinutes] =
+    useState("10");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -18,37 +25,63 @@ export default function AddEventForm() {
     setError("");
     setSuccess("");
 
+    const interval =
+      Number(battleIntervalMinutes);
+
+    if (
+      !Number.isInteger(interval) ||
+      interval <= 0
+    ) {
+      setError(
+        "Battle interval must be at least 1 minute."
+      );
+      setSaving(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         "/api/crownlink/admin/events",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
             name,
+            description,
+            prizeInformation,
             eventDate,
             eventTime,
+            battleIntervalMinutes:
+              interval,
           }),
         }
       );
 
-      const result = await response.json();
+      const result =
+        await response.json();
 
       if (!response.ok) {
         setError(
-          result.error || "Could not create event."
+          result.error ||
+            "Could not create event."
         );
         setSaving(false);
         return;
       }
 
-      setSuccess("Event created successfully.");
+      setSuccess(
+        "Event created successfully."
+      );
 
       setName("");
+      setDescription("");
+      setPrizeInformation("");
       setEventDate("");
       setEventTime("");
+      setBattleIntervalMinutes("10");
     } catch {
       setError("Unexpected error.");
     } finally {
@@ -62,7 +95,8 @@ export default function AddEventForm() {
       style={{
         padding: 28,
         borderRadius: 20,
-        background: "rgba(20,10,10,0.78)",
+        background:
+          "rgba(20,10,10,0.78)",
         border:
           "1px solid rgba(211,163,60,0.25)",
       }}
@@ -84,14 +118,7 @@ export default function AddEventForm() {
         }}
       >
         <div>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontSize: 13,
-              fontWeight: 800,
-            }}
-          >
+          <label style={labelStyle}>
             Event Name
           </label>
 
@@ -101,22 +128,58 @@ export default function AddEventForm() {
             onChange={(e) =>
               setName(e.target.value)
             }
-            placeholder="Friday Night Battles"
+            placeholder="September Battle Series"
             required
             style={inputStyle}
           />
         </div>
 
         <div>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontSize: 13,
-              fontWeight: 800,
-            }}
-          >
-            Event Date
+          <label style={labelStyle}>
+            Event Description
+          </label>
+
+          <textarea
+            value={description}
+            onChange={(e) =>
+              setDescription(e.target.value)
+            }
+            placeholder="Explain what the event is, how it works, and anything creators should know before signing up."
+            rows={5}
+            required
+            style={textareaStyle}
+          />
+        </div>
+
+        <div>
+          <label style={labelStyle}>
+            Prize Information
+          </label>
+
+          <textarea
+            value={prizeInformation}
+            onChange={(e) =>
+              setPrizeInformation(
+                e.target.value
+              )
+            }
+            placeholder={`Example:
+1st Place: 50,000 coins
+2nd Place: 25,000 coins
+3rd Place: 10,000 coins`}
+            rows={5}
+            style={textareaStyle}
+          />
+
+          <p style={helperTextStyle}>
+            Leave this blank if the event
+            does not have prizes.
+          </p>
+        </div>
+
+        <div>
+          <label style={labelStyle}>
+            First Event Date
           </label>
 
           <input
@@ -128,18 +191,18 @@ export default function AddEventForm() {
             required
             style={inputStyle}
           />
+
+          <p style={helperTextStyle}>
+            For now this creates the first
+            required event date. We’ll add
+            the additional dates to the
+            event next.
+          </p>
         </div>
 
         <div>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontSize: 13,
-              fontWeight: 800,
-            }}
-          >
-            Event Time
+          <label style={labelStyle}>
+            First Battle Time
           </label>
 
           <input
@@ -152,15 +215,35 @@ export default function AddEventForm() {
             style={inputStyle}
           />
 
-          <p
-            style={{
-              margin: "7px 0 0",
-              color: "rgba(255,255,255,0.4)",
-              fontSize: 11,
-            }}
-          >
-            We’ll add timezone handling after the basic
-            event system is working.
+          <p style={helperTextStyle}>
+            This is when the first battle
+            of the night will begin.
+          </p>
+        </div>
+
+        <div>
+          <label style={labelStyle}>
+            Minutes Between Battles
+          </label>
+
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={battleIntervalMinutes}
+            onChange={(e) =>
+              setBattleIntervalMinutes(
+                e.target.value
+              )
+            }
+            required
+            style={inputStyle}
+          />
+
+          <p style={helperTextStyle}>
+            Example: enter 5 for 7:00,
+            7:05, 7:10, 7:15. Enter 10
+            for 7:00, 7:10, 7:20, 7:30.
           </p>
         </div>
 
@@ -169,7 +252,8 @@ export default function AddEventForm() {
             style={{
               padding: "12px 14px",
               borderRadius: 10,
-              background: "rgba(255,60,60,0.08)",
+              background:
+                "rgba(255,60,60,0.08)",
               border:
                 "1px solid rgba(255,80,80,0.25)",
               color: "#ffaaaa",
@@ -223,6 +307,13 @@ export default function AddEventForm() {
   );
 }
 
+const labelStyle = {
+  display: "block",
+  marginBottom: 8,
+  fontSize: 13,
+  fontWeight: 800,
+};
+
 const inputStyle = {
   width: "100%",
   boxSizing: "border-box" as const,
@@ -234,4 +325,18 @@ const inputStyle = {
   color: "white",
   fontSize: 15,
   outline: "none",
+};
+
+const textareaStyle = {
+  ...inputStyle,
+  minHeight: 120,
+  resize: "vertical" as const,
+  fontFamily: "inherit",
+  lineHeight: 1.5,
+};
+
+const helperTextStyle = {
+  margin: "7px 0 0",
+  color: "rgba(255,255,255,0.4)",
+  fontSize: 11,
 };
