@@ -491,13 +491,17 @@ function StatCard({
       </Text>
 
       <Text
-        style={[
+  style={
+    valueStyle
+      ? [
           styles.cardValue,
-          valueStyle || {},
-        ]}
-      >
-        {value}
-      </Text>
+          valueStyle,
+        ]
+      : styles.cardValue
+  }
+>
+  {value}
+</Text>
 
       {sub && (
         <Text style={styles.cardSub}>
