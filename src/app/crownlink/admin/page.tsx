@@ -77,7 +77,7 @@ export default async function CrownLinkAdminPage() {
               color: "rgba(255,255,255,0.55)",
             }}
           >
-            Manage creators, agencies, events, matchmaking, and approved battles.
+            Manage creators, agencies, events, matchmaking, and battle history.
           </p>
         </div>
 
@@ -145,7 +145,7 @@ export default async function CrownLinkAdminPage() {
             </h2>
 
             <p style={textStyle}>
-              Generate, review, and approve creator battle matches.
+              Generate and manage creator battle matches.
             </p>
           </Link>
 
@@ -161,6 +161,51 @@ export default async function CrownLinkAdminPage() {
 
             <p style={textStyle}>
               View and manage approved Crown Link battles.
+            </p>
+          </Link>
+
+          <Link
+            href="/crownlink/admin/results"
+            style={cardStyle}
+          >
+            <div style={iconStyle}>📊</div>
+
+            <h2 style={titleStyle}>
+              Past Events & Results
+            </h2>
+
+            <p style={textStyle}>
+              Review archived events, scores, attendance, no-shows, and replacements.
+            </p>
+          </Link>
+
+          <Link
+            href="/crownlink/admin/schedule-export"
+            style={cardStyle}
+          >
+            <div style={iconStyle}>🗓️</div>
+
+            <h2 style={titleStyle}>
+              Battle Schedule Export
+            </h2>
+
+            <p style={textStyle}>
+              Preview a specific battle night and download the schedule as an image or PDF.
+            </p>
+          </Link>
+
+          <Link
+            href="/crownlink/admin/leaderboard"
+            style={cardStyle}
+          >
+            <div style={iconStyle}>🏆</div>
+
+            <h2 style={titleStyle}>
+              Event Leaderboard
+            </h2>
+
+            <p style={textStyle}>
+              View live and final event standings based on recorded battle scores.
             </p>
           </Link>
         </div>

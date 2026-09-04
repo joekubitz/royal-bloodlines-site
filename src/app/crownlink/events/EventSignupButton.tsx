@@ -26,11 +26,17 @@ export default function EventSignupButton({
       initiallySignedUp ? "signed_up" : null
     );
 
-  const [matched, setMatched] = useState(false);
+  const [matched, setMatched] =
+    useState(false);
+
   const [checkingStatus, setCheckingStatus] =
     useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     async function loadStatus() {
@@ -88,7 +94,10 @@ export default function EventSignupButton({
         );
       }
 
-      setMatched(Boolean(approvedMatch));
+      setMatched(
+        Boolean(approvedMatch)
+      );
+
       setCheckingStatus(false);
     }
 
@@ -106,138 +115,64 @@ export default function EventSignupButton({
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      window.location.href = "/crownlink/login";
-      return;
-    }
-
-    const {
-      data: currentSignup,
-      error: currentSignupError,
-    } = await supabase
-      .from("crownlink_event_signups")
-      .select("id, status")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (currentSignupError) {
-      setError(currentSignupError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (currentSignup?.status === "removed") {
-      setSignupStatus("removed");
-
-      setError(
-        "You were removed from this event by an admin and cannot rejoin unless an admin restores your signup."
+    try {
+      const response = await fetch(
+        "/api/crownlink/events/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            eventId,
+          }),
+        }
       );
 
-      setLoading(false);
-      return;
-    }
+      const result =
+        await response.json();
 
-    if (currentSignup?.status === "signed_up") {
-      const {
-        data: approvedMatch,
-        error: matchError,
-      } = await supabase
-        .from("crownlink_matches")
-        .select("id")
-        .eq("event_id", eventId)
-        .eq("status", "approved")
-        .or(
-          `creator_one_id.eq.${user.id},creator_two_id.eq.${user.id}`
-        )
-        .maybeSingle();
+      if (!response.ok) {
+        if (
+          result.status === "removed"
+        ) {
+          setSignupStatus("removed");
+        }
 
-      if (matchError) {
-        setError(matchError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (approvedMatch) {
-        setMatched(true);
+        if (result.matched) {
+          setMatched(true);
+        }
 
         setError(
-          "Your signup is locked because your battle has already been approved."
+          result.error ||
+            "Could not update your signup."
         );
 
         setLoading(false);
         return;
       }
 
-      const { error: cancelError } =
-        await supabase
-          .from("crownlink_event_signups")
-          .update({
-            status: "cancelled",
-          })
-          .eq("id", currentSignup.id);
-
-      if (cancelError) {
-        setError(cancelError.message);
-        setLoading(false);
-        return;
+      if (
+        result.status === "signed_up"
+      ) {
+        setSignupStatus("signed_up");
+      } else if (
+        result.status === "cancelled"
+      ) {
+        setSignupStatus("cancelled");
       }
 
-      setSignupStatus("cancelled");
       setLoading(false);
 
       router.refresh();
-      return;
-    }
+    } catch {
+      setError(
+        "Unexpected error. Please try again."
+      );
 
-    if (currentSignup?.status === "cancelled") {
-      const { error: updateError } =
-        await supabase
-          .from("crownlink_event_signups")
-          .update({
-            status: "signed_up",
-          })
-          .eq("id", currentSignup.id)
-          .eq("status", "cancelled");
-
-      if (updateError) {
-        setError(updateError.message);
-        setLoading(false);
-        return;
-      }
-
-      setSignupStatus("signed_up");
       setLoading(false);
-
-      router.refresh();
-      return;
     }
-
-    const { error: insertError } =
-      await supabase
-        .from("crownlink_event_signups")
-        .insert({
-          event_id: eventId,
-          user_id: user.id,
-          status: "signed_up",
-        });
-
-    if (insertError) {
-      setError(insertError.message);
-      setLoading(false);
-      return;
-    }
-
-    setSignupStatus("signed_up");
-    setLoading(false);
-
-    router.refresh();
   }
 
   const signedUp =
@@ -288,7 +223,8 @@ export default function EventSignupButton({
             ? "not-allowed"
             : "pointer",
           opacity:
-            loading || checkingStatus
+            loading ||
+            checkingStatus
               ? 0.6
               : 1,
         }}
@@ -315,7 +251,8 @@ export default function EventSignupButton({
             fontWeight: 700,
           }}
         >
-          Admin approval required to rejoin
+          Admin approval required to
+          rejoin
         </span>
       ) : matched ? (
         <span

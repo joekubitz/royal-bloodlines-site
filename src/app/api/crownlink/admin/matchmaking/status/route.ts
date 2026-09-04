@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
+type MatchAction = "approve" | "cancel";
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -36,8 +38,13 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const matchId = String(body.matchId || "").trim();
-    const action = String(body.action || "").trim();
+    const matchId = String(
+      body.matchId || ""
+    ).trim();
+
+    const action = String(
+      body.action || ""
+    ).trim() as MatchAction;
 
     if (!matchId) {
       return NextResponse.json(
@@ -46,78 +53,134 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!["approve", "cancel"].includes(action)) {
+    if (
+      action !== "approve" &&
+      action !== "cancel"
+    ) {
       return NextResponse.json(
         { error: "Invalid match action." },
         { status: 400 }
       );
     }
 
-    const adminSupabase = createAdminClient();
+    const adminSupabase =
+      createAdminClient();
 
-    const { data: match, error: matchError } =
-      await adminSupabase
-        .from("crownlink_matches")
-        .select(`
-          id,
-          event_id,
-          creator_one_id,
-          creator_two_id,
-          status
-        `)
-        .eq("id", matchId)
-        .single();
+    const {
+      data: match,
+      error: matchError,
+    } = await adminSupabase
+      .from("crownlink_matches")
+      .select(`
+        id,
+        event_id,
+        creator_one_id,
+        creator_two_id,
+        status,
+        event_date_id,
+        schedule_slot_id
+      `)
+      .eq("id", matchId)
+      .single();
 
-    if (matchError || !match) {
+    if (
+      matchError ||
+      !match
+    ) {
       return NextResponse.json(
         { error: "Match not found." },
         { status: 404 }
       );
     }
 
-    if (match.status !== "suggested") {
-      return NextResponse.json(
-        {
-          error:
-            "Only suggested matches can be approved or cancelled.",
-        },
-        { status: 400 }
-      );
-    }
-
+    /*
+     * Approval is kept for compatibility
+     * with any older suggested matches.
+     *
+     * New Crown Link matches are now
+     * approved automatically.
+     */
     if (action === "approve") {
-      const { error: updateError } =
-        await adminSupabase
-          .from("crownlink_matches")
-          .update({
-            status: "approved",
-            approved_at: new Date().toISOString(),
-          })
-          .eq("id", matchId)
-          .eq("status", "suggested");
+      if (match.status === "approved") {
+        return NextResponse.json({
+          success: true,
+          action: "approve",
+          eventId: match.event_id,
+          matchId: match.id,
+          message:
+            "This match is already approved.",
+        });
+      }
 
-      if (updateError) {
+      if (match.status !== "suggested") {
         return NextResponse.json(
-          { error: updateError.message },
+          {
+            error:
+              "Only suggested matches can be approved.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const {
+        error: approveError,
+      } = await adminSupabase
+        .from("crownlink_matches")
+        .update({
+          status: "approved",
+          approved_at:
+            new Date().toISOString(),
+        })
+        .eq("id", match.id);
+
+      if (approveError) {
+        return NextResponse.json(
+          { error: approveError.message },
           { status: 500 }
         );
       }
 
       return NextResponse.json({
         success: true,
-        status: "approved",
+        action: "approve",
+        eventId: match.event_id,
+        matchId: match.id,
+        message: "Match approved.",
       });
     }
 
-    const { error: cancelError } =
-      await adminSupabase
-        .from("crownlink_matches")
-        .update({
-          status: "cancelled",
-          approved_at: null,
-        })
-        .eq("id", matchId)
-        .eq("status", "suggested");
+    /*
+     * Admins may cancel either an older
+     * suggested match or an automatically
+     * approved match.
+     *
+     * The creator signup remains active.
+     * That means a later Generate Matches
+     * request can place the affected
+     * creators back into the schedule.
+     */
+    if (
+      match.status !== "suggested" &&
+      match.status !== "approved"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Only active matches can be cancelled.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      error: cancelError,
+    } = await adminSupabase
+      .from("crownlink_matches")
+      .update({
+        status: "cancelled",
+        approved_at: null,
+      })
+      .eq("id", match.id);
 
     if (cancelError) {
       return NextResponse.json(
@@ -128,13 +191,32 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      status: "cancelled",
+      action: "cancel",
+      eventId: match.event_id,
+      matchId: match.id,
+      creatorOneId:
+        match.creator_one_id,
+      creatorTwoId:
+        match.creator_two_id,
+      eventDateId:
+        match.event_date_id,
+      scheduleSlotId:
+        match.schedule_slot_id,
+      message: "Match cancelled.",
     });
   } catch (error) {
-    console.error("MATCH STATUS ERROR:", error);
+    console.error(
+      "MATCH STATUS ERROR:",
+      error
+    );
 
     return NextResponse.json(
-      { error: "Unexpected server error." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error.",
+      },
       { status: 500 }
     );
   }

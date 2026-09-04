@@ -25,7 +25,7 @@ export default async function CrownLinkEventsPage() {
   if (
     !userRole ||
     userRole.status !== "active" ||
-    !["creator", "admin"].includes(userRole.role)
+    !["creator", "agent", "admin"].includes(userRole.role)
   ) {
     redirect("/crownlink/login");
   }

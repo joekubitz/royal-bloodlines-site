@@ -6,7 +6,9 @@ import AddEventForm from "./AddEventForm";
 import RestoreSignupButton from "./RestoreSignupButton";
 import AddEventDateForm from "./AddEventDateForm";
 import RemoveEventDateButton from "./RemoveEventDateButton";
-import GenerateScheduleSlotsButton from "./GenerateScheduleSlotsButton";
+import RemoveSignupButton from "./RemoveSignupButton";
+import DeleteEventButton from "./DeleteEventButton";
+import ArchiveEventButton from "./ArchiveEventButton";
 
 export default async function CrownLinkEventsAdminPage() {
   const supabase = await createClient();
@@ -43,10 +45,11 @@ export default async function CrownLinkEventsAdminPage() {
         name,
         event_date,
         event_time,
-        battle_interval_minutes,
         status,
+        battle_interval_minutes,
         created_at
       `)
+      .eq("status", "active")
       .order("event_date", {
         ascending: true,
       })
@@ -69,38 +72,25 @@ export default async function CrownLinkEventsAdminPage() {
         event_id,
         event_date
       `)
-      .order("event_date", {
-        ascending: true,
-      });
+      .order("event_date", { ascending: true });
 
   if (eventDatesError) {
-    console.error(
-      "ADMIN EVENT DATES ERROR:",
-      eventDatesError
-    );
+    console.error("ADMIN EVENT DATES ERROR:", eventDatesError);
   }
 
-  const {
-    data: generatedScheduleSlots,
-    error: generatedScheduleSlotsError,
-  } = await adminSupabase
-    .from("crownlink_schedule_slots")
-    .select(`
-      id,
-      event_id,
-      event_date_id,
-      slot_time,
-      created_at
-    `)
-    .order("slot_time", {
-      ascending: true,
-    });
+  const { data: scheduleSlots, error: scheduleSlotsError } =
+    await adminSupabase
+      .from("crownlink_schedule_slots")
+      .select(`
+        id,
+        event_id,
+        event_date_id,
+        slot_time
+      `)
+      .order("slot_time", { ascending: true });
 
-  if (generatedScheduleSlotsError) {
-    console.error(
-      "ADMIN GENERATED SCHEDULE SLOTS ERROR:",
-      generatedScheduleSlotsError
-    );
+  if (scheduleSlotsError) {
+    console.error("ADMIN SCHEDULE SLOTS ERROR:", scheduleSlotsError);
   }
 
   /*
@@ -346,15 +336,13 @@ export default async function CrownLinkEventsAdminPage() {
                 const eventRequiredDates =
                   eventDates?.filter(
                     (eventDate) =>
-                      eventDate.event_id ===
-                      event.id
+                      eventDate.event_id === event.id
                   ) ?? [];
 
-                const eventGeneratedScheduleSlots =
-                  generatedScheduleSlots?.filter(
+                const eventScheduleSlots =
+                  scheduleSlots?.filter(
                     (slot) =>
-                      slot.event_id ===
-                      event.id
+                      slot.event_id === event.id
                   ) ?? [];
 
                 const eventSignups =
@@ -542,16 +530,24 @@ export default async function CrownLinkEventsAdminPage() {
                             </div>
                           </div>
                         )}
+
+                        <ArchiveEventButton
+                          eventId={event.id}
+                          eventName={event.name}
+                        />
+
+                        <DeleteEventButton
+                          eventId={event.id}
+                          eventName={event.name}
+                        />
                       </div>
                     </div>
 
                     <div
                       style={{
-                        borderTop:
-                          "1px solid rgba(255,255,255,0.06)",
+                        borderTop: "1px solid rgba(255,255,255,0.06)",
                         padding: 24,
-                        background:
-                          "rgba(211,163,60,0.025)",
+                        background: "rgba(211,163,60,0.025)",
                       }}
                     >
                       <h4
@@ -567,12 +563,12 @@ export default async function CrownLinkEventsAdminPage() {
                       <p
                         style={{
                           margin: "6px 0 0",
-                          color:
-                            "rgba(255,255,255,0.4)",
+                          color: "rgba(255,255,255,0.4)",
                           fontSize: 12,
                         }}
                       >
-                        Everyone who signs up is expected to battle once on every required date.
+                        Every creator who signs up must battle once on every
+                        required date.
                       </p>
 
                       <AddEventDateForm eventId={event.id} />
@@ -581,8 +577,7 @@ export default async function CrownLinkEventsAdminPage() {
                         <p
                           style={{
                             margin: "16px 0 0",
-                            color:
-                              "rgba(255,255,255,0.35)",
+                            color: "rgba(255,255,255,0.35)",
                             fontSize: 13,
                           }}
                         >
@@ -596,19 +591,16 @@ export default async function CrownLinkEventsAdminPage() {
                             marginTop: 16,
                           }}
                         >
-                          {eventRequiredDates.map((eventDate) => (
+                          {eventRequiredDates.map((requiredDate) => (
                             <div
-                              key={eventDate.id}
+                              key={requiredDate.id}
                               style={{
-                                padding: "10px 12px",
+                                padding: "11px 13px",
                                 borderRadius: 12,
-                                background:
-                                  "rgba(255,255,255,0.035)",
-                                border:
-                                  "1px solid rgba(255,255,255,0.07)",
+                                background: "rgba(211,163,60,0.08)",
+                                border: "1px solid rgba(211,163,60,0.2)",
                                 display: "flex",
-                                justifyContent:
-                                  "space-between",
+                                justifyContent: "space-between",
                                 alignItems: "center",
                                 gap: 12,
                                 flexWrap: "wrap",
@@ -616,188 +608,161 @@ export default async function CrownLinkEventsAdminPage() {
                             >
                               <span
                                 style={{
+                                  color: "#d3a33c",
                                   fontSize: 13,
                                   fontWeight: 800,
                                 }}
                               >
-                                {formatDate(eventDate.event_date)}
+                                {formatDate(requiredDate.event_date)}
                               </span>
 
                               <RemoveEventDateButton
-                                eventDateId={eventDate.id}
+                                eventDateId={requiredDate.id}
                               />
                             </div>
                           ))}
                         </div>
                       )}
+                    </div>
 
-                      <div
+                    <div
+                      style={{
+                        borderTop: "1px solid rgba(255,255,255,0.06)",
+                        padding: 24,
+                        background: "rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      <h4
                         style={{
-                          marginTop: 24,
-                          paddingTop: 22,
-                          borderTop:
-                            "1px solid rgba(255,255,255,0.06)",
+                          margin: 0,
+                          fontSize: 15,
+                          fontWeight: 800,
                         }}
                       >
-                        <h4
-                          style={{
-                            margin: 0,
-                            fontSize: 15,
-                            fontWeight: 800,
-                          }}
-                        >
-                          Automatic Schedule Times
-                        </h4>
+                        Automatic Schedule Times
+                      </h4>
 
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          color: "rgba(255,255,255,0.4)",
+                          fontSize: 12,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Starts at {formatTime(event.event_time)} with battles
+                        every {event.battle_interval_minutes ?? 10} minutes.
+                        Times expand automatically as creators sign up.
+                      </p>
+
+                      {eventRequiredDates.length === 0 ? (
                         <p
                           style={{
-                            margin: "6px 0 0",
-                            color:
-                              "rgba(255,255,255,0.4)",
-                            fontSize: 12,
-                            lineHeight: 1.6,
+                            margin: "16px 0 0",
+                            color: "rgba(255,255,255,0.35)",
+                            fontSize: 13,
                           }}
                         >
-                          Crown Link will create enough battle times for the signed-up creators using the event&apos;s first battle time and interval.
+                          Add a required battle date to generate schedule times.
                         </p>
-
+                      ) : activeSignups.length === 0 ? (
                         <p
                           style={{
-                            margin: "8px 0 0",
-                            color: "#d3a33c",
-                            fontSize: 12,
-                            fontWeight: 800,
+                            margin: "16px 0 0",
+                            color: "rgba(255,255,255,0.35)",
+                            fontSize: 13,
                           }}
                         >
-                          First battle: {formatTime(event.event_time)}
-                          {" • "}
-                          Every {event.battle_interval_minutes ?? 10} minutes
+                          Schedule times will appear when creators sign up.
                         </p>
+                      ) : (
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 14,
+                            marginTop: 16,
+                          }}
+                        >
+                          {eventRequiredDates.map((requiredDate) => {
+                            const dateSlots = eventScheduleSlots.filter(
+                              (slot) =>
+                                slot.event_date_id === requiredDate.id
+                            );
 
-                        <div style={{ marginTop: 14 }}>
-                          <GenerateScheduleSlotsButton
-                            eventId={event.id}
-                          />
-                        </div>
-
-                        {activeSignups.length % 2 !== 0 &&
-                          activeSignups.length > 0 && (
-                            <div
-                              style={{
-                                marginTop: 14,
-                                padding: 12,
-                                borderRadius: 12,
-                                background:
-                                  "rgba(255,90,90,0.07)",
-                                border:
-                                  "1px solid rgba(255,90,90,0.2)",
-                                color: "#ffaaaa",
-                                fontSize: 12,
-                                lineHeight: 1.5,
-                                fontWeight: 700,
-                              }}
-                            >
-                              This event currently has an odd number of signed-up creators. The schedule cannot be finalized until every creator has an opponent.
-                            </div>
-                          )}
-
-                        {eventGeneratedScheduleSlots.length === 0 ? (
-                          <p
-                            style={{
-                              margin: "16px 0 0",
-                              color:
-                                "rgba(255,255,255,0.35)",
-                              fontSize: 13,
-                            }}
-                          >
-                            No automatic schedule times have been generated yet.
-                          </p>
-                        ) : (
-                          <div
-                            style={{
-                              display: "grid",
-                              gap: 14,
-                              marginTop: 18,
-                            }}
-                          >
-                            {eventRequiredDates.map((eventDate) => {
-                              const dateSlots =
-                                eventGeneratedScheduleSlots.filter(
-                                  (slot) =>
-                                    slot.event_date_id ===
-                                    eventDate.id
-                                );
-
-                              return (
-                                <div
-                                  key={eventDate.id}
+                            return (
+                              <div key={requiredDate.id}>
+                                <p
                                   style={{
-                                    padding: 14,
-                                    borderRadius: 14,
-                                    background:
-                                      "rgba(0,0,0,0.18)",
-                                    border:
-                                      "1px solid rgba(211,163,60,0.14)",
+                                    margin: "0 0 8px",
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    color: "rgba(255,255,255,0.7)",
                                   }}
                                 >
+                                  {formatDate(requiredDate.event_date)}
+                                </p>
+
+                                {dateSlots.length === 0 ? (
                                   <p
                                     style={{
                                       margin: 0,
-                                      color: "#d3a33c",
+                                      color: "rgba(255,255,255,0.35)",
                                       fontSize: 12,
-                                      fontWeight: 900,
                                     }}
                                   >
-                                    {formatDate(eventDate.event_date)}
+                                    No automatic times generated yet.
                                   </p>
+                                ) : (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: 8,
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    {dateSlots.map((slot) => (
+                                      <span
+                                        key={slot.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          borderRadius: 999,
+                                          background: "rgba(211,163,60,0.08)",
+                                          border:
+                                            "1px solid rgba(211,163,60,0.2)",
+                                          color: "#d3a33c",
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                        }}
+                                      >
+                                        {formatTime(slot.slot_time)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                                  {dateSlots.length === 0 ? (
-                                    <p
-                                      style={{
-                                        margin: "9px 0 0",
-                                        color:
-                                          "rgba(255,255,255,0.35)",
-                                        fontSize: 12,
-                                      }}
-                                    >
-                                      No generated times for this date.
-                                    </p>
-                                  ) : (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: 8,
-                                        marginTop: 10,
-                                      }}
-                                    >
-                                      {dateSlots.map((slot) => (
-                                        <div
-                                          key={slot.id}
-                                          style={{
-                                            padding:
-                                              "8px 11px",
-                                            borderRadius: 999,
-                                            background:
-                                              "rgba(211,163,60,0.08)",
-                                            border:
-                                              "1px solid rgba(211,163,60,0.2)",
-                                            color: "#d3a33c",
-                                            fontSize: 12,
-                                            fontWeight: 800,
-                                          }}
-                                        >
-                                          {formatTime(slot.slot_time)}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                      {activeSignups.length > 0 &&
+                        activeSignups.length % 2 !== 0 && (
+                          <p
+                            style={{
+                              margin: "14px 0 0",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              background: "rgba(255,90,90,0.07)",
+                              border: "1px solid rgba(255,90,90,0.18)",
+                              color: "#ffb0b0",
+                              fontSize: 11,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Odd creator count: one creator will remain unmatched
+                            until another creator signs up.
+                          </p>
                         )}
-                      </div>
                     </div>
 
                     <div
@@ -1023,11 +988,13 @@ export default async function CrownLinkEventsAdminPage() {
                                       </p>
                                     </div>
 
-                                    {isRemoved && (
+                                    {isRemoved ? (
                                       <RestoreSignupButton
-                                        signupId={
-                                          signup.id
-                                        }
+                                        signupId={signup.id}
+                                      />
+                                    ) : (
+                                      <RemoveSignupButton
+                                        signupId={signup.id}
                                       />
                                     )}
                                   </div>

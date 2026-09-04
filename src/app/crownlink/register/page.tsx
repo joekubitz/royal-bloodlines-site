@@ -4,194 +4,196 @@ import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/app/supabase/client";
 
-export default function CrownLinkLoginPage() {
+export default function CrownLinkRegisterPage() {
+  const [registrationCode, setRegistrationCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
 
-    setLoading(true);
+    if (loading) return;
+
     setError("");
 
-    const supabase = createClient();
+    const normalizedCode = registrationCode
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_-]/g, "");
 
-    const {
-      data,
-      error: loginError,
-    } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-
-    if (loginError) {
-      setError(loginError.message);
-      setLoading(false);
+    if (!normalizedCode) {
+      setError("A registration code is required.");
       return;
     }
 
-    if (!data.user) {
-      setError("Login failed. Please try again.");
-      setLoading(false);
+    if (password.length < 8) {
+      setError("Your password must be at least 8 characters.");
       return;
     }
 
-    const { data: userRole, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role, status")
-      .eq("user_id", data.user.id)
-      .single();
+    if (password !== confirmPassword) {
+      setError("Your passwords do not match.");
+      return;
+    }
 
-    if (roleError || !userRole) {
-      console.error("CROWN LINK ROLE ERROR:", roleError);
+    setLoading(true);
 
-      await supabase.auth.signOut();
+    try {
+      const response = await fetch("/api/crownlink/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          registrationCode: normalizedCode,
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
 
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(
+          result.error ||
+            "Your Crown Link account could not be created."
+        );
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
+
+      const { error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+
+      if (loginError) {
+        setError(
+          "Your account was created, but Crown Link could not sign you in automatically. Please return to the login page and sign in."
+        );
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = "/crownlink/profile/setup";
+    } catch (err) {
       setError(
-        roleError
-          ? `Role error: ${roleError.message}`
-          : "No Crown Link role was found for this account."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while creating your account."
       );
-
       setLoading(false);
-      return;
     }
-
-    if (userRole.status !== "active") {
-      await supabase.auth.signOut();
-
-      setError(
-        "Your Crown Link account is currently suspended."
-      );
-
-      setLoading(false);
-      return;
-    }
-
-    if (!["admin", "creator", "agent"].includes(userRole.role)) {
-      await supabase.auth.signOut();
-
-      setError(
-        "Your account does not have Crown Link access."
-      );
-
-      setLoading(false);
-      return;
-    }
-
-    if (userRole.role === "admin") {
-      window.location.href = "/crownlink/admin";
-      return;
-    }
-
-    if (userRole.role === "agent") {
-      window.location.href = "/crownlink/agent";
-      return;
-    }
-
-    window.location.href = "/crownlink";
   }
 
   return (
     <main className="cl-page">
-      <div className="cl-login-container">
+      <div className="cl-register-container">
         <div className="cl-brand">
           <div className="cl-crown">♛</div>
-
-          <p className="cl-agency">
-            ROYALS BLOODLINE
-          </p>
-
+          <p className="cl-agency">ROYALS BLOODLINE</p>
           <h1>Crown Link</h1>
-
-          <p className="cl-tagline">
-            Connect. Match. Battle.
-          </p>
+          <p className="cl-tagline">Connect. Match. Battle.</p>
         </div>
 
         <div className="cl-card">
           <div className="cl-card-header">
-            <h2>Welcome Back</h2>
-
+            <h2>Create Creator Account</h2>
             <p>
-              Sign in to your Crown Link account.
+              Enter the registration code from your Crown Link agent,
+              then create your login.
             </p>
           </div>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleRegister}>
             <div className="cl-field">
-              <label htmlFor="email">
-                Email
+              <label htmlFor="registrationCode">
+                Registration Code
               </label>
+              <input
+                id="registrationCode"
+                type="text"
+                placeholder="Enter your agent code"
+                value={registrationCode}
+                onChange={(e) =>
+                  setRegistrationCode(
+                    e.target.value.toUpperCase()
+                  )
+                }
+                required
+                autoComplete="off"
+              />
+            </div>
 
+            <div className="cl-field">
+              <label htmlFor="email">Email</label>
               <input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
               />
             </div>
 
             <div className="cl-field">
-              <label htmlFor="password">
-                Password
-              </label>
-
+              <label htmlFor="password">Password</label>
               <input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="At least 8 characters"
                 value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="cl-field">
+              <label htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                placeholder="Re-enter your password"
+                value={confirmPassword}
                 onChange={(e) =>
-                  setPassword(e.target.value)
+                  setConfirmPassword(e.target.value)
                 }
                 required
-                autoComplete="current-password"
+                minLength={8}
+                autoComplete="new-password"
               />
             </div>
 
             {error && (
-              <div className="cl-error">
-                {error}
-              </div>
+              <div className="cl-error">{error}</div>
             )}
 
             <button
               type="submit"
+              className="cl-register-button"
               disabled={loading}
-              className="cl-login-button"
             >
               {loading
-                ? "Signing In..."
-                : "Sign In"}
+                ? "Creating Account..."
+                : "Create Account"}
             </button>
           </form>
 
-          <div className="cl-divider">
-            <span>New to Crown Link?</span>
-          </div>
-
-          <Link
-            href="/crownlink/register"
-            className="cl-register-button"
-          >
-            Create Creator Account
-          </Link>
-
-          <p className="cl-register-note">
-            You will need a valid registration code from your agent.
-          </p>
-
-          <div className="cl-footer">
-            Crown Link is available to approved
-            agency creators and agents.
+          <div className="cl-back">
+            Already have an account?{" "}
+            <Link href="/crownlink/login">Sign in</Link>
           </div>
         </div>
       </div>
@@ -218,7 +220,7 @@ export default function CrownLinkLoginPage() {
           padding: 30px 20px;
         }
 
-        .cl-login-container {
+        .cl-register-container {
           width: 100%;
           max-width: 470px;
         }
@@ -280,6 +282,7 @@ export default function CrownLinkLoginPage() {
           margin: 0;
           color: rgba(255, 255, 255, 0.55);
           font-size: 14px;
+          line-height: 1.55;
         }
 
         .cl-field {
@@ -304,7 +307,6 @@ export default function CrownLinkLoginPage() {
           color: white;
           font-size: 15px;
           outline: none;
-          transition: 0.2s ease;
         }
 
         .cl-field input:focus {
@@ -325,89 +327,43 @@ export default function CrownLinkLoginPage() {
           background: rgba(255, 50, 50, 0.08);
           color: #ffaaaa;
           font-size: 13px;
+          line-height: 1.45;
         }
 
-        .cl-login-button,
-        :global(.cl-register-button) {
+        .cl-register-button {
           width: 100%;
-          box-sizing: border-box;
+          border: none;
           border-radius: 12px;
           padding: 14px;
-          font-weight: 900;
-          font-size: 15px;
-          cursor: pointer;
-          transition:
-            transform 0.15s ease,
-            opacity 0.15s ease,
-            background 0.15s ease;
-          text-align: center;
-        }
-
-        .cl-login-button {
-          border: none;
           background: linear-gradient(
             135deg,
             #d3a33c,
             #9e6f22
           );
           color: #090603;
+          font-weight: 900;
+          font-size: 15px;
+          cursor: pointer;
         }
 
-        .cl-login-button:hover,
-        :global(.cl-register-button:hover) {
-          transform: translateY(-1px);
-        }
-
-        .cl-login-button:disabled {
+        .cl-register-button:disabled {
           opacity: 0.55;
           cursor: not-allowed;
-          transform: none;
         }
 
-        .cl-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 24px 0 16px;
-          color: rgba(255, 255, 255, 0.35);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          font-weight: 800;
-        }
-
-        .cl-divider::before,
-        .cl-divider::after {
-          content: "";
-          flex: 1;
-          height: 1px;
-          background: rgba(255, 255, 255, 0.08);
-        }
-
-        :global(.cl-register-button) {
-          display: block;
-          text-decoration: none;
-          border: 1px solid rgba(211, 163, 60, 0.35);
-          background: rgba(211, 163, 60, 0.08);
-          color: #d3a33c;
-        }
-
-        .cl-register-note {
-          margin: 10px 0 0;
-          color: rgba(255, 255, 255, 0.38);
-          font-size: 11px;
-          line-height: 1.5;
-          text-align: center;
-        }
-
-        .cl-footer {
+        .cl-back {
           margin-top: 24px;
           padding-top: 20px;
-          border-top:
-            1px solid rgba(255, 255, 255, 0.07);
+          border-top: 1px solid rgba(255, 255, 255, 0.07);
           text-align: center;
-          color: rgba(255, 255, 255, 0.4);
+          color: rgba(255, 255, 255, 0.45);
           font-size: 12px;
+        }
+
+        .cl-back :global(a) {
+          color: #d3a33c;
+          text-decoration: none;
+          font-weight: 800;
         }
 
         @media (max-width: 520px) {

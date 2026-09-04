@@ -91,72 +91,70 @@ export async function POST(request: Request) {
     }
 
     if (
-      signup.status !== "removed"
+      signup.status !== "signed_up"
     ) {
       return NextResponse.json(
         {
           error:
-            "Only admin-removed signups can be restored.",
+            "Only active signups can be removed.",
         },
         { status: 400 }
       );
     }
 
     const {
-      data: creatorRole,
-      error: creatorRoleError,
+      data: approvedMatch,
+      error: matchError,
     } = await adminSupabase
-      .from("user_roles")
-      .select("role, status")
+      .from("crownlink_matches")
+      .select("id")
       .eq(
-        "user_id",
-        signup.user_id
+        "event_id",
+        signup.event_id
+      )
+      .eq("status", "approved")
+      .or(
+        `creator_one_id.eq.${signup.user_id},creator_two_id.eq.${signup.user_id}`
       )
       .maybeSingle();
 
-    if (creatorRoleError) {
+    if (matchError) {
       return NextResponse.json(
         {
-          error:
-            creatorRoleError.message,
+          error: matchError.message,
         },
         { status: 500 }
       );
     }
 
-    if (
-      !creatorRole ||
-      creatorRole.role !== "creator" ||
-      creatorRole.status !== "active"
-    ) {
+    if (approvedMatch) {
       return NextResponse.json(
         {
           error:
-            "This creator is not currently an active Crown Link creator.",
+            "This creator has an approved battle and cannot be removed until that battle is cancelled.",
         },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
-    const { error: restoreError } =
+    const { error: removeError } =
       await adminSupabase
         .from(
           "crownlink_event_signups"
         )
         .update({
-          status: "signed_up",
+          status: "removed",
         })
         .eq("id", signup.id)
         .eq(
           "status",
-          "removed"
+          "signed_up"
         );
 
-    if (restoreError) {
+    if (removeError) {
       return NextResponse.json(
         {
-          error:
-            restoreError.message,
+          error: removeError.message,
         },
         { status: 500 }
       );
@@ -170,11 +168,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message:
-        "Creator restored to the event successfully.",
+        "Creator removed from the event successfully.",
     });
   } catch (error) {
     console.error(
-      "Restore Crown Link signup error:",
+      "Remove Crown Link signup error:",
       error
     );
 
@@ -183,7 +181,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "Something went wrong restoring the creator.",
+            : "Something went wrong removing the creator.",
       },
       { status: 500 }
     );

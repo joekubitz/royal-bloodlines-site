@@ -15,6 +15,9 @@ export default function CrownLinkProfileSetupPage() {
   const [agencyName, setAgencyName] = useState("");
   const [diamondLevel, setDiamondLevel] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [agentRegistrationCode, setAgentRegistrationCode] = useState("");
+  const [connectedAgentName, setConnectedAgentName] = useState("");
+  const [connectedAgentUserId, setConnectedAgentUserId] = useState<string | null>(null);
 
   const [tiktokConnected, setTiktokConnected] = useState(false);
   const [tiktokMessage, setTiktokMessage] = useState("");
@@ -159,7 +162,8 @@ export default function CrownLinkProfileSetupPage() {
               diamond_level,
               profile_photo_url,
               tiktok_open_id,
-              tiktok_connected_at
+              tiktok_connected_at,
+              agent_user_id
             `
           )
           .eq("user_id", user.id)
@@ -210,6 +214,100 @@ export default function CrownLinkProfileSetupPage() {
         setTiktokConnected(
           Boolean(existingProfile.tiktok_open_id)
         );
+
+        const metadataAgentUserId =
+          typeof user.user_metadata?.crownlink_agent_user_id === "string"
+            ? user.user_metadata.crownlink_agent_user_id
+            : null;
+
+        const metadataRegistrationCode =
+          typeof user.user_metadata?.crownlink_registration_code === "string"
+            ? user.user_metadata.crownlink_registration_code
+            : "";
+
+        const linkedAgentUserId =
+          existingProfile.agent_user_id || metadataAgentUserId;
+
+        if (linkedAgentUserId) {
+          setConnectedAgentUserId(linkedAgentUserId);
+
+          if (metadataRegistrationCode) {
+            setAgentRegistrationCode(metadataRegistrationCode);
+
+            const response = await fetch(
+              "/api/crownlink/agent-code/validate",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  code: metadataRegistrationCode,
+                }),
+              }
+            );
+
+            const validation = await response.json();
+
+            if (response.ok && validation.valid) {
+              setConnectedAgentName(
+                validation.agentDisplayName ||
+                  validation.agentAgencyName ||
+                  "Crown Link Agent"
+              );
+            } else {
+              setConnectedAgentName("Crown Link Agent");
+            }
+          } else {
+            setConnectedAgentName("Crown Link Agent");
+          }
+        }
+      }
+
+      if (!existingProfile) {
+        const metadataAgentUserId =
+          typeof user.user_metadata?.crownlink_agent_user_id === "string"
+            ? user.user_metadata.crownlink_agent_user_id
+            : null;
+
+        const metadataRegistrationCode =
+          typeof user.user_metadata?.crownlink_registration_code === "string"
+            ? user.user_metadata.crownlink_registration_code
+            : "";
+
+        if (metadataAgentUserId) {
+          setConnectedAgentUserId(metadataAgentUserId);
+          setAgentRegistrationCode(metadataRegistrationCode);
+
+          if (metadataRegistrationCode) {
+            const response = await fetch(
+              "/api/crownlink/agent-code/validate",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  code: metadataRegistrationCode,
+                }),
+              }
+            );
+
+            const validation = await response.json();
+
+            if (response.ok && validation.valid) {
+              setConnectedAgentName(
+                validation.agentDisplayName ||
+                  validation.agentAgencyName ||
+                  "Crown Link Agent"
+              );
+            } else {
+              setConnectedAgentName("Crown Link Agent");
+            }
+          } else {
+            setConnectedAgentName("Crown Link Agent");
+          }
+        }
       }
 
       setLoading(false);
@@ -309,6 +407,36 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
+    let agentUserId: string | null = connectedAgentUserId;
+
+    if (!agentUserId && agentRegistrationCode.trim()) {
+      const response = await fetch(
+        "/api/crownlink/agent-code/validate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: agentRegistrationCode,
+          }),
+        }
+      );
+
+      const validation = await response.json();
+
+      if (!response.ok || !validation.valid) {
+        setError(
+          validation.error ||
+            "That agent registration code could not be verified."
+        );
+        setSaving(false);
+        return;
+      }
+
+      agentUserId = validation.agentUserId ?? null;
+    }
+
     /*
       Only Crown Link-editable information is updated here.
 
@@ -322,6 +450,7 @@ export default function CrownLinkProfileSetupPage() {
         display_name: displayName.trim() || null,
         agency_name: agency.name,
         diamond_level: diamonds,
+        agent_user_id: agentUserId,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);
@@ -540,6 +669,61 @@ export default function CrownLinkProfileSetupPage() {
               Your agency is assigned by a Crown Link
               administrator and cannot be changed here.
             </small>
+          </div>
+
+          <div className="cl-field">
+            <label>Agent</label>
+
+            {connectedAgentUserId ? (
+              <>
+                <div className="agency-display">
+                  <div>
+                    <span className="agency-label">
+                      CONNECTED AGENT
+                    </span>
+
+                    <strong>
+                      {connectedAgentName || "Crown Link Agent"}
+                    </strong>
+
+                    {agentRegistrationCode && (
+                      <small className="agent-code">
+                        Registration Code: {agentRegistrationCode}
+                      </small>
+                    )}
+                  </div>
+
+                  <span className="agency-lock">
+                    🔒
+                  </span>
+                </div>
+
+                <small>
+                  Your agent was connected automatically from the
+                  registration code used to create your account.
+                </small>
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Example: TESTAGENCY"
+                  value={agentRegistrationCode}
+                  onChange={(e) =>
+                    setAgentRegistrationCode(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9_-]/g, "")
+                    )
+                  }
+                />
+
+                <small>
+                  If your agent gave you a Crown Link registration code,
+                  enter it here to connect your profile to their team.
+                </small>
+              </>
+            )}
           </div>
 
           <div className="cl-field">
@@ -926,6 +1110,13 @@ export default function CrownLinkProfileSetupPage() {
         .agency-display strong {
           color: #d3a33c;
           font-size: 15px;
+        }
+
+        .agency-display .agent-code {
+          margin-top: 2px;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 10px;
+          font-weight: 700;
         }
 
         .agency-lock {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
+import { rebuildScheduleSlots } from "@/app/lib/crownlink/rebuildScheduleSlots";
 
 export async function POST(request: Request) {
   try {
@@ -107,6 +108,11 @@ export async function POST(request: Request) {
       );
     }
 
+    await rebuildScheduleSlots(
+      adminSupabase,
+      eventId
+    );
+
     return NextResponse.json({
       success: true,
       eventDate: eventDateRecord,
@@ -119,7 +125,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Unexpected server error.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error.",
       },
       { status: 500 }
     );
@@ -177,6 +186,34 @@ export async function DELETE(request: Request) {
     const adminSupabase =
       createAdminClient();
 
+    const {
+      data: eventDateRecord,
+      error: lookupError,
+    } = await adminSupabase
+      .from("crownlink_event_dates")
+      .select("id, event_id")
+      .eq("id", eventDateId)
+      .maybeSingle();
+
+    if (lookupError) {
+      return NextResponse.json(
+        {
+          error: lookupError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!eventDateRecord) {
+      return NextResponse.json(
+        {
+          error:
+            "Event date not found.",
+        },
+        { status: 404 }
+      );
+    }
+
     const { error: deleteError } =
       await adminSupabase
         .from("crownlink_event_dates")
@@ -195,6 +232,11 @@ export async function DELETE(request: Request) {
       );
     }
 
+    await rebuildScheduleSlots(
+      adminSupabase,
+      eventDateRecord.event_id
+    );
+
     return NextResponse.json({
       success: true,
     });
@@ -206,7 +248,10 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Unexpected server error.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error.",
       },
       { status: 500 }
     );

@@ -3,67 +3,166 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Props = {
+type MatchActionsProps = {
   matchId: string;
+  eventId: string;
+  status: string;
 };
+
+type BusyAction = "cancel" | "rematch" | null;
 
 export default function MatchActions({
   matchId,
-}: Props) {
+  eventId,
+  status,
+}: MatchActionsProps) {
   const router = useRouter();
 
-  const [loading, setLoading] = useState<
-    "approve" | "cancel" | null
-  >(null);
+  const [busyAction, setBusyAction] =
+    useState<BusyAction>(null);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  async function handleAction(
-    action: "approve" | "cancel"
+  async function cancelMatch(
+    refreshAfter = true
   ) {
-    const confirmed = window.confirm(
-      action === "approve"
-        ? "Approve this matchup?"
-        : "Cancel this suggested matchup?"
+    const response = await fetch(
+      "/api/crownlink/admin/matchmaking/status",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          matchId,
+          action: "cancel",
+        }),
+      }
     );
+
+    const result =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+          "Could not cancel this match."
+      );
+    }
+
+    if (refreshAfter) {
+      router.refresh();
+    }
+
+    return result;
+  }
+
+  async function handleCancel() {
+    const confirmed =
+      window.confirm(
+        "Cancel this match? The creators will remain signed up for the event."
+      );
 
     if (!confirmed) {
       return;
     }
 
-    setLoading(action);
+    setBusyAction("cancel");
     setError("");
 
     try {
+      await cancelMatch(true);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not cancel this match."
+      );
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleRematch() {
+    const confirmed =
+      window.confirm(
+        "Rematch this battle? Crown Link will cancel this matchup and automatically generate a replacement while preserving the other scheduled matches."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyAction("rematch");
+    setError("");
+
+    try {
+      /*
+       * First remove the current matchup.
+       * The creators remain signed up.
+       */
+      await cancelMatch(false);
+
+      /*
+       * Then run the existing generator.
+       * It preserves all other active
+       * matches and fills the newly open
+       * spots where possible.
+       */
       const response = await fetch(
-        "/api/crownlink/admin/matchmaking/status",
+        "/api/crownlink/admin/matchmaking/generate",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
-            matchId,
-            action,
+            eventId,
           }),
         }
       );
 
-      const result = await response.json();
+      const result =
+        await response.json();
 
       if (!response.ok) {
-        setError(
-          result.error || "Could not update match."
+        throw new Error(
+          result.error ||
+            "The match was cancelled, but Crown Link could not generate a replacement."
         );
-        return;
       }
 
       router.refresh();
-    } catch {
-      setError("Unexpected error.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not rematch this battle."
+      );
+
+      /*
+       * Refresh even after an error because
+       * the original match may already have
+       * been successfully cancelled.
+       */
+      router.refresh();
     } finally {
-      setLoading(null);
+      setBusyAction(null);
     }
+  }
+
+  const isBusy =
+    busyAction !== null;
+
+  const isActive =
+    status === "approved" ||
+    status === "suggested";
+
+  if (!isActive) {
+    return null;
   }
 
   return (
@@ -80,53 +179,57 @@ export default function MatchActions({
           display: "flex",
           gap: 10,
           flexWrap: "wrap",
+          alignItems: "center",
         }}
       >
         <button
           type="button"
-          disabled={loading !== null}
-          onClick={() => handleAction("approve")}
+          onClick={handleRematch}
+          disabled={isBusy}
           style={{
-            padding: "11px 16px",
+            padding: "10px 14px",
             borderRadius: 10,
-            border: "none",
+            border:
+              "1px solid rgba(211,163,60,0.35)",
             background:
-              "linear-gradient(135deg, #d3a33c, #9e6f22)",
-            color: "#080503",
+              "rgba(211,163,60,0.10)",
+            color: "#d3a33c",
             fontWeight: 900,
             cursor:
-              loading !== null
+              isBusy
                 ? "not-allowed"
                 : "pointer",
-            opacity: loading !== null ? 0.6 : 1,
+            opacity:
+              isBusy ? 0.55 : 1,
           }}
         >
-          {loading === "approve"
-            ? "Approving..."
-            : "Approve Match"}
+          {busyAction === "rematch"
+            ? "Rematching..."
+            : "Rematch"}
         </button>
 
         <button
           type="button"
-          disabled={loading !== null}
-          onClick={() => handleAction("cancel")}
+          onClick={handleCancel}
+          disabled={isBusy}
           style={{
-            padding: "11px 16px",
+            padding: "10px 14px",
             borderRadius: 10,
             border:
-              "1px solid rgba(255,100,100,0.25)",
+              "1px solid rgba(255,100,100,0.30)",
             background:
-              "rgba(255,70,70,0.06)",
+              "rgba(255,80,80,0.07)",
             color: "#ffaaaa",
-            fontWeight: 800,
+            fontWeight: 900,
             cursor:
-              loading !== null
+              isBusy
                 ? "not-allowed"
                 : "pointer",
-            opacity: loading !== null ? 0.6 : 1,
+            opacity:
+              isBusy ? 0.55 : 1,
           }}
         >
-          {loading === "cancel"
+          {busyAction === "cancel"
             ? "Cancelling..."
             : "Cancel Match"}
         </button>
@@ -135,9 +238,11 @@ export default function MatchActions({
       {error && (
         <p
           style={{
-            margin: "10px 0 0",
+            margin:
+              "10px 0 0",
             color: "#ffaaaa",
             fontSize: 12,
+            lineHeight: 1.5,
           }}
         >
           {error}
