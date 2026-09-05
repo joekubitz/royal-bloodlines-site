@@ -85,19 +85,24 @@ export async function POST(
       data: userRole,
     } = await supabase
       .from("user_roles")
-      .select("role, status")
+      .select(
+        "role, status, can_run_matchmaking"
+      )
       .eq("user_id", user.id)
       .single();
 
-    if (
-      !userRole ||
-      userRole.role !== "admin" ||
-      userRole.status !== "active"
-    ) {
+    const canRunMatchmaking =
+      userRole?.status === "active" &&
+      (
+        userRole.role === "admin" ||
+        userRole.can_run_matchmaking === true
+      );
+
+    if (!canRunMatchmaking) {
       return NextResponse.json(
         {
           error:
-            "Admin access required.",
+            "Matchmaking access required.",
         },
         { status: 403 }
       );

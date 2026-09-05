@@ -19,24 +19,34 @@ export async function POST(request: Request) {
 
     const { data: userRole } = await supabase
       .from("user_roles")
-      .select("role, status")
+      .select(
+        "role, status, can_manage_events"
+      )
       .eq("user_id", user.id)
       .single();
 
-    if (
-      !userRole ||
-      userRole.role !== "admin" ||
-      userRole.status !== "active"
-    ) {
+    const canManageEvents =
+      userRole?.status === "active" &&
+      (
+        userRole.role === "admin" ||
+        userRole.can_manage_events === true
+      );
+
+    if (!canManageEvents) {
       return NextResponse.json(
-        { error: "Admin access required." },
+        {
+          error:
+            "Event management access required.",
+        },
         { status: 403 }
       );
     }
 
     const body = await request.json();
 
-    const name = String(body.name || "").trim();
+    const name = String(
+      body.name || ""
+    ).trim();
 
     const description = String(
       body.description || ""
@@ -54,13 +64,17 @@ export async function POST(request: Request) {
       body.eventTime || ""
     ).trim();
 
-    const battleIntervalMinutes = Number(
-      body.battleIntervalMinutes
-    );
+    const battleIntervalMinutes =
+      Number(
+        body.battleIntervalMinutes
+      );
 
     if (!name) {
       return NextResponse.json(
-        { error: "Event name is required." },
+        {
+          error:
+            "Event name is required.",
+        },
         { status: 400 }
       );
     }
@@ -77,7 +91,10 @@ export async function POST(request: Request) {
 
     if (!eventDate) {
       return NextResponse.json(
-        { error: "Event date is required." },
+        {
+          error:
+            "Event date is required.",
+        },
         { status: 400 }
       );
     }

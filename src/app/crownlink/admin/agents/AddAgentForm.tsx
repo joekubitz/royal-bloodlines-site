@@ -1,12 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type AgencyOption = {
-  id: string;
-  name: string;
-};
 
 export default function AddAgentForm() {
   const router = useRouter();
@@ -14,59 +9,17 @@ export default function AddAgentForm() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [tiktokUsername, setTiktokUsername] = useState("");
-  const [agencyId, setAgencyId] = useState("");
-  const [agencies, setAgencies] = useState<AgencyOption[]>([]);
+  const [agencyName, setAgencyName] = useState("");
   const [registrationCode, setRegistrationCode] = useState("");
-  const [loadingAgencies, setLoadingAgencies] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function loadAgencies() {
-      try {
-        const response = await fetch(
-          "/api/crownlink/admin/agents/agencies"
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "Agencies could not be loaded."
-          );
-        }
-
-        setAgencies(data.agencies ?? []);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Agencies could not be loaded."
-        );
-      } finally {
-        setLoadingAgencies(false);
-      }
-    }
-
-    loadAgencies();
-  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setMessage("");
     setError("");
-
-    const selectedAgency = agencies.find(
-      (agency) => agency.id === agencyId
-    );
-
-    if (!selectedAgency) {
-      setError("Please select an agency.");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -79,8 +32,7 @@ export default function AddAgentForm() {
           email,
           displayName,
           tiktokUsername,
-          agencyId: selectedAgency.id,
-          agencyName: selectedAgency.name,
+          agencyName,
           registrationCode,
         }),
       });
@@ -94,7 +46,7 @@ export default function AddAgentForm() {
       setEmail("");
       setDisplayName("");
       setTiktokUsername("");
-      setAgencyId("");
+      setAgencyName("");
       setRegistrationCode("");
 
       setMessage(
@@ -177,7 +129,7 @@ export default function AddAgentForm() {
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             required
-            placeholder="Agent name"
+            placeholder="Momma_D"
             style={inputStyle}
           />
         </label>
@@ -199,26 +151,15 @@ export default function AddAgentForm() {
         </label>
 
         <label style={labelStyle}>
-          Agency
-          <select
-            value={agencyId}
-            onChange={(event) => setAgencyId(event.target.value)}
+          Agency Name
+          <input
+            type="text"
+            value={agencyName}
+            onChange={(event) => setAgencyName(event.target.value)}
             required
-            disabled={loadingAgencies}
+            placeholder="The Reservation"
             style={inputStyle}
-          >
-            <option value="">
-              {loadingAgencies
-                ? "Loading agencies..."
-                : "Select an agency"}
-            </option>
-
-            {agencies.map((agency) => (
-              <option key={agency.id} value={agency.id}>
-                {agency.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label style={labelStyle}>
@@ -242,7 +183,7 @@ export default function AddAgentForm() {
 
       <button
         type="submit"
-        disabled={submitting || loadingAgencies}
+        disabled={submitting}
         style={{
           padding: "12px 16px",
           borderRadius: 10,
@@ -254,10 +195,7 @@ export default function AddAgentForm() {
             ? "rgba(211,163,60,0.55)"
             : "#d3a33c",
           fontWeight: 900,
-          cursor:
-            submitting || loadingAgencies
-              ? "not-allowed"
-              : "pointer",
+          cursor: submitting ? "not-allowed" : "pointer",
         }}
       >
         {submitting ? "Creating Agent..." : "Create Agent"}

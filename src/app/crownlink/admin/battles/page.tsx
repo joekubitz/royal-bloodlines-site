@@ -162,89 +162,257 @@ export default async function CrownLinkAdminBattlesPage() {
     <main
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, #4b0d12 0%, #180607 35%, #050505 75%)",
-        color: "white",
-        padding: "40px 20px",
+        color: "#f7f1e8",
+        background: `
+          radial-gradient(circle at 12% 4%, rgba(88,7,12,0.40), transparent 27%),
+          radial-gradient(circle at 92% 32%, rgba(116,22,0,0.08), transparent 28%),
+          linear-gradient(180deg, #080808 0%, #040404 48%, #010101 100%)
+        `,
+        padding: "28px 20px 70px",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 1000,
+          maxWidth: 1100,
           margin: "0 auto",
         }}
       >
-        <Link
-          href="/crownlink/admin"
+        {/* BACK */}
+        <div style={{ marginBottom: 16 }}>
+          <Link href="/crownlink/admin" style={backButtonStyle}>
+            <span style={{ fontSize: 14 }}>←</span>
+            Admin Center
+          </Link>
+        </div>
+
+        {/* HEADER */}
+        <section
           style={{
-            color: "#d3a33c",
-            textDecoration: "none",
-            fontWeight: 700,
-            fontSize: 14,
+            position: "relative",
+            overflow: "hidden",
+            padding: "24px 27px",
+            borderRadius: 24,
+            border: "1px solid rgba(201,151,50,0.19)",
+            background: `
+              linear-gradient(
+                130deg,
+                rgba(48,5,9,0.90),
+                rgba(14,10,10,0.95) 53%,
+                rgba(3,3,3,0.98)
+              )
+            `,
+            boxShadow: "0 22px 55px rgba(0,0,0,0.45)",
+            marginBottom: 25,
           }}
         >
-          ← Back to Admin Center
-        </Link>
+          <div
+            style={{
+              position: "absolute",
+              width: 250,
+              height: 250,
+              borderRadius: "50%",
+              background: "rgba(110,7,14,0.18)",
+              filter: "blur(80px)",
+              left: -100,
+              top: -140,
+              pointerEvents: "none",
+            }}
+          />
 
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "5px 9px",
+                borderRadius: 999,
+                border: "1px solid rgba(201,151,50,0.20)",
+                background: "rgba(201,151,50,0.045)",
+                marginBottom: 10,
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: "#c99732",
+                  boxShadow: "0 0 8px rgba(201,151,50,0.55)",
+                }}
+              />
+
+              <span style={eyebrowStyle}>
+                Crown Link · Battle Operations
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                gap: 18,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <h1
+                  style={{
+                    margin: 0,
+                    color: "#f9f4ed",
+                    fontSize: "clamp(30px,5vw,42px)",
+                    fontWeight: 950,
+                    letterSpacing: -1.4,
+                    lineHeight: 1,
+                  }}
+                >
+                  Battles
+                </h1>
+
+                <div
+                  style={{
+                    width: 58,
+                    height: 2,
+                    marginTop: 11,
+                    background:
+                      "linear-gradient(90deg, #e86f00, #c99732, transparent)",
+                  }}
+                />
+
+                <p
+                  style={{
+                    margin: "10px 0 0",
+                    maxWidth: 650,
+                    color: "rgba(247,241,232,0.4)",
+                    fontSize: 11,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  View and manage all approved Crown Link battles.
+                </p>
+              </div>
+
+              <div style={battleCountStyle}>
+                <strong
+                  style={{
+                    display: "block",
+                    color: "#d9b15c",
+                    fontSize: 20,
+                    lineHeight: 1,
+                  }}
+                >
+                  {matches?.length ?? 0}
+                </strong>
+
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: 4,
+                    color: "rgba(247,241,232,0.25)",
+                    fontSize: 7,
+                    fontWeight: 950,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Approved{" "}
+                  {(matches?.length ?? 0) === 1
+                    ? "Battle"
+                    : "Battles"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION HEADER */}
         <div
           style={{
-            marginTop: 28,
-            marginBottom: 30,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 14,
           }}
         >
-          <p
-            style={{
-              color: "#d3a33c",
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: 3,
-              margin: 0,
-            }}
-          >
-            CROWN LINK ADMIN
-          </p>
+          <div>
+            <p style={sectionEyebrowStyle}>Approved Matchups</p>
 
-          <h1
-            style={{
-              fontSize: 40,
-              margin: "8px 0 0",
-              fontWeight: 900,
-            }}
-          >
-            Battles
-          </h1>
+            <h2
+              style={{
+                margin: "5px 0 0",
+                color: "#f9f4ed",
+                fontSize: 21,
+                fontWeight: 950,
+                letterSpacing: -0.45,
+              }}
+            >
+              Battle Lineup
+            </h2>
+          </div>
 
-          <p
-            style={{
-              color: "rgba(255,255,255,0.5)",
-              marginTop: 10,
-            }}
-          >
-            View and manage all approved Crown Link battles.
-          </p>
+          <span style={countPillStyle}>
+            {matches?.length ?? 0} active
+          </span>
         </div>
 
         {!matches || matches.length === 0 ? (
-          <div
-            style={{
-              padding: 26,
-              borderRadius: 18,
-              background: "rgba(20,10,10,0.75)",
-              border: "1px solid rgba(211,163,60,0.2)",
-              color: "rgba(255,255,255,0.5)",
-            }}
-          >
-            No approved battles yet.
+          <div style={emptyStateStyle}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                margin: "0 auto 12px",
+                borderRadius: 13,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid rgba(201,151,50,0.15)",
+                background: "rgba(201,151,50,0.035)",
+                color: "#c99732",
+                fontSize: 18,
+              }}
+            >
+              ⚔
+            </div>
+
+            <p
+              style={{
+                margin: 0,
+                color: "#f9f4ed",
+                fontSize: 14,
+                fontWeight: 900,
+              }}
+            >
+              No approved battles yet.
+            </p>
+
+            <p
+              style={{
+                margin: "6px 0 0",
+                color: "rgba(247,241,232,0.28)",
+                fontSize: 10,
+              }}
+            >
+              Approved matchups will appear here after matchmaking.
+            </p>
           </div>
         ) : (
           <div
             style={{
               display: "grid",
-              gap: 18,
+              gap: 16,
             }}
           >
-            {matches.map((match) => {
+            {matches.map((match, index) => {
               const event = events?.find(
                 (item) => item.id === match.event_id
               );
@@ -262,255 +430,492 @@ export default async function CrownLinkAdminBattlesPage() {
               );
 
               return (
-                <div
+                <article
                   key={match.id}
                   style={{
-                    padding: 24,
-                    borderRadius: 20,
-                    background: "rgba(20,10,10,0.78)",
-                    border: "1px solid rgba(211,163,60,0.22)",
-                    boxShadow: "0 18px 50px rgba(0,0,0,0.25)",
+                    overflow: "hidden",
+                    borderRadius: 21,
+                    border: "1px solid rgba(201,151,50,0.16)",
+                    background:
+                      "linear-gradient(145deg, rgba(17,13,13,0.96), rgba(4,4,4,0.98))",
+                    boxShadow: "0 19px 44px rgba(0,0,0,0.32)",
                   }}
                 >
+                  {/* BATTLE HEADER */}
                   <div
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: 15,
-                      flexWrap: "wrap",
+                      position: "relative",
+                      padding: "17px 20px",
+                      background: `
+                        linear-gradient(
+                          135deg,
+                          rgba(48,5,9,0.48),
+                          rgba(7,7,7,0.74) 60%,
+                          rgba(3,3,3,0.88)
+                        )
+                      `,
+                      borderBottom:
+                        "1px solid rgba(201,151,50,0.08)",
                     }}
                   >
-                    <div>
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#d3a33c",
-                          fontSize: 11,
-                          fontWeight: 900,
-                          letterSpacing: 2,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Approved Battle
-                      </p>
+                    <div
+                      style={{
+                        position: "absolute",
+                        width: 130,
+                        height: 130,
+                        right: -45,
+                        top: -75,
+                        borderRadius: "50%",
+                        background: "rgba(232,111,0,0.045)",
+                        filter: "blur(38px)",
+                      }}
+                    />
 
-                      <h2
-                        style={{
-                          margin: "7px 0 0",
-                          fontSize: 22,
-                        }}
-                      >
-                        {event?.name ?? "Crown Link Event"}
-                      </h2>
-
-                      {event && (
-                        <p
+                    <div
+                      style={{
+                        position: "relative",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 15,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <div
                           style={{
-                            margin: "8px 0 0",
-                            color: "rgba(255,255,255,0.45)",
-                            fontSize: 13,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
                           }}
                         >
-                          {formatDate(event.event_date)}
-                          {" • "}
-                          {formatTime(event.event_time)}
-                        </p>
-                      )}
-                    </div>
+                          <span style={approvedBadgeStyle}>
+                            <span
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: "#d9b15c",
+                              }}
+                            />
+                            Approved
+                          </span>
 
-                    <span
-                      style={{
-                        padding: "7px 11px",
-                        borderRadius: 999,
-                        background: "rgba(60,180,90,0.12)",
-                        border: "1px solid rgba(80,210,110,0.25)",
-                        color: "#b8f5c2",
-                        fontSize: 10,
-                        fontWeight: 900,
-                        letterSpacing: 1,
-                      }}
-                    >
-                      APPROVED
-                    </span>
+                          <span
+                            style={{
+                              color: "rgba(247,241,232,0.2)",
+                              fontSize: 7,
+                              fontWeight: 900,
+                              letterSpacing: 1.2,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Battle {index + 1}
+                          </span>
+                        </div>
+
+                        <h3
+                          style={{
+                            margin: "8px 0 0",
+                            color: "#f9f4ed",
+                            fontSize: 17,
+                            fontWeight: 950,
+                            letterSpacing: -0.25,
+                          }}
+                        >
+                          {event?.name ?? "Crown Link Event"}
+                        </h3>
+
+                        {event && (
+                          <p
+                            style={{
+                              margin: "6px 0 0",
+                              color: "rgba(247,241,232,0.34)",
+                              fontSize: 10,
+                            }}
+                          >
+                            {formatDate(event.event_date)}
+                            {" · "}
+                            <span
+                              style={{
+                                color: "#d9b15c",
+                                fontWeight: 850,
+                              }}
+                            >
+                              {formatTime(event.event_time)}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          textAlign: "right",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            color: "rgba(247,241,232,0.2)",
+                            fontSize: 7,
+                            fontWeight: 900,
+                            letterSpacing: 1,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Diamond Difference
+                        </p>
+
+                        <p
+                          style={{
+                            margin: "4px 0 0",
+                            color: "#c99732",
+                            fontSize: 15,
+                            fontWeight: 950,
+                          }}
+                        >
+                          {diamondDifference.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* MATCHUP */}
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(230px, 1fr))",
-                      gap: 14,
-                      marginTop: 22,
+                      padding: 20,
                     }}
                   >
                     <div
                       style={{
-                        padding: 18,
-                        borderRadius: 15,
-                        background: "rgba(255,255,255,0.035)",
-                        border: "1px solid rgba(255,255,255,0.07)",
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(0, 1fr) auto minmax(0, 1fr)",
+                        gap: 14,
+                        alignItems: "stretch",
                       }}
                     >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "rgba(255,255,255,0.35)",
-                          fontSize: 10,
-                          fontWeight: 900,
-                          letterSpacing: 1.5,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Creator One
-                      </p>
+                      <CreatorBattleCard
+                        creator={creatorOne}
+                        label="Creator One"
+                      />
 
-                      <p
+                      <div
                         style={{
-                          margin: "9px 0 0",
-                          fontSize: 18,
-                          fontWeight: 900,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        {creatorOne.name}
-                      </p>
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background:
+                              "linear-gradient(145deg, rgba(85,12,8,0.65), rgba(20,7,4,0.82))",
+                            border:
+                              "1px solid rgba(232,111,0,0.28)",
+                            boxShadow:
+                              "0 0 22px rgba(232,111,0,0.07)",
+                            color: "#e86f00",
+                            fontSize: 11,
+                            fontWeight: 950,
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          VS
+                        </div>
+                      </div>
 
-                      <p
-                        style={{
-                          margin: "5px 0 0",
-                          color: "#d3a33c",
-                          fontSize: 13,
-                        }}
-                      >
-                        {creatorOne.username}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "14px 0 0",
-                          color: "rgba(255,255,255,0.5)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {creatorOne.agency}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "5px 0 0",
-                          fontSize: 13,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {creatorOne.diamonds.toLocaleString()} diamonds
-                      </p>
+                      <CreatorBattleCard
+                        creator={creatorTwo}
+                        label="Creator Two"
+                      />
                     </div>
 
+                    {/* MATCH QUALITY */}
                     <div
                       style={{
+                        marginTop: 13,
+                        padding: "10px 12px",
+                        borderRadius: 11,
+                        border:
+                          "1px solid rgba(201,151,50,0.09)",
+                        background: "rgba(201,151,50,0.025)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontWeight: 900,
-                        color: "#d3a33c",
-                        fontSize: 18,
+                        gap: 6,
+                        flexWrap: "wrap",
+                        color: "rgba(247,241,232,0.28)",
+                        fontSize: 9,
                       }}
                     >
-                      VS
+                      Typical diamond difference
+                      <strong
+                        style={{
+                          color: "#d9b15c",
+                          fontWeight: 950,
+                        }}
+                      >
+                        {diamondDifference.toLocaleString()}
+                      </strong>
                     </div>
 
+                    {/* CANCEL */}
                     <div
                       style={{
-                        padding: 18,
-                        borderRadius: 15,
-                        background: "rgba(255,255,255,0.035)",
-                        border: "1px solid rgba(255,255,255,0.07)",
+                        marginTop: 16,
+                        paddingTop: 14,
+                        borderTop:
+                          "1px solid rgba(255,255,255,0.045)",
                       }}
                     >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "rgba(255,255,255,0.35)",
-                          fontSize: 10,
-                          fontWeight: 900,
-                          letterSpacing: 1.5,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Creator Two
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "9px 0 0",
-                          fontSize: 18,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {creatorTwo.name}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "5px 0 0",
-                          color: "#d3a33c",
-                          fontSize: 13,
-                        }}
-                      >
-                        {creatorTwo.username}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "14px 0 0",
-                          color: "rgba(255,255,255,0.5)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {creatorTwo.agency}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "5px 0 0",
-                          fontSize: 13,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {creatorTwo.diamonds.toLocaleString()} diamonds
-                      </p>
+                      <CancelBattleButton
+                        matchId={match.id}
+                        creatorOneName={creatorOne.name}
+                        creatorTwoName={creatorTwo.name}
+                      />
                     </div>
                   </div>
-
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: 13,
-                      borderRadius: 12,
-                      background: "rgba(211,163,60,0.06)",
-                      border: "1px solid rgba(211,163,60,0.12)",
-                      textAlign: "center",
-                      color: "rgba(255,255,255,0.55)",
-                      fontSize: 12,
-                    }}
-                  >
-                    Diamond difference:{" "}
-                    <strong style={{ color: "#d3a33c" }}>
-                      {diamondDifference.toLocaleString()}
-                    </strong>
-                  </div>
-
-                  <CancelBattleButton
-                    matchId={match.id}
-                    creatorOneName={creatorOne.name}
-                    creatorTwoName={creatorTwo.name}
-                  />
-                </div>
+                </article>
               );
             })}
           </div>
         )}
+
+        <footer
+          style={{
+            marginTop: 45,
+            paddingTop: 17,
+            borderTop: "1px solid rgba(201,151,50,0.08)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            color: "rgba(247,241,232,0.14)",
+            fontSize: 8,
+            fontWeight: 900,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Royals Bloodline</span>
+          <span>Crown Link · Battle Management</span>
+        </footer>
       </div>
     </main>
   );
 }
+
+function CreatorBattleCard({
+  creator,
+  label,
+}: {
+  creator: {
+    name: string;
+    username: string;
+    diamonds: number;
+    agency: string;
+  };
+  label: string;
+}) {
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        padding: 16,
+        borderRadius: 15,
+        border: "1px solid rgba(255,255,255,0.055)",
+        background:
+          "linear-gradient(145deg, rgba(255,255,255,0.027), rgba(0,0,0,0.12))",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "rgba(247,241,232,0.2)",
+          fontSize: 7,
+          fontWeight: 950,
+          letterSpacing: 1.3,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </p>
+
+      <p
+        style={{
+          margin: "8px 0 0",
+          color: "#f9f4ed",
+          fontSize: 16,
+          fontWeight: 950,
+          lineHeight: 1.1,
+        }}
+      >
+        {creator.name}
+      </p>
+
+      <p
+        style={{
+          margin: "5px 0 0",
+          color: "#c99732",
+          fontSize: 10,
+          fontWeight: 850,
+        }}
+      >
+        {creator.username}
+      </p>
+
+      <div
+        style={{
+          marginTop: 13,
+          paddingTop: 11,
+          borderTop: "1px solid rgba(255,255,255,0.045)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              margin: 0,
+              color: "rgba(247,241,232,0.2)",
+              fontSize: 7,
+              fontWeight: 900,
+              letterSpacing: 0.8,
+              textTransform: "uppercase",
+            }}
+          >
+            Agency
+          </p>
+
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: "rgba(247,241,232,0.52)",
+              fontSize: 9,
+              fontWeight: 800,
+            }}
+          >
+            {creator.agency}
+          </p>
+        </div>
+
+        <div
+          style={{
+            textAlign: "right",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "rgba(247,241,232,0.2)",
+              fontSize: 7,
+              fontWeight: 900,
+              letterSpacing: 0.8,
+              textTransform: "uppercase",
+            }}
+          >
+            Typical Diamonds
+          </p>
+
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: "#d9b15c",
+              fontSize: 12,
+              fontWeight: 950,
+            }}
+          >
+            {creator.diamonds.toLocaleString()}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const eyebrowStyle = {
+  margin: 0,
+  color: "#d9b15c",
+  fontSize: 7,
+  fontWeight: 950,
+  letterSpacing: 1.8,
+  textTransform: "uppercase" as const,
+};
+
+const sectionEyebrowStyle = {
+  margin: 0,
+  color: "#c99732",
+  fontSize: 7,
+  fontWeight: 950,
+  letterSpacing: 1.9,
+  textTransform: "uppercase" as const,
+};
+
+const backButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 7,
+  padding: "7px 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(201,151,50,0.13)",
+  background: "rgba(0,0,0,0.28)",
+  color: "#d9b15c",
+  textDecoration: "none",
+  fontSize: 8,
+  fontWeight: 950,
+  letterSpacing: 0.5,
+  textTransform: "uppercase" as const,
+};
+
+const battleCountStyle = {
+  minWidth: 96,
+  padding: "10px 13px",
+  borderRadius: 13,
+  textAlign: "center" as const,
+  border: "1px solid rgba(201,151,50,0.15)",
+  background: "rgba(201,151,50,0.035)",
+};
+
+const countPillStyle = {
+  padding: "6px 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(201,151,50,0.14)",
+  background: "rgba(201,151,50,0.04)",
+  color: "#d9b15c",
+  fontSize: 8,
+  fontWeight: 900,
+};
+
+const approvedBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "5px 8px",
+  borderRadius: 999,
+  border: "1px solid rgba(201,151,50,0.18)",
+  background: "rgba(201,151,50,0.045)",
+  color: "#d9b15c",
+  fontSize: 7,
+  fontWeight: 950,
+  letterSpacing: 1,
+  textTransform: "uppercase" as const,
+};
+
+const emptyStateStyle = {
+  padding: "30px 22px",
+  borderRadius: 18,
+  border: "1px dashed rgba(201,151,50,0.16)",
+  background: "rgba(10,8,8,0.72)",
+  textAlign: "center" as const,
+};

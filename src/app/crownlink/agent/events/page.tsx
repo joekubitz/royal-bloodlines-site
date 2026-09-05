@@ -22,7 +22,7 @@ export default async function CrownLinkAgentEventsPage() {
 
   if (
     !userRole ||
-    userRole.role !== "agent" ||
+    !["agent", "admin"].includes(userRole.role) ||
     userRole.status !== "active"
   ) {
     redirect("/crownlink/login");
@@ -490,17 +490,11 @@ export default async function CrownLinkAgentEventsPage() {
                             const myCreator =
                               creatorOne || creatorTwo || null;
 
-                            const opponentId =
-                              myCreator?.user_id === match.creator_one_id
-                                ? match.creator_two_id
-                                : match.creator_one_id;
-
                             return {
                               match,
                               date,
                               slot,
                               myCreator,
-                              opponentId,
                             };
                           })
                           .sort((a, b) => {
