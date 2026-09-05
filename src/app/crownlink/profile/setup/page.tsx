@@ -15,11 +15,15 @@ export default function CrownLinkProfileSetupPage() {
   const [agencyName, setAgencyName] = useState("");
   const [diamondLevel, setDiamondLevel] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
-  const [agentRegistrationCode, setAgentRegistrationCode] = useState("");
-  const [connectedAgentName, setConnectedAgentName] = useState("");
-  const [connectedAgentUserId, setConnectedAgentUserId] = useState<string | null>(null);
+  const [agentRegistrationCode, setAgentRegistrationCode] =
+    useState("");
+  const [connectedAgentName, setConnectedAgentName] =
+    useState("");
+  const [connectedAgentUserId, setConnectedAgentUserId] =
+    useState<string | null>(null);
 
-  const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [tiktokConnected, setTiktokConnected] =
+    useState(false);
   const [tiktokMessage, setTiktokMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -27,7 +31,9 @@ export default function CrownLinkProfileSetupPage() {
     async function checkUser() {
       const supabase = createClient();
 
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(
+        window.location.search
+      );
 
       const connected = params.get("tiktok_connected");
       const tiktokError = params.get("tiktok_error");
@@ -89,14 +95,18 @@ export default function CrownLinkProfileSetupPage() {
         return;
       }
 
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role, status, agency_id")
-        .eq("user_id", user.id)
-        .single();
+      const { data: roleData, error: roleError } =
+        await supabase
+          .from("user_roles")
+          .select("role, status, agency_id")
+          .eq("user_id", user.id)
+          .single();
 
       if (roleError || !roleData) {
-        console.error("CROWN LINK ROLE ERROR:", roleError);
+        console.error(
+          "CROWN LINK ROLE ERROR:",
+          roleError
+        );
 
         setError(
           "We couldn't verify your Crown Link account."
@@ -126,11 +136,12 @@ export default function CrownLinkProfileSetupPage() {
         return;
       }
 
-      const { data: agency, error: agencyError } = await supabase
-        .from("crownlink_agencies")
-        .select("id, name, status")
-        .eq("id", roleData.agency_id)
-        .single();
+      const { data: agency, error: agencyError } =
+        await supabase
+          .from("crownlink_agencies")
+          .select("id, name, status")
+          .eq("id", roleData.agency_id)
+          .single();
 
       if (
         agencyError ||
@@ -152,22 +163,24 @@ export default function CrownLinkProfileSetupPage() {
 
       setAgencyName(agency.name);
 
-      const { data: existingProfile, error: profileError } =
-        await supabase
-          .from("crownlink_profiles")
-          .select(
-            `
-              display_name,
-              tiktok_username,
-              diamond_level,
-              profile_photo_url,
-              tiktok_open_id,
-              tiktok_connected_at,
-              agent_user_id
-            `
-          )
-          .eq("user_id", user.id)
-          .maybeSingle();
+      const {
+        data: existingProfile,
+        error: profileError,
+      } = await supabase
+        .from("crownlink_profiles")
+        .select(
+          `
+            display_name,
+            tiktok_username,
+            diamond_level,
+            profile_photo_url,
+            tiktok_open_id,
+            tiktok_connected_at,
+            agent_user_id
+          `
+        )
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (profileError) {
         console.error(
@@ -216,30 +229,40 @@ export default function CrownLinkProfileSetupPage() {
         );
 
         const metadataAgentUserId =
-          typeof user.user_metadata?.crownlink_agent_user_id === "string"
-            ? user.user_metadata.crownlink_agent_user_id
+          typeof user.user_metadata
+            ?.crownlink_agent_user_id === "string"
+            ? user.user_metadata
+                .crownlink_agent_user_id
             : null;
 
         const metadataRegistrationCode =
-          typeof user.user_metadata?.crownlink_registration_code === "string"
-            ? user.user_metadata.crownlink_registration_code
+          typeof user.user_metadata
+            ?.crownlink_registration_code === "string"
+            ? user.user_metadata
+                .crownlink_registration_code
             : "";
 
         const linkedAgentUserId =
-          existingProfile.agent_user_id || metadataAgentUserId;
+          existingProfile.agent_user_id ||
+          metadataAgentUserId;
 
         if (linkedAgentUserId) {
-          setConnectedAgentUserId(linkedAgentUserId);
+          setConnectedAgentUserId(
+            linkedAgentUserId
+          );
 
           if (metadataRegistrationCode) {
-            setAgentRegistrationCode(metadataRegistrationCode);
+            setAgentRegistrationCode(
+              metadataRegistrationCode
+            );
 
             const response = await fetch(
               "/api/crownlink/agent-code/validate",
               {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json",
+                  "Content-Type":
+                    "application/json",
                 },
                 body: JSON.stringify({
                   code: metadataRegistrationCode,
@@ -247,37 +270,54 @@ export default function CrownLinkProfileSetupPage() {
               }
             );
 
-            const validation = await response.json();
+            const validation =
+              await response.json();
 
-            if (response.ok && validation.valid) {
+            if (
+              response.ok &&
+              validation.valid
+            ) {
               setConnectedAgentName(
                 validation.agentDisplayName ||
                   validation.agentAgencyName ||
                   "Crown Link Agent"
               );
             } else {
-              setConnectedAgentName("Crown Link Agent");
+              setConnectedAgentName(
+                "Crown Link Agent"
+              );
             }
           } else {
-            setConnectedAgentName("Crown Link Agent");
+            setConnectedAgentName(
+              "Crown Link Agent"
+            );
           }
         }
       }
 
       if (!existingProfile) {
         const metadataAgentUserId =
-          typeof user.user_metadata?.crownlink_agent_user_id === "string"
-            ? user.user_metadata.crownlink_agent_user_id
+          typeof user.user_metadata
+            ?.crownlink_agent_user_id === "string"
+            ? user.user_metadata
+                .crownlink_agent_user_id
             : null;
 
         const metadataRegistrationCode =
-          typeof user.user_metadata?.crownlink_registration_code === "string"
-            ? user.user_metadata.crownlink_registration_code
+          typeof user.user_metadata
+            ?.crownlink_registration_code === "string"
+            ? user.user_metadata
+                .crownlink_registration_code
             : "";
 
         if (metadataAgentUserId) {
-          setConnectedAgentUserId(metadataAgentUserId);
-          setAgentRegistrationCode(metadataRegistrationCode);
+          setConnectedAgentUserId(
+            metadataAgentUserId
+          );
+
+          setAgentRegistrationCode(
+            metadataRegistrationCode
+          );
 
           if (metadataRegistrationCode) {
             const response = await fetch(
@@ -285,7 +325,8 @@ export default function CrownLinkProfileSetupPage() {
               {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json",
+                  "Content-Type":
+                    "application/json",
                 },
                 body: JSON.stringify({
                   code: metadataRegistrationCode,
@@ -293,19 +334,27 @@ export default function CrownLinkProfileSetupPage() {
               }
             );
 
-            const validation = await response.json();
+            const validation =
+              await response.json();
 
-            if (response.ok && validation.valid) {
+            if (
+              response.ok &&
+              validation.valid
+            ) {
               setConnectedAgentName(
                 validation.agentDisplayName ||
                   validation.agentAgencyName ||
                   "Crown Link Agent"
               );
             } else {
-              setConnectedAgentName("Crown Link Agent");
+              setConnectedAgentName(
+                "Crown Link Agent"
+              );
             }
           } else {
-            setConnectedAgentName("Crown Link Agent");
+            setConnectedAgentName(
+              "Crown Link Agent"
+            );
           }
         }
       }
@@ -316,7 +365,9 @@ export default function CrownLinkProfileSetupPage() {
     checkUser();
   }, [router]);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(
+    e: FormEvent
+  ) {
     e.preventDefault();
 
     setSaving(true);
@@ -333,11 +384,12 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    const { data: roleData, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role, status, agency_id")
-      .eq("user_id", user.id)
-      .single();
+    const { data: roleData, error: roleError } =
+      await supabase
+        .from("user_roles")
+        .select("role, status, agency_id")
+        .eq("user_id", user.id)
+        .single();
 
     if (
       roleError ||
@@ -362,11 +414,12 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    const { data: agency, error: agencyError } = await supabase
-      .from("crownlink_agencies")
-      .select("id, name, status")
-      .eq("id", roleData.agency_id)
-      .single();
+    const { data: agency, error: agencyError } =
+      await supabase
+        .from("crownlink_agencies")
+        .select("id, name, status")
+        .eq("id", roleData.agency_id)
+        .single();
 
     if (
       agencyError ||
@@ -382,18 +435,16 @@ export default function CrownLinkProfileSetupPage() {
     }
 
     /*
-      TikTok must be connected before the creator can finish
-      their Crown Link profile. The username now comes directly
-      from TikTok instead of being manually entered.
-    */
-    if (!tiktokConnected || !tiktokUsername) {
-      setError(
-        "Please connect your TikTok account before saving your Crown Link profile."
-      );
-
-      setSaving(false);
-      return;
-    }
+     * TEMPORARY SOFT LAUNCH:
+     *
+     * TikTok connection is NOT required while the
+     * Crown Link TikTok integration is awaiting
+     * production approval.
+     *
+     * Keep all TikTok fields and connection logic
+     * intact so verification can be required again
+     * after approval.
+     */
 
     const diamonds = Number(diamondLevel);
 
@@ -402,20 +453,28 @@ export default function CrownLinkProfileSetupPage() {
       Number.isNaN(diamonds) ||
       diamonds < 0
     ) {
-      setError("Please enter a valid diamond level.");
+      setError(
+        "Please enter a valid diamond level."
+      );
+
       setSaving(false);
       return;
     }
 
-    let agentUserId: string | null = connectedAgentUserId;
+    let agentUserId: string | null =
+      connectedAgentUserId;
 
-    if (!agentUserId && agentRegistrationCode.trim()) {
+    if (
+      !agentUserId &&
+      agentRegistrationCode.trim()
+    ) {
       const response = await fetch(
         "/api/crownlink/agent-code/validate",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
             code: agentRegistrationCode,
@@ -423,37 +482,49 @@ export default function CrownLinkProfileSetupPage() {
         }
       );
 
-      const validation = await response.json();
+      const validation =
+        await response.json();
 
-      if (!response.ok || !validation.valid) {
+      if (
+        !response.ok ||
+        !validation.valid
+      ) {
         setError(
           validation.error ||
             "That agent registration code could not be verified."
         );
+
         setSaving(false);
         return;
       }
 
-      agentUserId = validation.agentUserId ?? null;
+      agentUserId =
+        validation.agentUserId ?? null;
     }
 
     /*
-      Only Crown Link-editable information is updated here.
+     * Only Crown Link-editable information is
+     * updated here.
+     *
+     * If TikTok is connected, the secure TikTok
+     * callback remains responsible for verified
+     * TikTok username, profile photo, TikTok ID,
+     * and TikTok profile information.
+     */
 
-      TikTok username, profile photo, TikTok ID, and TikTok
-      profile URL were already saved by the secure TikTok
-      callback and are intentionally not overwritten here.
-    */
-    const { error: saveError } = await supabase
-      .from("crownlink_profiles")
-      .update({
-        display_name: displayName.trim() || null,
-        agency_name: agency.name,
-        diamond_level: diamonds,
-        agent_user_id: agentUserId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
+    const { error: saveError } =
+      await supabase
+        .from("crownlink_profiles")
+        .update({
+          display_name:
+            displayName.trim() || null,
+          agency_name: agency.name,
+          diamond_level: diamonds,
+          agent_user_id: agentUserId,
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
 
     if (saveError) {
       console.error(saveError);
@@ -472,20 +543,47 @@ export default function CrownLinkProfileSetupPage() {
 
   if (loading) {
     return (
-      <main className="cl-page loading">
+      <main className="cl-loading">
+        <div className="cl-loading-mark">
+          ♛
+        </div>
+
         <p>Loading Crown Link...</p>
 
         <style jsx>{`
-          .cl-page {
+          .cl-loading {
             min-height: 100vh;
-            background: #080303;
-            color: white;
-          }
-
-          .loading {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 12px;
+            background:
+              radial-gradient(
+                circle at top,
+                rgba(88, 7, 12, 0.35),
+                transparent 35%
+              ),
+              #050505;
+            color: #f7f1e8;
+          }
+
+          .cl-loading-mark {
+            color: #c99732;
+            font-size: 34px;
+          }
+
+          .cl-loading p {
+            margin: 0;
+            color: rgba(
+              247,
+              241,
+              232,
+              0.35
+            );
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
           }
         `}</style>
       </main>
@@ -494,56 +592,100 @@ export default function CrownLinkProfileSetupPage() {
 
   return (
     <main className="cl-page">
+      <div className="cl-glow cl-glow-one" />
+      <div className="cl-glow cl-glow-two" />
+
       <div className="cl-container">
-        <div className="cl-brand">
-          <div className="cl-crown">♛</div>
+        {/* HEADER */}
 
-          <p className="cl-agency">
+        <section className="cl-hero">
+          <div className="cl-eyebrow">
+            <span />
             ROYALS BLOODLINE
-          </p>
+          </div>
 
-          <h1>Crown Link</h1>
+          <div className="cl-title-row">
+            <div>
+              <div className="cl-crown">
+                ♛
+              </div>
 
-          <p className="cl-subtitle">
-            Build your creator profile.
-          </p>
-        </div>
+              <h1>
+                Crown <span>Link</span>
+              </h1>
+
+              <div className="cl-fire-line" />
+
+              <p>
+                Complete your creator profile
+                and get ready to battle.
+              </p>
+            </div>
+
+            <div className="cl-step-pill">
+              PROFILE SETUP
+            </div>
+          </div>
+        </section>
 
         <form
           className="cl-card"
           onSubmit={handleSubmit}
         >
           <div className="cl-heading">
-            <h2>Your Creator Profile</h2>
+            <p className="cl-section-label">
+              CREATOR PROFILE
+            </p>
+
+            <h2>Set up your profile</h2>
 
             <p>
-              Connect your TikTok account and complete
-              your Crown Link information.
+              Complete your Crown Link
+              information below. TikTok
+              verification is temporarily
+              optional while the Crown Link
+              TikTok integration is awaiting
+              approval.
             </p>
           </div>
 
-          <div className="tiktok-section">
+          {/* TIKTOK */}
+
+          <section className="tiktok-section">
             {!tiktokConnected ? (
               <>
-                <div className="tiktok-icon">
-                  ♪
+                <div className="tiktok-top">
+                  <div className="tiktok-icon">
+                    ♪
+                  </div>
+
+                  <div className="tiktok-copy">
+                    <div className="optional-pill">
+                      TEMPORARILY OPTIONAL
+                    </div>
+
+                    <strong>
+                      TikTok Verification
+                    </strong>
+
+                    <span>
+                      Crown Link&apos;s TikTok
+                      connection is currently
+                      awaiting approval. You can
+                      finish your profile and use
+                      Crown Link without linking
+                      TikTok for now.
+                    </span>
+                  </div>
                 </div>
 
-                <div className="tiktok-copy">
-                  <strong>Connect your TikTok</strong>
+                <div className="review-notice">
+                  <span className="review-dot" />
 
-                  <span>
-                    Import your TikTok username, display
-                    name, and profile photo automatically.
-                  </span>
+                  TikTok verification will be
+                  available once the integration
+                  is approved.
                 </div>
-
-                <a
-                  href="/api/crownlink/tiktok/connect"
-                  className="tiktok-button"
-                >
-                  Continue with TikTok
-                </a>
               </>
             ) : (
               <>
@@ -559,13 +701,14 @@ export default function CrownLinkProfileSetupPage() {
                     </div>
                   )}
 
-                  <div>
+                  <div className="connected-copy">
                     <span className="connected-label">
                       ✓ TIKTOK CONNECTED
                     </span>
 
                     <strong>
-                      {displayName || "TikTok Creator"}
+                      {displayName ||
+                        "TikTok Creator"}
                     </strong>
 
                     {tiktokUsername && (
@@ -584,7 +727,7 @@ export default function CrownLinkProfileSetupPage() {
                 </a>
               </>
             )}
-          </div>
+          </section>
 
           {tiktokMessage && (
             <div className="cl-success">
@@ -596,40 +739,49 @@ export default function CrownLinkProfileSetupPage() {
             <span>PROFILE DETAILS</span>
           </div>
 
+          {/* DISPLAY NAME */}
+
           <div className="cl-field">
             <label>Display Name</label>
 
             <input
               type="text"
-              placeholder="Display Name"
+              placeholder="How should your name appear?"
               value={displayName}
               onChange={(e) =>
-                setDisplayName(e.target.value)
+                setDisplayName(
+                  e.target.value
+                )
               }
             />
 
-            {tiktokConnected && (
-              <small>
-                Imported from TikTok. You can adjust your
-                Crown Link display name if needed.
-              </small>
-            )}
+            <small>
+              This is the name other Crown
+              Link creators will see.
+            </small>
           </div>
+
+          {/* TIKTOK USERNAME */}
 
           <div className="cl-field">
             <label>TikTok Username</label>
 
             <div
               className={`username-display ${
-                !tiktokConnected ? "not-connected" : ""
+                !tiktokConnected
+                  ? "not-connected"
+                  : ""
               }`}
             >
-              <span className="username-at">@</span>
+              <span className="username-at">
+                @
+              </span>
 
               <strong>
-                {tiktokConnected && tiktokUsername
+                {tiktokConnected &&
+                tiktokUsername
                   ? tiktokUsername
-                  : "Connect TikTok to import username"}
+                  : "TikTok verification pending"}
               </strong>
 
               {tiktokConnected && (
@@ -637,70 +789,88 @@ export default function CrownLinkProfileSetupPage() {
                   ✓ VERIFIED
                 </span>
               )}
+
+              {!tiktokConnected && (
+                <span className="pending">
+                  PENDING
+                </span>
+              )}
             </div>
 
             <small>
               {tiktokConnected
                 ? "Your username is verified directly through TikTok and cannot be edited here."
-                : "Connect your TikTok account above to import and verify your username."}
+                : "TikTok verification is temporarily optional while the Crown Link integration is under review."}
             </small>
           </div>
+
+          {/* AGENCY */}
 
           <div className="cl-field">
             <label>Agency</label>
 
-            <div className="agency-display">
+            <div className="locked-display">
               <div>
-                <span className="agency-label">
+                <span className="locked-label">
                   ASSIGNED AGENCY
                 </span>
 
                 <strong>
-                  {agencyName || "Not Assigned"}
+                  {agencyName ||
+                    "Not Assigned"}
                 </strong>
               </div>
 
-              <span className="agency-lock">
+              <span className="lock">
                 🔒
               </span>
             </div>
 
             <small>
-              Your agency is assigned by a Crown Link
-              administrator and cannot be changed here.
+              Your agency was assigned
+              automatically when your Crown
+              Link account was created.
             </small>
           </div>
+
+          {/* AGENT */}
 
           <div className="cl-field">
             <label>Agent</label>
 
             {connectedAgentUserId ? (
               <>
-                <div className="agency-display">
+                <div className="locked-display">
                   <div>
-                    <span className="agency-label">
+                    <span className="locked-label">
                       CONNECTED AGENT
                     </span>
 
                     <strong>
-                      {connectedAgentName || "Crown Link Agent"}
+                      {connectedAgentName ||
+                        "Crown Link Agent"}
                     </strong>
 
                     {agentRegistrationCode && (
-                      <small className="agent-code">
-                        Registration Code: {agentRegistrationCode}
-                      </small>
+                      <span className="agent-code">
+                        Registration Code:{" "}
+                        {
+                          agentRegistrationCode
+                        }
+                      </span>
                     )}
                   </div>
 
-                  <span className="agency-lock">
+                  <span className="lock">
                     🔒
                   </span>
                 </div>
 
                 <small>
-                  Your agent was connected automatically from the
-                  registration code used to create your account.
+                  Your agent was connected
+                  automatically using the
+                  registration code you used
+                  when creating your account.
                 </small>
               </>
             ) : (
@@ -708,26 +878,40 @@ export default function CrownLinkProfileSetupPage() {
                 <input
                   type="text"
                   placeholder="Example: TESTAGENCY"
-                  value={agentRegistrationCode}
+                  value={
+                    agentRegistrationCode
+                  }
                   onChange={(e) =>
                     setAgentRegistrationCode(
                       e.target.value
                         .toUpperCase()
-                        .replace(/[^A-Z0-9_-]/g, "")
+                        .replace(
+                          /[^A-Z0-9_-]/g,
+                          ""
+                        )
                     )
                   }
                 />
 
                 <small>
-                  If your agent gave you a Crown Link registration code,
-                  enter it here to connect your profile to their team.
+                  Enter the registration code
+                  provided by your Crown Link
+                  agent.
                 </small>
               </>
             )}
           </div>
 
+          {/* DIAMONDS */}
+
           <div className="cl-field">
-            <label>Diamond Level *</label>
+            <div className="cl-label-row">
+              <label>
+                Typical Diamond Level
+              </label>
+
+              <span>REQUIRED</span>
+            </div>
 
             <input
               type="number"
@@ -736,259 +920,509 @@ export default function CrownLinkProfileSetupPage() {
               placeholder="Example: 250000"
               value={diamondLevel}
               onChange={(e) =>
-                setDiamondLevel(e.target.value)
+                setDiamondLevel(
+                  e.target.value
+                )
               }
               required
             />
 
             <small>
-              Enter your current monthly diamond count.
-              You can update this later.
+              Enter your typical diamond count
+              for battles. Crown Link uses this
+              to help create balanced matchups.
+              You can update it later.
             </small>
           </div>
 
           {error && (
             <div className="cl-error">
-              {error}
+              <div className="error-icon">
+                !
+              </div>
+
+              <span>{error}</span>
             </div>
           )}
 
           <button
             type="submit"
             disabled={
-              saving ||
-              !agencyName ||
-              !tiktokConnected ||
-              !tiktokUsername
+              saving || !agencyName
             }
             className="cl-save"
           >
-            {saving
-              ? "Saving Profile..."
-              : tiktokConnected
-                ? "Save Creator Profile"
-                : "Connect TikTok to Continue"}
+            {saving ? (
+              "Saving Profile..."
+            ) : (
+              <>
+                Save Creator Profile
+                <span>→</span>
+              </>
+            )}
           </button>
 
-          <div className="legal-links">
-            By connecting TikTok, you agree to the{" "}
-            <a href="/crownlink/terms">
-              Terms of Service
-            </a>{" "}
-            and acknowledge the{" "}
-            <a href="/crownlink/privacy">
-              Privacy Policy
-            </a>
-            .
-          </div>
+          {!tiktokConnected && (
+            <div className="temporary-note">
+              <span>♛</span>
+
+              <p>
+                You can start using Crown Link
+                now. Once TikTok verification
+                becomes available, you&apos;ll
+                be able to connect your TikTok
+                account from Crown Link.
+              </p>
+            </div>
+          )}
+
+          {tiktokConnected && (
+            <div className="legal-links">
+              By connecting TikTok, you agree
+              to the{" "}
+              <a href="/crownlink/terms">
+                Terms of Service
+              </a>{" "}
+              and acknowledge the{" "}
+              <a href="/crownlink/privacy">
+                Privacy Policy
+              </a>
+              .
+            </div>
+          )}
         </form>
+
+        <footer className="cl-footer">
+          <span>ROYALS BLOODLINE</span>
+          <span>
+            CROWN LINK · CREATOR SETUP
+          </span>
+        </footer>
       </div>
 
       <style jsx>{`
         .cl-page {
+          position: relative;
           min-height: 100vh;
+          overflow: hidden;
           background:
             radial-gradient(
-              circle at 50% 0%,
-              rgba(105, 18, 25, 0.45),
-              transparent 35%
+              circle at 12% 5%,
+              rgba(88, 7, 12, 0.45),
+              transparent 29%
+            ),
+            radial-gradient(
+              circle at 90% 55%,
+              rgba(126, 28, 0, 0.08),
+              transparent 28%
             ),
             linear-gradient(
-              135deg,
-              #080303 0%,
-              #160607 45%,
-              #030303 100%
+              180deg,
+              #080808 0%,
+              #040404 52%,
+              #010101 100%
             );
-          color: white;
-          padding: 50px 20px;
+          color: #f7f1e8;
+          padding: 28px 20px 65px;
+        }
+
+        .cl-glow {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(100px);
+        }
+
+        .cl-glow-one {
+          width: 380px;
+          height: 380px;
+          left: -180px;
+          top: -190px;
+          background: rgba(
+            112,
+            7,
+            14,
+            0.18
+          );
+        }
+
+        .cl-glow-two {
+          width: 280px;
+          height: 280px;
+          right: -160px;
+          bottom: 30px;
+          background: rgba(
+            232,
+            111,
+            0,
+            0.04
+          );
         }
 
         .cl-container {
+          position: relative;
+          z-index: 2;
           width: 100%;
-          max-width: 600px;
+          max-width: 700px;
           margin: 0 auto;
         }
 
-        .cl-brand {
-          text-align: center;
-          margin-bottom: 32px;
+        .cl-hero {
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 16px;
+          padding: 23px 25px;
+          border-radius: 22px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.17);
+          background:
+            radial-gradient(
+              circle at 7% 10%,
+              rgba(98, 9, 15, 0.35),
+              transparent 38%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(39, 5, 8, 0.91),
+              rgba(10, 8, 8, 0.96)
+                57%,
+              rgba(3, 3, 3, 0.98)
+            );
+          box-shadow: 0 22px 55px
+            rgba(0, 0, 0, 0.4);
+        }
+
+        .cl-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 5px 8px;
+          border-radius: 999px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.17);
+          background: rgba(
+            201,
+            151,
+            50,
+            0.035
+          );
+          color: #d9b15c;
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 1.7px;
+        }
+
+        .cl-eyebrow span {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #e86f00;
+          box-shadow: 0 0 8px
+            rgba(232, 111, 0, 0.7);
+        }
+
+        .cl-title-row {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          flex-wrap: wrap;
+          margin-top: 18px;
         }
 
         .cl-crown {
-          color: #d3a33c;
-          font-size: 42px;
-        }
-
-        .cl-agency {
-          margin: 5px 0 10px;
-          color: #d3a33c;
-          font-size: 12px;
-          letter-spacing: 4px;
-          font-weight: 800;
-        }
-
-        .cl-brand h1 {
-          margin: 0;
-          font-size: 52px;
+          color: #c99732;
+          font-size: 27px;
           line-height: 1;
-          font-weight: 900;
         }
 
-        .cl-subtitle {
-          margin: 14px 0 0;
-          color: rgba(255, 255, 255, 0.55);
+        .cl-hero h1 {
+          margin: 8px 0 0;
+          color: #f9f4ed;
+          font-size: clamp(
+            34px,
+            8vw,
+            48px
+          );
+          line-height: 0.95;
+          font-weight: 950;
+          letter-spacing: -2px;
+        }
+
+        .cl-hero h1 span {
+          color: #d9b15c;
+        }
+
+        .cl-fire-line {
+          width: 60px;
+          height: 2px;
+          margin-top: 11px;
+          background: linear-gradient(
+            90deg,
+            #e86f00,
+            #c99732,
+            transparent
+          );
+        }
+
+        .cl-hero p {
+          margin: 9px 0 0;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.3
+          );
+          font-size: 9px;
+        }
+
+        .cl-step-pill {
+          padding: 6px 9px;
+          border-radius: 999px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.12);
+          color: rgba(
+            217,
+            177,
+            92,
+            0.6
+          );
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 1px;
         }
 
         .cl-card {
-          padding: 32px;
-          border-radius: 22px;
-          background: rgba(20, 10, 10, 0.8);
-          border: 1px solid rgba(211, 163, 60, 0.25);
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+          padding: 25px;
+          border-radius: 21px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.13);
+          background: linear-gradient(
+            145deg,
+            rgba(19, 15, 15, 0.96),
+            rgba(5, 5, 5, 0.98)
+          );
+          box-shadow: 0 20px 50px
+            rgba(0, 0, 0, 0.32);
         }
 
         .cl-heading {
-          margin-bottom: 24px;
+          margin-bottom: 21px;
+        }
+
+        .cl-section-label {
+          margin: 0 !important;
+          color: #c99732 !important;
+          font-size: 6px !important;
+          font-weight: 950;
+          letter-spacing: 1.8px;
         }
 
         .cl-heading h2 {
-          margin: 0 0 8px;
-          font-size: 25px;
+          margin: 6px 0 0;
+          color: #f9f4ed;
+          font-size: 22px;
+          font-weight: 950;
+          letter-spacing: -0.5px;
         }
 
         .cl-heading p {
-          margin: 0;
-          color: rgba(255, 255, 255, 0.5);
-          font-size: 14px;
-          line-height: 1.6;
+          margin: 7px 0 0;
+          max-width: 540px;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.3
+          );
+          font-size: 9px;
+          line-height: 1.65;
         }
 
         .tiktok-section {
-          padding: 20px;
-          margin-bottom: 25px;
-          border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(0, 0, 0, 0.32);
+          padding: 16px;
+          border-radius: 14px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.11);
+          background: linear-gradient(
+            135deg,
+            rgba(24, 10, 10, 0.74),
+            rgba(0, 0, 0, 0.24)
+          );
         }
 
-        .tiktok-icon {
-          width: 46px;
-          height: 46px;
-          border-radius: 50%;
+        .tiktok-top {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .tiktok-icon,
+        .profile-placeholder {
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 12px;
-          background: white;
-          color: black;
-          font-size: 24px;
-          font-weight: 900;
+          background: #f7f1e8;
+          color: #080808;
+          font-weight: 950;
+        }
+
+        .tiktok-icon {
+          width: 39px;
+          height: 39px;
+          border-radius: 11px;
+          font-size: 18px;
         }
 
         .tiktok-copy {
           display: flex;
           flex-direction: column;
+          align-items: flex-start;
           gap: 5px;
         }
 
+        .optional-pill {
+          padding: 4px 6px;
+          border-radius: 999px;
+          background: rgba(
+            232,
+            111,
+            0,
+            0.07
+          );
+          border: 1px solid
+            rgba(232, 111, 0, 0.16);
+          color: #e86f00;
+          font-size: 5px;
+          font-weight: 950;
+          letter-spacing: 0.9px;
+        }
+
         .tiktok-copy strong {
-          font-size: 17px;
+          color: #f9f4ed;
+          font-size: 11px;
+          font-weight: 950;
         }
 
         .tiktok-copy span {
-          color: rgba(255, 255, 255, 0.48);
-          font-size: 12px;
-          line-height: 1.5;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.27
+          );
+          font-size: 8px;
+          line-height: 1.55;
         }
 
-        .tiktok-button {
-          display: block;
-          box-sizing: border-box;
-          width: 100%;
-          margin-top: 15px;
-          padding: 13px;
-          border-radius: 11px;
-          background: white;
-          color: #050505;
-          text-align: center;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 900;
+        .review-notice {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-top: 13px;
+          padding-top: 11px;
+          border-top: 1px solid
+            rgba(201, 151, 50, 0.06);
+          color: rgba(
+            247,
+            241,
+            232,
+            0.22
+          );
+          font-size: 7px;
+        }
+
+        .review-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #c99732;
         }
 
         .connected-profile {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
         }
 
         .connected-profile img,
         .profile-placeholder {
-          width: 64px;
-          height: 64px;
-          border-radius: 50%;
+          width: 52px;
+          height: 52px;
+          border-radius: 13px;
           object-fit: cover;
-          flex-shrink: 0;
-          border: 2px solid rgba(211, 163, 60, 0.6);
+          border: 1px solid
+            rgba(201, 151, 50, 0.3);
         }
 
-        .profile-placeholder {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255, 255, 255, 0.07);
-          color: #d3a33c;
-          font-size: 24px;
-        }
-
-        .connected-profile div {
+        .connected-copy {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
         }
 
         .connected-label {
-          color: #90e6a2;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 1.4px;
+          color: #b8f5c2;
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 1px;
         }
 
-        .connected-profile strong {
-          font-size: 18px;
+        .connected-copy strong {
+          color: #f9f4ed;
+          font-size: 13px;
         }
 
-        .connected-profile small {
-          color: #d3a33c;
+        .connected-copy small {
+          color: #d9b15c;
+          font-size: 8px;
         }
 
         .reconnect-button {
           display: inline-block;
-          margin-top: 14px;
-          color: rgba(255, 255, 255, 0.45);
-          font-size: 11px;
-          font-weight: 700;
+          margin-top: 12px;
+          color: rgba(
+            217,
+            177,
+            92,
+            0.55
+          );
           text-decoration: none;
+          font-size: 7px;
+          font-weight: 900;
         }
 
         .cl-success {
-          padding: 12px 14px;
-          margin-bottom: 20px;
+          margin-top: 12px;
+          padding: 10px 11px;
           border-radius: 10px;
-          background: rgba(60, 180, 90, 0.08);
-          border: 1px solid rgba(80, 210, 110, 0.22);
+          border: 1px solid
+            rgba(80, 210, 110, 0.18);
+          background: rgba(
+            60,
+            180,
+            90,
+            0.06
+          );
           color: #b8f5c2;
-          font-size: 13px;
+          font-size: 8px;
         }
 
         .cl-divider {
           display: flex;
           align-items: center;
-          margin: 28px 0 22px;
-          color: rgba(255, 255, 255, 0.25);
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 2px;
+          gap: 10px;
+          margin: 24px 0 18px;
+          color: rgba(
+            201,
+            151,
+            50,
+            0.38
+          );
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 1.4px;
         }
 
         .cl-divider::before,
@@ -996,197 +1430,420 @@ export default function CrownLinkProfileSetupPage() {
           content: "";
           flex: 1;
           height: 1px;
-          background: rgba(255, 255, 255, 0.08);
-        }
-
-        .cl-divider span {
-          padding: 0 12px;
+          background: rgba(
+            201,
+            151,
+            50,
+            0.07
+          );
         }
 
         .cl-field {
-          margin-bottom: 21px;
+          margin-bottom: 18px;
         }
 
         .cl-field label {
           display: block;
-          margin-bottom: 8px;
-          font-size: 13px;
-          font-weight: 800;
+          margin-bottom: 7px;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.55
+          );
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+
+        .cl-label-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .cl-label-row span {
+          margin-bottom: 7px;
+          color: rgba(
+            232,
+            111,
+            0,
+            0.7
+          );
+          font-size: 5px;
+          font-weight: 950;
+          letter-spacing: 0.8px;
         }
 
         .cl-field input {
           width: 100%;
           box-sizing: border-box;
-          padding: 14px 15px;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(0, 0, 0, 0.45);
-          color: white;
-          font-size: 15px;
+          padding: 12px 13px;
+          border-radius: 10px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.1);
           outline: none;
+          background: #0b0808;
+          color: #f9f4ed;
+          font-size: 11px;
         }
 
         .cl-field input:focus {
-          border-color: rgba(211, 163, 60, 0.7);
-          box-shadow: 0 0 0 3px rgba(211, 163, 60, 0.08);
+          border-color: rgba(
+            232,
+            111,
+            0,
+            0.5
+          );
+          box-shadow: 0 0 0 3px
+            rgba(232, 111, 0, 0.05);
+        }
+
+        .cl-field input::placeholder {
+          color: rgba(
+            247,
+            241,
+            232,
+            0.15
+          );
         }
 
         .cl-field small {
           display: block;
-          margin-top: 7px;
-          color: rgba(255, 255, 255, 0.35);
-          font-size: 11px;
+          margin-top: 6px;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.2
+          );
+          font-size: 7px;
           line-height: 1.5;
+        }
+
+        .username-display,
+        .locked-display {
+          min-height: 49px;
+          box-sizing: border-box;
+          border-radius: 10px;
         }
 
         .username-display {
           display: flex;
           align-items: center;
           gap: 6px;
-          min-height: 50px;
-          padding: 0 15px;
-          box-sizing: border-box;
-          border-radius: 12px;
-          border: 1px solid rgba(80, 210, 110, 0.24);
-          background: rgba(60, 180, 90, 0.05);
+          padding: 0 13px;
+          border: 1px solid
+            rgba(80, 210, 110, 0.18);
+          background: rgba(
+            60,
+            180,
+            90,
+            0.04
+          );
         }
 
         .username-display.not-connected {
-          border-color: rgba(255, 255, 255, 0.1);
-          background: rgba(0, 0, 0, 0.35);
+          border-color: rgba(
+            201,
+            151,
+            50,
+            0.08
+          );
+          background: #090707;
         }
 
         .username-at {
-          color: #d3a33c;
-          font-weight: 900;
+          color: #c99732;
+          font-size: 10px;
+          font-weight: 950;
         }
 
         .username-display strong {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          font-size: 14px;
+          color: #f9f4ed;
+          font-size: 10px;
         }
 
-        .username-display.not-connected strong {
-          color: rgba(255, 255, 255, 0.35);
-          font-weight: 600;
+        .username-display.not-connected
+          strong {
+          color: rgba(
+            247,
+            241,
+            232,
+            0.27
+          );
+        }
+
+        .verified,
+        .pending {
+          margin-left: auto;
+          padding: 4px 6px;
+          border-radius: 999px;
+          white-space: nowrap;
+          font-size: 5px;
+          font-weight: 950;
+          letter-spacing: 0.8px;
         }
 
         .verified {
-          margin-left: auto;
-          color: #90e6a2;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 1px;
-          white-space: nowrap;
+          color: #b8f5c2;
+          background: rgba(
+            60,
+            180,
+            90,
+            0.07
+          );
         }
 
-        .agency-display {
+        .pending {
+          color: #d9b15c;
+          border: 1px solid
+            rgba(201, 151, 50, 0.12);
+          background: rgba(
+            201,
+            151,
+            50,
+            0.03
+          );
+        }
+
+        .locked-display {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          min-height: 56px;
-          padding: 12px 15px;
-          box-sizing: border-box;
-          border-radius: 12px;
-          border: 1px solid rgba(211, 163, 60, 0.28);
-          background: rgba(211, 163, 60, 0.06);
+          gap: 12px;
+          padding: 11px 13px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.14);
+          background: rgba(
+            201,
+            151,
+            50,
+            0.035
+          );
         }
 
-        .agency-display div {
+        .locked-display > div {
           display: flex;
           flex-direction: column;
           gap: 3px;
         }
 
-        .agency-label {
-          color: rgba(255, 255, 255, 0.35);
-          font-size: 9px;
-          font-weight: 800;
-          letter-spacing: 1.5px;
+        .locked-label {
+          color: rgba(
+            247,
+            241,
+            232,
+            0.21
+          );
+          font-size: 5px;
+          font-weight: 950;
+          letter-spacing: 1px;
         }
 
-        .agency-display strong {
-          color: #d3a33c;
-          font-size: 15px;
-        }
-
-        .agency-display .agent-code {
-          margin-top: 2px;
-          color: rgba(255, 255, 255, 0.45);
+        .locked-display strong {
+          color: #d9b15c;
           font-size: 10px;
-          font-weight: 700;
+          font-weight: 950;
         }
 
-        .agency-lock {
-          opacity: 0.55;
-          font-size: 16px;
+        .agent-code {
+          color: rgba(
+            247,
+            241,
+            232,
+            0.25
+          );
+          font-size: 6px;
+          font-weight: 800;
+        }
+
+        .lock {
+          opacity: 0.45;
+          font-size: 12px;
         }
 
         .cl-error {
-          padding: 12px 14px;
-          margin-bottom: 18px;
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          margin-bottom: 15px;
+          padding: 10px 11px;
           border-radius: 10px;
-          background: rgba(255, 60, 60, 0.08);
-          border: 1px solid rgba(255, 80, 80, 0.25);
-          color: #ffaaaa;
-          font-size: 13px;
+          border: 1px solid
+            rgba(143, 48, 48, 0.25);
+          background: rgba(
+            91,
+            17,
+            20,
+            0.13
+          );
+          color: #efaaaa;
+          font-size: 8px;
+          line-height: 1.5;
+        }
+
+        .error-icon {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 17px;
+          height: 17px;
+          border-radius: 6px;
+          background: rgba(
+            143,
+            48,
+            48,
+            0.15
+          );
+          color: #e89191;
+          font-size: 8px;
+          font-weight: 950;
         }
 
         .cl-save {
           width: 100%;
-          padding: 15px;
-          border: none;
-          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 14px;
+          border-radius: 10px;
+          border: 1px solid
+            rgba(232, 111, 0, 0.34);
           background: linear-gradient(
             135deg,
-            #d3a33c,
-            #9e6f22
+            #e86f00,
+            #b84800
           );
-          color: #080503;
-          font-size: 15px;
-          font-weight: 900;
+          color: #120603;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
           cursor: pointer;
         }
 
-        .cl-save:hover {
-          transform: translateY(-1px);
+        .cl-save:hover:not(:disabled) {
+          filter: brightness(1.05);
         }
 
         .cl-save:disabled {
-          opacity: 0.55;
+          opacity: 0.45;
           cursor: not-allowed;
-          transform: none;
+        }
+
+        .temporary-note {
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          margin-top: 13px;
+          padding: 10px 11px;
+          border-radius: 10px;
+          border: 1px solid
+            rgba(201, 151, 50, 0.08);
+          background: rgba(
+            201,
+            151,
+            50,
+            0.025
+          );
+        }
+
+        .temporary-note > span {
+          flex-shrink: 0;
+          color: #c99732;
+          font-size: 11px;
+        }
+
+        .temporary-note p {
+          margin: 0;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.22
+          );
+          font-size: 7px;
+          line-height: 1.55;
         }
 
         .legal-links {
-          margin-top: 16px;
+          margin-top: 14px;
           text-align: center;
-          color: rgba(255, 255, 255, 0.3);
-          font-size: 10px;
-          line-height: 1.6;
+          color: rgba(
+            247,
+            241,
+            232,
+            0.2
+          );
+          font-size: 7px;
+          line-height: 1.55;
         }
 
         .legal-links a {
-          color: rgba(211, 163, 60, 0.8);
+          color: rgba(
+            217,
+            177,
+            92,
+            0.75
+          );
           text-decoration: none;
+        }
+
+        .cl-footer {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 34px;
+          padding-top: 15px;
+          border-top: 1px solid
+            rgba(201, 151, 50, 0.07);
+          color: rgba(
+            247,
+            241,
+            232,
+            0.11
+          );
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 1.7px;
         }
 
         @media (max-width: 600px) {
           .cl-page {
-            padding: 30px 15px;
+            padding: 18px 13px 40px;
+          }
+
+          .cl-hero {
+            padding: 19px;
           }
 
           .cl-card {
-            padding: 25px 20px;
+            padding: 20px 17px;
           }
 
-          .cl-brand h1 {
-            font-size: 44px;
+          .cl-title-row {
+            align-items: flex-start;
           }
 
-          .verified {
+          .cl-step-pill {
+            display: none;
+          }
+
+          .tiktok-top {
+            flex-direction: column;
+          }
+
+          .verified,
+          .pending {
             display: none;
           }
         }
