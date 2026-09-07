@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/supabase/client";
+import DiscordConnectCard from "./DiscordConnectCard";
 
 export default function CrownLinkProfileSetupPage() {
   const router = useRouter();
@@ -512,26 +513,63 @@ export default function CrownLinkProfileSetupPage() {
      * and TikTok profile information.
      */
 
+    const cleanDisplayName = displayName.trim();
+    const cleanTikTokUsername = tiktokUsername
+      .trim()
+      .replace(/^@+/, "");
+
+    if (!cleanDisplayName) {
+      setError("Please enter a display name.");
+      setSaving(false);
+      return;
+    }
+
+    if (!tiktokConnected && !cleanTikTokUsername) {
+      setError("Please enter your TikTok username.");
+      setSaving(false);
+      return;
+    }
+
+    const profileData: Record<string, unknown> = {
+      user_id: user.id,
+      display_name: cleanDisplayName,
+      agency_name: agency.name,
+      diamond_level: diamonds,
+      agent_user_id: agentUserId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!tiktokConnected) {
+      profileData.tiktok_username =
+        cleanTikTokUsername;
+    }
+
     const { error: saveError } =
       await supabase
         .from("crownlink_profiles")
-        .update({
-          display_name:
-            displayName.trim() || null,
-          agency_name: agency.name,
-          diamond_level: diamonds,
-          agent_user_id: agentUserId,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+        .upsert(profileData, {
+          onConflict: "user_id",
+        });
 
     if (saveError) {
-      console.error(saveError);
-
-      setError(
-        "We couldn't save your profile. Please try again."
+      console.error(
+        "CROWN LINK PROFILE SAVE ERROR:",
+        saveError
       );
+
+      if (
+        saveError.message
+          .toLowerCase()
+          .includes("tiktok_username")
+      ) {
+        setError(
+          "That TikTok username is already being used by another Crown Link account."
+        );
+      } else {
+        setError(
+          "We couldn't save your profile. Please try again."
+        );
+      }
 
       setSaving(false);
       return;
@@ -735,6 +773,10 @@ export default function CrownLinkProfileSetupPage() {
             </div>
           )}
 
+          {/* DISCORD NOTIFICATIONS */}
+
+          <DiscordConnectCard />
+
           <div className="cl-divider">
             <span>PROFILE DETAILS</span>
           </div>
@@ -766,42 +808,49 @@ export default function CrownLinkProfileSetupPage() {
           <div className="cl-field">
             <label>TikTok Username</label>
 
-            <div
-              className={`username-display ${
-                !tiktokConnected
-                  ? "not-connected"
-                  : ""
-              }`}
-            >
-              <span className="username-at">
-                @
-              </span>
+            {tiktokConnected ? (
+              <>
+                <div className="username-display">
+                  <span className="username-at">@</span>
 
-              <strong>
-                {tiktokConnected &&
-                tiktokUsername
-                  ? tiktokUsername
-                  : "TikTok verification pending"}
-              </strong>
+                  <strong>
+                    {tiktokUsername || "TikTok Creator"}
+                  </strong>
 
-              {tiktokConnected && (
-                <span className="verified">
-                  ✓ VERIFIED
-                </span>
-              )}
+                  <span className="verified">
+                    ✓ VERIFIED
+                  </span>
+                </div>
 
-              {!tiktokConnected && (
-                <span className="pending">
-                  PENDING
-                </span>
-              )}
-            </div>
+                <small>
+                  Your username is verified directly through TikTok and cannot be edited here.
+                </small>
+              </>
+            ) : (
+              <>
+                <div className="username-input-wrap">
+                  <span className="username-input-at">@</span>
 
-            <small>
-              {tiktokConnected
-                ? "Your username is verified directly through TikTok and cannot be edited here."
-                : "TikTok verification is temporarily optional while the Crown Link integration is under review."}
-            </small>
+                  <input
+                    type="text"
+                    placeholder="Enter your TikTok username"
+                    value={tiktokUsername}
+                    onChange={(e) =>
+                      setTiktokUsername(
+                        e.target.value
+                          .replace(/^@+/, "")
+                          .replace(/\s/g, "")
+                      )
+                    }
+                    maxLength={50}
+                  />
+                </div>
+
+                <small>
+                  Enter your TikTok username manually while TikTok verification is temporarily unavailable.
+                </small>
+              </>
+            )}
           </div>
 
           {/* AGENCY */}
@@ -1521,6 +1570,26 @@ export default function CrownLinkProfileSetupPage() {
           );
           font-size: 7px;
           line-height: 1.5;
+        }
+
+        .username-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .username-input-wrap input {
+          padding-left: 30px;
+        }
+
+        .username-input-at {
+          position: absolute;
+          left: 13px;
+          z-index: 2;
+          color: #c99732;
+          font-size: 10px;
+          font-weight: 950;
+          pointer-events: none;
         }
 
         .username-display,

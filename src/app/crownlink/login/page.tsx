@@ -191,6 +191,15 @@ export default function CrownLinkLoginPage() {
               />
             </div>
 
+            <div className="cl-forgot-row">
+              <Link
+                href="/crownlink/forgot-password"
+                className="cl-forgot-link"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
             {error && (
               <div className="cl-error">
                 <div className="cl-error-dot" />
@@ -682,6 +691,34 @@ export default function CrownLinkLoginPage() {
         .cl-field input::placeholder {
           color:
             rgba(247, 241, 232, 0.2);
+        }
+
+        /* FORGOT PASSWORD */
+
+        .cl-forgot-row {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: -8px;
+          margin-bottom: 18px;
+        }
+
+        :global(.cl-forgot-link) {
+          color: #c99732;
+
+          font-size: 10px;
+          font-weight: 850;
+
+          letter-spacing: 0.35px;
+
+          text-decoration: none;
+
+          transition:
+            color 0.15s ease,
+            opacity 0.15s ease;
+        }
+
+        :global(.cl-forgot-link:hover) {
+          color: #e86f00;
         }
 
         .cl-error {

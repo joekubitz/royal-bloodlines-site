@@ -3,8 +3,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 import CancelBattleButton from "./CancelBattleButton";
+import ScoreImportPanel from "./ScoreImportPanel";
+import EventBattleSelector from "./EventBattleSelector";
 
-export default async function CrownLinkAdminBattlesPage() {
+type PageProps = {
+  searchParams: Promise<{
+    eventId?: string;
+  }>;
+};
+
+export default async function CrownLinkAdminBattlesPage({
+  searchParams,
+}: PageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -32,7 +43,25 @@ export default async function CrownLinkAdminBattlesPage() {
 
   const adminSupabase = createAdminClient();
 
-  const { data: matches, error: matchesError } = await adminSupabase
+  const { data: events, error: eventsError } = await adminSupabase
+    .from("crownlink_events")
+    .select("id, name, event_date, event_time")
+    .order("event_date", { ascending: false })
+    .order("event_time", { ascending: false });
+
+  if (eventsError) {
+    console.error("Admin battle events error:", eventsError);
+  }
+
+  const requestedEventId = params.eventId?.trim() || "";
+  const selectedEventId =
+    requestedEventId === "all"
+      ? "all"
+      : (events ?? []).some((event) => event.id === requestedEventId)
+        ? requestedEventId
+        : events?.[0]?.id ?? "all";
+
+  let matchesQuery = adminSupabase
     .from("crownlink_matches")
     .select(`
       id,
@@ -40,19 +69,25 @@ export default async function CrownLinkAdminBattlesPage() {
       creator_one_id,
       creator_two_id,
       status,
+      creator_one_score,
+      creator_two_score,
       created_at,
       approved_at
     `)
-    .eq("status", "approved")
-    .order("approved_at", { ascending: true });
+    .eq("status", "approved");
+
+  if (selectedEventId !== "all") {
+    matchesQuery = matchesQuery.eq("event_id", selectedEventId);
+  }
+
+  const { data: matches, error: matchesError } = await matchesQuery.order(
+    "approved_at",
+    { ascending: true }
+  );
 
   if (matchesError) {
     console.error("Admin battles error:", matchesError);
   }
-
-  const eventIds = [
-    ...new Set((matches ?? []).map((match) => match.event_id)),
-  ];
 
   const creatorIds = [
     ...new Set(
@@ -62,14 +97,6 @@ export default async function CrownLinkAdminBattlesPage() {
       ])
     ),
   ];
-
-  const { data: events } =
-    eventIds.length > 0
-      ? await adminSupabase
-          .from("crownlink_events")
-          .select("id, name, event_date, event_time")
-          .in("id", eventIds)
-      : { data: [] };
 
   const { data: profiles } =
     creatorIds.length > 0
@@ -332,6 +359,17 @@ export default async function CrownLinkAdminBattlesPage() {
           </div>
         </section>
 
+        <EventBattleSelector
+          events={(events ?? []).map((event) => ({
+            id: event.id,
+            name: event.name,
+            event_date: event.event_date,
+          }))}
+          selectedEventId={selectedEventId}
+        />
+
+        <ScoreImportPanel />
+
         {/* SECTION HEADER */}
         <div
           style={{
@@ -344,7 +382,11 @@ export default async function CrownLinkAdminBattlesPage() {
           }}
         >
           <div>
-            <p style={sectionEyebrowStyle}>Approved Matchups</p>
+            <p style={sectionEyebrowStyle}>
+              {selectedEventId === "all"
+                ? "Approved Matchups · All Events"
+                : "Approved Matchups · Selected Event"}
+            </p>
 
             <h2
               style={{
@@ -392,7 +434,7 @@ export default async function CrownLinkAdminBattlesPage() {
                 fontWeight: 900,
               }}
             >
-              No approved battles yet.
+              {selectedEventId === "all" ? "No approved battles yet." : "No approved battles for this event."}
             </p>
 
             <p
@@ -402,7 +444,9 @@ export default async function CrownLinkAdminBattlesPage() {
                 fontSize: 10,
               }}
             >
-              Approved matchups will appear here after matchmaking.
+              {selectedEventId === "all"
+                ? "Approved matchups will appear here after matchmaking."
+                : "Choose another event above or approve matchups for this event."}
             </p>
           </div>
         ) : (
@@ -552,31 +596,61 @@ export default async function CrownLinkAdminBattlesPage() {
                       <div
                         style={{
                           textAlign: "right",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                          gap: 10,
                         }}
                       >
-                        <p
-                          style={{
-                            margin: 0,
-                            color: "rgba(247,241,232,0.2)",
-                            fontSize: 7,
-                            fontWeight: 900,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Diamond Difference
-                        </p>
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              color: "rgba(247,241,232,0.2)",
+                              fontSize: 7,
+                              fontWeight: 900,
+                              letterSpacing: 1,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Diamond Difference
+                          </p>
 
-                        <p
+                          <p
+                            style={{
+                              margin: "4px 0 0",
+                              color: "#c99732",
+                              fontSize: 15,
+                              fontWeight: 950,
+                            }}
+                          >
+                            {diamondDifference.toLocaleString()}
+                          </p>
+                        </div>
+
+                        <a
+                          href={`/api/crownlink/battles/export?eventId=${match.event_id}`}
                           style={{
-                            margin: "4px 0 0",
-                            color: "#c99732",
-                            fontSize: 15,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            padding: "8px 11px",
+                            borderRadius: 9,
+                            border: "1px solid rgba(201,151,50,0.22)",
+                            background:
+                              "linear-gradient(135deg, rgba(201,151,50,0.12), rgba(232,111,0,0.08))",
+                            color: "#d9b15c",
+                            textDecoration: "none",
+                            fontSize: 8,
                             fontWeight: 950,
+                            letterSpacing: 0.5,
+                            textTransform: "uppercase",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {diamondDifference.toLocaleString()}
-                        </p>
+                          ↓ Export Event Excel
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -599,6 +673,13 @@ export default async function CrownLinkAdminBattlesPage() {
                       <CreatorBattleCard
                         creator={creatorOne}
                         label="Creator One"
+                        score={match.creator_one_score}
+                        isWinner={
+                          match.creator_one_score !== null &&
+                          match.creator_two_score !== null &&
+                          Number(match.creator_one_score) >
+                            Number(match.creator_two_score)
+                        }
                       />
 
                       <div
@@ -608,33 +689,67 @@ export default async function CrownLinkAdminBattlesPage() {
                           justifyContent: "center",
                         }}
                       >
-                        <div
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background:
-                              "linear-gradient(145deg, rgba(85,12,8,0.65), rgba(20,7,4,0.82))",
-                            border:
-                              "1px solid rgba(232,111,0,0.28)",
-                            boxShadow:
-                              "0 0 22px rgba(232,111,0,0.07)",
-                            color: "#e86f00",
-                            fontSize: 11,
-                            fontWeight: 950,
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          VS
-                        </div>
+                        {match.creator_one_score !== null &&
+                        match.creator_two_score !== null ? (
+                          <div
+                            style={{
+                              minWidth: 58,
+                              padding: "9px 10px",
+                              borderRadius: 999,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background:
+                                "linear-gradient(145deg, rgba(201,151,50,0.12), rgba(232,111,0,0.07))",
+                              border:
+                                "1px solid rgba(201,151,50,0.22)",
+                              boxShadow:
+                                "0 0 22px rgba(201,151,50,0.06)",
+                              color: "#d9b15c",
+                              fontSize: 8,
+                              fontWeight: 950,
+                              letterSpacing: 1.2,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Final
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background:
+                                "linear-gradient(145deg, rgba(85,12,8,0.65), rgba(20,7,4,0.82))",
+                              border:
+                                "1px solid rgba(232,111,0,0.28)",
+                              boxShadow:
+                                "0 0 22px rgba(232,111,0,0.07)",
+                              color: "#e86f00",
+                              fontSize: 11,
+                              fontWeight: 950,
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            VS
+                          </div>
+                        )}
                       </div>
 
                       <CreatorBattleCard
                         creator={creatorTwo}
                         label="Creator Two"
+                        score={match.creator_two_score}
+                        isWinner={
+                          match.creator_one_score !== null &&
+                          match.creator_two_score !== null &&
+                          Number(match.creator_two_score) >
+                            Number(match.creator_one_score)
+                        }
                       />
                     </div>
 
@@ -716,6 +831,8 @@ export default async function CrownLinkAdminBattlesPage() {
 function CreatorBattleCard({
   creator,
   label,
+  score,
+  isWinner,
 }: {
   creator: {
     name: string;
@@ -724,6 +841,8 @@ function CreatorBattleCard({
     agency: string;
   };
   label: string;
+  score: number | string | null;
+  isWinner: boolean;
 }) {
   return (
     <div
@@ -731,9 +850,15 @@ function CreatorBattleCard({
         minWidth: 0,
         padding: 16,
         borderRadius: 15,
-        border: "1px solid rgba(255,255,255,0.055)",
-        background:
-          "linear-gradient(145deg, rgba(255,255,255,0.027), rgba(0,0,0,0.12))",
+        border: isWinner
+          ? "1px solid rgba(201,151,50,0.34)"
+          : "1px solid rgba(255,255,255,0.055)",
+        background: isWinner
+          ? "linear-gradient(145deg, rgba(201,151,50,0.075), rgba(0,0,0,0.12))"
+          : "linear-gradient(145deg, rgba(255,255,255,0.027), rgba(0,0,0,0.12))",
+        boxShadow: isWinner
+          ? "0 0 28px rgba(201,151,50,0.06)"
+          : "none",
       }}
     >
       <p
@@ -771,6 +896,62 @@ function CreatorBattleCard({
       >
         {creator.username}
       </p>
+
+      {score !== null && (
+        <div
+          style={{
+            marginTop: 14,
+            padding: "12px 13px",
+            borderRadius: 12,
+            border: isWinner
+              ? "1px solid rgba(201,151,50,0.24)"
+              : "1px solid rgba(255,255,255,0.06)",
+            background: isWinner
+              ? "rgba(201,151,50,0.055)"
+              : "rgba(255,255,255,0.02)",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "rgba(247,241,232,0.24)",
+              fontSize: 7,
+              fontWeight: 950,
+              letterSpacing: 1.1,
+              textTransform: "uppercase",
+            }}
+          >
+            Final Score
+          </p>
+
+          <p
+            style={{
+              margin: "5px 0 0",
+              color: isWinner ? "#e4c06c" : "#f9f4ed",
+              fontSize: 24,
+              fontWeight: 950,
+              lineHeight: 1,
+            }}
+          >
+            {Number(score).toLocaleString()}
+          </p>
+
+          {isWinner && (
+            <p
+              style={{
+                margin: "6px 0 0",
+                color: "#d9b15c",
+                fontSize: 7,
+                fontWeight: 950,
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+              }}
+            >
+              Winner
+            </p>
+          )}
+        </div>
+      )}
 
       <div
         style={{
