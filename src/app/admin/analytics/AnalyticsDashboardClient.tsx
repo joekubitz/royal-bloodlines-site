@@ -13,6 +13,8 @@ import AgentTrendCharts, {
 import DashboardAlerts, {
   type DashboardAlert,
 } from "./DashboardAlerts";
+import LevelAnalytics from "./LevelAnalytics";
+import RankUpAnalytics from "./RankUpAnalytics";
 
 export type CreatorStat = {
   id: string;
@@ -855,6 +857,18 @@ export default function AnalyticsDashboardClient({
         </div>
 
       </div>
+
+      {/* LEVEL ANALYTICS */}
+
+      <LevelAnalytics
+        creators={filteredCreators}
+      />
+
+      {/* RANK UP ANALYTICS */}
+
+      <RankUpAnalytics
+        creators={filteredCreators}
+      />
 
       {/* REQUIREMENT PROGRESS */}
 
