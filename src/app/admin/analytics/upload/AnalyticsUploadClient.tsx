@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import * as XLSX from "xlsx";
 
 type CreatorRow = {
@@ -636,6 +637,13 @@ export default function AnalyticsUploadClient() {
         {/* HEADER */}
 
         <div>
+          <Link
+            href="/admin/analytics"
+            className="mb-6 inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/10 hover:text-white"
+          >
+            ← Back to Analytics
+          </Link>
+
           <p className="text-sm uppercase tracking-[0.3em] text-red-500">
             Royals Bloodline
           </p>
