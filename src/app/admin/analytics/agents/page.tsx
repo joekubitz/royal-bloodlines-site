@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
-import AnalyticsUploadClient from "./AnalyticsUploadClient";
+import AgentAccessClient from "./AgentAccessClient";
 
-export default async function AnalyticsUploadPage() {
+export default async function AnalyticsAgentsPage() {
   const supabase = await createClient();
 
   const {
@@ -19,14 +19,13 @@ export default async function AnalyticsUploadPage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const isAdmin =
-    !roleError &&
-    userRole?.role === "admin" &&
-    userRole?.status === "active";
-
-  if (!isAdmin) {
+  if (
+    roleError ||
+    userRole?.role !== "admin" ||
+    userRole?.status !== "active"
+  ) {
     redirect("/admin/analytics");
   }
 
-  return <AnalyticsUploadClient />;
+  return <AgentAccessClient />;
 }

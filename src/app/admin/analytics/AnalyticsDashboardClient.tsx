@@ -56,15 +56,35 @@ export type AgentTrendHistory =
 export default function AnalyticsDashboardClient({
   creators,
   agentTrendHistory = {},
+  isAgentView = false,
 }: {
   creators: CreatorStat[];
   latestImport?: string | null;
   agentTrendHistory?: AgentTrendHistory;
+  isAgentView?: boolean;
 }) {
   const [
     agentFilter,
     setAgentFilter,
   ] = useState("all");
+
+  const agentManager = useMemo(() => {
+    if (!isAgentView) {
+      return null;
+    }
+
+    return (
+      creators.find(
+        (creator) =>
+          Boolean(creator.manager?.trim())
+      )?.manager?.trim() ?? null
+    );
+  }, [creators, isAgentView]);
+
+  const effectiveAgentFilter =
+    isAgentView && agentManager
+      ? agentManager
+      : agentFilter;
 
   /*
     AGENT LIST
@@ -100,7 +120,8 @@ export default function AnalyticsDashboardClient({
   const filteredCreators =
     useMemo(() => {
       if (
-        agentFilter === "all"
+        isAgentView ||
+        effectiveAgentFilter === "all"
       ) {
         return creators;
       }
@@ -108,11 +129,12 @@ export default function AnalyticsDashboardClient({
       return creators.filter(
         (creator) =>
           creator.manager?.trim() ===
-          agentFilter
+          effectiveAgentFilter
       );
     }, [
       creators,
-      agentFilter,
+      effectiveAgentFilter,
+      isAgentView,
     ]);
 
   /*
@@ -122,18 +144,18 @@ export default function AnalyticsDashboardClient({
   const selectedAgentHistory =
     useMemo(() => {
       if (
-        agentFilter === "all"
+        effectiveAgentFilter === "all"
       ) {
         return [];
       }
 
       return (
         agentTrendHistory[
-          agentFilter
+          effectiveAgentFilter
         ] ?? []
       );
     }, [
-      agentFilter,
+      effectiveAgentFilter,
       agentTrendHistory,
     ]);
 
@@ -625,8 +647,9 @@ export default function AnalyticsDashboardClient({
   return (
     <div className="text-white">
 
-      {/* AGENT FILTER */}
+      {/* AGENT FILTER - ADMIN ONLY */}
 
+      {!isAgentView && (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -712,6 +735,8 @@ export default function AnalyticsDashboardClient({
           </div>
         )}
       </div>
+
+      )}
 
       {/* DASHBOARD ALERTS */}
 
@@ -858,17 +883,19 @@ export default function AnalyticsDashboardClient({
 
       </div>
 
-      {/* LEVEL ANALYTICS */}
+      {/* LEVEL + RANK UP ANALYTICS - ADMIN ONLY */}
 
-      <LevelAnalytics
-        creators={filteredCreators}
-      />
+      {!isAgentView && (
+        <>
+          <LevelAnalytics
+            creators={filteredCreators}
+          />
 
-      {/* RANK UP ANALYTICS */}
-
-      <RankUpAnalytics
-        creators={filteredCreators}
-      />
+          <RankUpAnalytics
+            creators={filteredCreators}
+          />
+        </>
+      )}
 
       {/* REQUIREMENT PROGRESS */}
 
@@ -948,12 +975,12 @@ export default function AnalyticsDashboardClient({
 
       {/* AGENT TREND TRACKING */}
 
-      {agentFilter !==
+      {effectiveAgentFilter !==
         "all" && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <AgentTrendCharts
             agent={
-              agentFilter
+              effectiveAgentFilter
             }
             history={
               selectedAgentHistory
@@ -962,19 +989,21 @@ export default function AnalyticsDashboardClient({
         </div>
       )}
 
-      {/* AGENT PERFORMANCE */}
+      {/* AGENT PERFORMANCE - ADMIN ONLY */}
 
-      <AgentPerformanceTable
-        creators={
-          creators
-        }
-        selectedAgent={
-          agentFilter
-        }
-        onSelectAgent={
-          handleSelectAgent
-        }
-      />
+      {!isAgentView && (
+        <AgentPerformanceTable
+          creators={
+            creators
+          }
+          selectedAgent={
+            agentFilter
+          }
+          onSelectAgent={
+            handleSelectAgent
+          }
+        />
+      )}
 
       {/* CREATOR PERFORMANCE */}
 
@@ -983,7 +1012,7 @@ export default function AnalyticsDashboardClient({
           filteredCreators
         }
         selectedAgent={
-          agentFilter
+          effectiveAgentFilter
         }
       />
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
 import AnalyticsDashboardClient from "./AnalyticsDashboardClient";
+import LogoutButton from "./LogoutButton";
 
 export type CreatorStat = {
   id: string;
@@ -473,14 +474,37 @@ export default async function AnalyticsPage() {
       .from("user_roles")
       .select("role, status")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-  if (
-    !userRole ||
-    userRole.role !== "admin" ||
-    userRole.status !== "active"
-  ) {
+  const isAdmin =
+    userRole?.role === "admin" &&
+    userRole?.status === "active";
+
+  const {
+    data: analyticsAccess,
+    error: analyticsAccessError,
+  } = await supabase
+    .from("analytics_agent_access")
+    .select("backstage_manager, status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isAgent =
+    !analyticsAccessError &&
+    analyticsAccess?.status === "active" &&
+    Boolean(analyticsAccess?.backstage_manager);
+
+  if (!isAdmin && !isAgent) {
     redirect("/");
+  }
+
+  let backstageManager: string | null = null;
+
+  if (isAgent) {
+    backstageManager =
+      analyticsAccess!.backstage_manager
+        .trim()
+        .toLowerCase();
   }
 
   /*
@@ -516,6 +540,14 @@ export default async function AnalyticsPage() {
           supabase,
           latestImportRecord.id
         );
+
+      if (isAgent && backstageManager) {
+        creators = creators.filter(
+          (creator) =>
+            creator.manager?.trim().toLowerCase() ===
+            backstageManager
+        );
+      }
     }
 
     /*
@@ -539,10 +571,19 @@ export default async function AnalyticsPage() {
         monthlyImportIds
       );
 
+    const visibleHistoricalCreatorRows =
+      isAgent && backstageManager
+        ? historicalCreatorRows.filter(
+            (creator) =>
+              creator.manager?.trim().toLowerCase() ===
+              backstageManager
+          )
+        : historicalCreatorRows;
+
     agentTrendHistory =
       buildAgentTrendHistory(
         monthlySnapshots,
-        historicalCreatorRows
+        visibleHistoricalCreatorRows
       );
   } catch (error) {
     console.error(
@@ -571,24 +612,37 @@ export default async function AnalyticsPage() {
               </p>
 
               <h1 className="mt-2 text-3xl font-bold">
-                Analytics
+                {isAgent ? "My Team Analytics" : "Analytics"}
               </h1>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/admin/analytics/imports"
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Import History
-              </Link>
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin/analytics/agents"
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                  >
+                    Manage Agent Access
+                  </Link>
 
-              <Link
-                href="/admin/analytics/upload"
-                className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-              >
-                Upload Backstage Data
-              </Link>
+                  <Link
+                    href="/admin/analytics/imports"
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Import History
+                  </Link>
+
+                  <Link
+                    href="/admin/analytics/upload"
+                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                  >
+                    Upload Backstage Data
+                  </Link>
+                </>
+              )}
+
+              <LogoutButton />
             </div>
           </div>
 
@@ -615,16 +669,31 @@ export default async function AnalyticsPage() {
               </p>
 
               <h1 className="mt-2 text-3xl font-bold">
-                Analytics
+                {isAgent ? "My Team Analytics" : "Analytics"}
               </h1>
             </div>
 
-            <Link
-              href="/admin/analytics/upload"
-              className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-            >
-              Upload Backstage Data
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin/analytics/agents"
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                  >
+                    Manage Agent Access
+                  </Link>
+
+                  <Link
+                    href="/admin/analytics/upload"
+                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                  >
+                    Upload Backstage Data
+                  </Link>
+                </>
+              )}
+
+              <LogoutButton />
+            </div>
           </div>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
@@ -649,16 +718,9 @@ export default async function AnalyticsPage() {
     latestImportRecord.imported_at;
 
   /*
-    agentTrendHistory is now ready.
-
-    We will pass this into
-    AnalyticsDashboardClient
-    in the next step after
-    that component accepts
-    the new prop.
+    Agent data is filtered on the server before
+    it is passed into the client dashboard.
   */
-
-  void agentTrendHistory;
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -670,7 +732,7 @@ export default async function AnalyticsPage() {
             </p>
 
             <h1 className="mt-2 text-3xl font-bold">
-              Analytics
+              {isAgent ? "My Team Analytics" : "Analytics"}
             </h1>
 
             {latestImportRecord.data_period && (
@@ -682,28 +744,42 @@ export default async function AnalyticsPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/admin/analytics/imports"
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              Import History
-            </Link>
+            {isAdmin && (
+              <>
+                <Link
+                  href="/admin/analytics/agents"
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                >
+                  Manage Agent Access
+                </Link>
 
-            <Link
-              href="/admin/analytics/upload"
-              className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-            >
-              Upload Backstage Data
-            </Link>
+                <Link
+                  href="/admin/analytics/imports"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Import History
+                </Link>
+
+                <Link
+                  href="/admin/analytics/upload"
+                  className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                >
+                  Upload Backstage Data
+                </Link>
+              </>
+            )}
+
+            <LogoutButton />
           </div>
         </div>
       </div>
 
       <AnalyticsDashboardClient
-  creators={creators}
-  latestImport={latestImport}
-  agentTrendHistory={agentTrendHistory}
-/>
+        creators={creators}
+        latestImport={latestImport}
+        agentTrendHistory={agentTrendHistory}
+        isAgentView={isAgent}
+      />
     </main>
   );
 }

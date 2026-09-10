@@ -146,14 +146,37 @@ export default async function CreatorAnalyticsPage({
     .from("user_roles")
     .select("role, status")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (
-    !userRole ||
-    userRole.role !== "admin" ||
-    userRole.status !== "active"
-  ) {
+  const isAdmin =
+    userRole?.role === "admin" &&
+    userRole?.status === "active";
+
+  const {
+    data: analyticsAccess,
+    error: analyticsAccessError,
+  } = await supabase
+    .from("analytics_agent_access")
+    .select("backstage_manager, status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isAgent =
+    !analyticsAccessError &&
+    analyticsAccess?.status === "active" &&
+    Boolean(analyticsAccess?.backstage_manager);
+
+  if (!isAdmin && !isAgent) {
     redirect("/");
+  }
+
+  let backstageManager: string | null = null;
+
+  if (isAgent) {
+    backstageManager =
+      analyticsAccess!.backstage_manager
+        .trim()
+        .toLowerCase();
   }
 
   /*
@@ -194,6 +217,23 @@ export default async function CreatorAnalyticsPage({
       ascending: false,
     });
 
+  /*
+    Agents are already protected by RLS. This additional
+    check keeps the route explicitly scoped to their own
+    Backstage manager assignment as well.
+  */
+
+  const visibleData =
+    isAgent && backstageManager
+      ? (data ?? []).filter(
+          (creator) =>
+            creator.manager
+              ?.trim()
+              .toLowerCase() ===
+            backstageManager
+        )
+      : data ?? [];
+
   if (error) {
     console.error(
       "Creator analytics error:",
@@ -208,7 +248,7 @@ export default async function CreatorAnalyticsPage({
             href="/admin/analytics"
             className="text-sm text-gray-400 transition hover:text-white"
           >
-            ← Back to Analytics
+            ← Back to {isAgent ? "My Team Analytics" : "Analytics"}
           </Link>
 
           <div className="mt-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-300">
@@ -220,7 +260,7 @@ export default async function CreatorAnalyticsPage({
     );
   }
 
-  const history = (data ?? []) as CreatorStat[];
+  const history = visibleData as CreatorStat[];
 
   if (history.length === 0) {
     return (
@@ -231,7 +271,7 @@ export default async function CreatorAnalyticsPage({
             href="/admin/analytics"
             className="text-sm text-gray-400 transition hover:text-white"
           >
-            ← Back to Analytics
+            ← Back to {isAgent ? "My Team Analytics" : "Analytics"}
           </Link>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
@@ -351,7 +391,7 @@ export default async function CreatorAnalyticsPage({
           href="/admin/analytics"
           className="inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white"
         >
-          ← Back to Analytics
+          ← Back to {isAgent ? "My Team Analytics" : "Analytics"}
         </Link>
 
         {/* HEADER */}

@@ -40,7 +40,7 @@ export default function LoginPage() {
       }
 
       /*
-        CHECK USER ROLE
+        CHECK WHETHER USER IS AN ACTIVE ADMIN
       */
 
       const {
@@ -50,33 +50,53 @@ export default function LoginPage() {
         .from("user_roles")
         .select("role, status")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (roleError || !userRole) {
+      const isAdmin =
+        !roleError &&
+        userRole?.role === "admin" &&
+        userRole?.status === "active";
+
+      /*
+        CHECK WHETHER USER HAS ACTIVE
+        ANALYTICS ACCESS
+      */
+
+      const {
+        data: analyticsAccess,
+        error: analyticsAccessError,
+      } = await supabase
+        .from("analytics_agent_access")
+        .select("backstage_manager, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const hasAnalyticsAccess =
+        !analyticsAccessError &&
+        analyticsAccess?.status === "active" &&
+        Boolean(analyticsAccess?.backstage_manager);
+
+      /*
+        USER MUST BE EITHER:
+        - AN ACTIVE ADMIN
+        - OR HAVE ACTIVE ANALYTICS ACCESS
+
+        This keeps analytics access independent
+        from Crown Link / Royals Battles roles.
+      */
+
+      if (!isAdmin && !hasAnalyticsAccess) {
         await supabase.auth.signOut();
 
         setError(
-          "Your account does not have access to the admin portal."
-        );
-
-        return;
-      }
-
-      if (
-        userRole.role !== "admin" ||
-        userRole.status !== "active"
-      ) {
-        await supabase.auth.signOut();
-
-        setError(
-          "Your account does not have active admin access."
+          "Your account does not have active analytics access."
         );
 
         return;
       }
 
       /*
-        ADMIN LOGIN SUCCESS
+        LOGIN SUCCESS
       */
 
       router.push("/admin/analytics");
@@ -102,29 +122,23 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-black px-6 py-16 text-white">
-
       <div className="mx-auto max-w-md">
-
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-2xl">
-
           <div className="text-center">
-
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-500">
               Royals Bloodline
             </p>
 
             <h1 className="mt-3 text-3xl font-bold">
-              Admin Login
+              Analytics Login
             </h1>
 
             <p className="mt-2 text-sm text-gray-400">
               Sign in to access Backstage Analytics.
             </p>
-
           </div>
 
           <div className="mt-8">
-
             <label className="mb-2 block text-sm font-semibold text-gray-300">
               Email
             </label>
@@ -140,11 +154,9 @@ export default function LoginPage() {
               autoComplete="email"
               className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-red-500/60"
             />
-
           </div>
 
           <div className="mt-4">
-
             <label className="mb-2 block text-sm font-semibold text-gray-300">
               Password
             </label>
@@ -160,7 +172,6 @@ export default function LoginPage() {
               autoComplete="current-password"
               className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-red-500/60"
             />
-
           </div>
 
           <button
@@ -179,11 +190,8 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-
         </div>
-
       </div>
-
     </main>
   );
 }
