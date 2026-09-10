@@ -81,8 +81,13 @@ export default function Navbar() {
               }}
             />
 
-            <span className="rb-brand-full">ROYALS BLOODLINE</span>
-            <span className="rb-brand-short">RB</span>
+            <span className="rb-brand-full">
+              ROYALS BLOODLINE
+            </span>
+
+            <span className="rb-brand-short">
+              RB
+            </span>
           </Link>
 
           <nav className="rb-desktop-nav">
@@ -111,6 +116,25 @@ export default function Navbar() {
           </nav>
 
           <div className="rb-actions">
+            {/* MEMBER LOGIN */}
+            <Link
+              href="/login"
+              className="rb-member-btn"
+            >
+              <span className="rb-member-icon">
+                ♛
+              </span>
+
+              <span className="rb-member-long">
+                Member Login
+              </span>
+
+              <span className="rb-member-short">
+                Login
+              </span>
+            </Link>
+
+            {/* DISCORD */}
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
@@ -120,6 +144,7 @@ export default function Navbar() {
               Join Discord
             </a>
 
+            {/* CTA */}
             <Link href="/join" className="rb-cta-btn">
               <span className="rb-cta-long">
                 Claim Your Crown →
@@ -130,9 +155,12 @@ export default function Navbar() {
               </span>
             </Link>
 
+            {/* MOBILE MENU BUTTON */}
             <button
               className="rb-mobile-btn"
-              onClick={() => setMobileOpen((v) => !v)}
+              onClick={() =>
+                setMobileOpen((v) => !v)
+              }
               aria-label="Toggle menu"
               aria-expanded={mobileOpen}
               type="button"
@@ -148,7 +176,9 @@ export default function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={() =>
+                  setMobileOpen(false)
+                }
                 className="rb-mobile-link"
                 style={{
                   color:
@@ -166,15 +196,41 @@ export default function Navbar() {
               </Link>
             ))}
 
+            {/* MOBILE MEMBER LOGIN */}
+            <Link
+              href="/login"
+              onClick={() =>
+                setMobileOpen(false)
+              }
+              className="rb-mobile-member"
+            >
+              <span>♛</span>
+              Member Login
+            </Link>
+
+            {/* MOBILE DISCORD */}
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setMobileOpen(false)}
+              onClick={() =>
+                setMobileOpen(false)
+              }
               className="rb-mobile-discord"
             >
               Join Discord
             </a>
+
+            {/* MOBILE JOIN */}
+            <Link
+              href="/join"
+              onClick={() =>
+                setMobileOpen(false)
+              }
+              className="rb-mobile-join"
+            >
+              Claim Your Crown →
+            </Link>
           </div>
         )}
       </div>
@@ -222,6 +278,46 @@ export default function Navbar() {
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
+        }
+
+        :global(.rb-member-btn) {
+          padding: 9px 13px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 215, 0, 0.18);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(255, 215, 0, 0.07),
+              rgba(255, 215, 0, 0.025)
+            );
+          color: rgba(255, 225, 105, 0.95);
+          font-weight: 850;
+          font-size: 13px;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          white-space: nowrap;
+          transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            transform 0.15s ease;
+        }
+
+        :global(.rb-member-btn:hover) {
+          transform: translateY(-1px);
+          border-color: rgba(255, 215, 0, 0.38);
+          background: rgba(255, 215, 0, 0.1);
+        }
+
+        .rb-member-icon {
+          font-size: 13px;
+          color: rgba(255, 215, 0, 0.95);
+        }
+
+        .rb-member-short {
+          display: none;
         }
 
         .rb-discord-btn {
@@ -289,14 +385,43 @@ export default function Navbar() {
           border-radius: 10px;
         }
 
-        .rb-mobile-discord {
+        :global(.rb-mobile-member) {
           margin-top: 4px;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 215, 0, 0.18);
+          background: rgba(255, 215, 0, 0.06);
+          color: rgba(255, 225, 105, 0.95);
+          font-weight: 850;
+          text-decoration: none;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 7px;
+        }
+
+        .rb-mobile-discord {
           padding: 12px;
           border-radius: 12px;
           border: 1px solid rgba(255, 215, 0, 0.25);
           background: rgba(0, 0, 0, 0.35);
           color: rgba(255, 215, 0, 0.95);
           font-weight: 800;
+          text-decoration: none;
+          text-align: center;
+        }
+
+        :global(.rb-mobile-join) {
+          padding: 12px;
+          border-radius: 12px;
+          background: linear-gradient(
+            180deg,
+            rgba(255, 215, 0, 0.98),
+            rgba(255, 215, 0, 0.75)
+          );
+          color: #000;
+          font-weight: 900;
           text-decoration: none;
           text-align: center;
         }
@@ -310,6 +435,16 @@ export default function Navbar() {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+          }
+        }
+
+        @media (max-width: 1080px) {
+          .rb-member-long {
+            display: none;
+          }
+
+          .rb-member-short {
+            display: inline;
           }
         }
 
@@ -329,6 +464,12 @@ export default function Navbar() {
           .rb-cta-btn {
             padding: 9px 12px;
             font-size: 13px;
+          }
+        }
+
+        @media (max-width: 760px) {
+          :global(.rb-member-btn) {
+            display: none;
           }
         }
 
