@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "../supabase/client";
 import { useRouter } from "next/navigation";
@@ -23,7 +24,7 @@ export default function LoginPage() {
         data: authData,
         error: authError,
       } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -40,9 +41,8 @@ export default function LoginPage() {
       }
 
       /*
-        CHECK WHETHER USER IS AN ACTIVE ADMIN
+        CHECK ROYALS BATTLES ROLE
       */
-
       const {
         data: userRole,
         error: roleError,
@@ -52,16 +52,16 @@ export default function LoginPage() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const isAdmin =
+      const hasActiveRole =
         !roleError &&
-        userRole?.role === "admin" &&
-        userRole?.status === "active";
+        userRole?.status === "active" &&
+        ["admin", "agent", "creator"].includes(
+          userRole?.role ?? ""
+        );
 
       /*
-        CHECK WHETHER USER HAS ACTIVE
-        ANALYTICS ACCESS
+        CHECK ANALYTICS ACCESS
       */
-
       const {
         data: analyticsAccess,
         error: analyticsAccessError,
@@ -77,29 +77,48 @@ export default function LoginPage() {
         Boolean(analyticsAccess?.backstage_manager);
 
       /*
-        USER MUST BE EITHER:
-        - AN ACTIVE ADMIN
-        - OR HAVE ACTIVE ANALYTICS ACCESS
-
-        This keeps analytics access independent
-        from Crown Link / Royals Battles roles.
+        CHECK ADMIN
       */
+      const isAdmin =
+        userRole?.role === "admin" &&
+        userRole?.status === "active";
 
-      if (!isAdmin && !hasAnalyticsAccess) {
+      /*
+        USER MUST HAVE ACCESS TO AT LEAST
+        ONE PART OF THE PLATFORM
+      */
+      if (
+        !isAdmin &&
+        !hasActiveRole &&
+        !hasAnalyticsAccess
+      ) {
         await supabase.auth.signOut();
 
         setError(
-          "Your account does not have active analytics access."
+          "Your account does not currently have access to the Royals Bloodline portal."
         );
 
         return;
       }
 
       /*
-        LOGIN SUCCESS
+        CREATORS GO DIRECTLY
+        TO ROYALS BATTLES
       */
+      if (
+        userRole?.role === "creator" &&
+        userRole?.status === "active"
+      ) {
+        router.push("/crownlink");
+        router.refresh();
+        return;
+      }
 
-      router.push("/admin/analytics");
+      /*
+        AGENTS + ADMINS GO
+        TO THE SHARED PORTAL
+      */
+      router.push("/portal");
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
@@ -124,20 +143,28 @@ export default function LoginPage() {
     <main className="min-h-screen bg-black px-6 py-16 text-white">
       <div className="mx-auto max-w-md">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-2xl">
+
+          {/* BRANDING */}
           <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-500">
+            <div className="mb-2 text-4xl text-[#d3a33c]">
+              ♛
+            </div>
+
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#d3a33c]">
               Royals Bloodline
             </p>
 
             <h1 className="mt-3 text-3xl font-bold">
-              Analytics Login
+              Member Portal
             </h1>
 
             <p className="mt-2 text-sm text-gray-400">
-              Sign in to access Backstage Analytics.
+              Sign in to access Royals Battles,
+              Analytics, and your available tools.
             </p>
           </div>
 
+          {/* EMAIL */}
           <div className="mt-8">
             <label className="mb-2 block text-sm font-semibold text-gray-300">
               Email
@@ -152,10 +179,11 @@ export default function LoginPage() {
               }
               onKeyDown={handleKeyDown}
               autoComplete="email"
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-red-500/60"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-[#d3a33c]/60"
             />
           </div>
 
+          {/* PASSWORD */}
           <div className="mt-4">
             <label className="mb-2 block text-sm font-semibold text-gray-300">
               Password
@@ -170,26 +198,66 @@ export default function LoginPage() {
               }
               onKeyDown={handleKeyDown}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-red-500/60"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-gray-600 focus:border-[#d3a33c]/60"
             />
           </div>
 
+          {/* FORGOT PASSWORD */}
+          <div className="mt-3 text-right">
+            <Link
+              href="/crownlink/forgot-password"
+              className="text-sm font-semibold text-[#d3a33c] transition hover:opacity-80"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
+          {/* SIGN IN */}
           <button
             type="button"
             onClick={signIn}
             disabled={loading}
-            className="mt-6 w-full rounded-xl bg-red-700 px-5 py-3 font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-[#d3a33c] px-5 py-3 font-black text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading
               ? "Signing in..."
               : "Sign In"}
           </button>
 
+          {/* ERROR */}
           {error && (
             <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
               {error}
             </div>
           )}
+
+          {/* CREATOR DIVIDER */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/10" />
+
+            <span className="whitespace-nowrap text-xs font-bold uppercase tracking-widest text-gray-600">
+              New Creator?
+            </span>
+
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          {/* CREATOR REGISTRATION */}
+          <Link
+            href="/crownlink/register"
+            className="block w-full rounded-xl border border-[#d3a33c]/40 bg-[#d3a33c]/10 px-5 py-3 text-center font-black text-[#d3a33c] transition hover:bg-[#d3a33c]/15"
+          >
+            Create Creator Account
+          </Link>
+
+          <p className="mt-3 text-center text-xs leading-5 text-gray-500">
+            You will need a valid registration code from your agent.
+          </p>
+
+          {/* FOOTER */}
+          <p className="mt-6 text-center text-xs text-gray-600">
+            Royals Bloodline Member Access
+          </p>
         </div>
       </div>
     </main>

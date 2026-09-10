@@ -16,82 +16,114 @@ export default function CrownLinkLoginPage() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const {
-      data,
-      error: loginError,
-    } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+      const {
+        data,
+        error: loginError,
+      } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (loginError) {
-      setError(loginError.message);
-      setLoading(false);
-      return;
-    }
+      if (loginError) {
+        setError(loginError.message);
+        return;
+      }
 
-    if (!data.user) {
-      setError("Login failed. Please try again.");
-      setLoading(false);
-      return;
-    }
+      if (!data.user) {
+        setError("Login failed. Please try again.");
+        return;
+      }
 
-    const { data: userRole, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role, status")
-      .eq("user_id", data.user.id)
-      .single();
+      /*
+        CHECK ROYALS BATTLES ROLE
+      */
+      const {
+        data: userRole,
+        error: roleError,
+      } = await supabase
+        .from("user_roles")
+        .select("role, status")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
 
-    if (roleError || !userRole) {
-      console.error("CROWN LINK ROLE ERROR:", roleError);
+      const hasActiveRole =
+        !roleError &&
+        userRole?.status === "active" &&
+        ["admin", "agent", "creator"].includes(
+          userRole?.role ?? ""
+        );
 
-      await supabase.auth.signOut();
+      /*
+        CHECK ANALYTICS ACCESS
+      */
+      const {
+        data: analyticsAccess,
+        error: analyticsAccessError,
+      } = await supabase
+        .from("analytics_agent_access")
+        .select("backstage_manager, status")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      const hasAnalyticsAccess =
+        !analyticsAccessError &&
+        analyticsAccess?.status === "active" &&
+        Boolean(analyticsAccess?.backstage_manager);
+
+      /*
+        ADMIN CHECK
+      */
+      const isAdmin =
+        userRole?.role === "admin" &&
+        userRole?.status === "active";
+
+      /*
+        USER MUST HAVE ACCESS TO AT LEAST
+        ONE PART OF THE PLATFORM
+      */
+      if (
+        !isAdmin &&
+        !hasActiveRole &&
+        !hasAnalyticsAccess
+      ) {
+        await supabase.auth.signOut();
+
+        setError(
+          "Your account does not currently have access to the Royals Bloodline portal."
+        );
+
+        return;
+      }
+
+      /*
+        CREATORS GO DIRECTLY
+        INTO ROYALS BATTLES
+      */
+      if (
+        userRole?.role === "creator" &&
+        userRole?.status === "active"
+      ) {
+        window.location.href = "/crownlink";
+        return;
+      }
+
+      /*
+        AGENTS + ADMINS + ANALYTICS USERS
+        GO TO THE SHARED PORTAL
+      */
+      window.location.href = "/portal";
+    } catch (error) {
+      console.error("LOGIN ERROR:", error);
 
       setError(
-        roleError
-          ? `Role error: ${roleError.message}`
-          : "No Crown Link role was found for this account."
+        "Unexpected error. Please try again."
       );
-
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (userRole.status !== "active") {
-      await supabase.auth.signOut();
-
-      setError(
-        "Your Crown Link account is currently suspended."
-      );
-
-      setLoading(false);
-      return;
-    }
-
-    if (!["admin", "creator", "agent"].includes(userRole.role)) {
-      await supabase.auth.signOut();
-
-      setError(
-        "Your account does not have Crown Link access."
-      );
-
-      setLoading(false);
-      return;
-    }
-
-    if (userRole.role === "admin") {
-      window.location.href = "/crownlink/admin";
-      return;
-    }
-
-    if (userRole.role === "agent") {
-      window.location.href = "/crownlink/agent";
-      return;
-    }
-
-    window.location.href = "/crownlink";
   }
 
   return (
@@ -235,6 +267,7 @@ export default function CrownLinkLoginPage() {
             className="cl-register-button"
           >
             <span>Create Creator Account</span>
+
             <span className="cl-register-arrow">
               →
             </span>

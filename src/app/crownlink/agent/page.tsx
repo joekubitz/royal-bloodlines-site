@@ -38,48 +38,53 @@ export default async function CrownLinkAgentDashboardPage() {
 
   const adminSupabase = createAdminClient();
 
-  const [{ data: agentProfile }, { data: agentCode }, { data: creators }] =
-    await Promise.all([
-      adminSupabase
-        .from("crownlink_profiles")
-        .select(`
-          user_id,
-          display_name,
-          tiktok_username,
-          agency_name,
-          diamond_level,
-          profile_photo_url,
-          profile_status
-        `)
-        .eq("user_id", user.id)
-        .maybeSingle(),
+  const [
+    { data: agentProfile },
+    { data: agentCode },
+    { data: creators },
+  ] = await Promise.all([
+    adminSupabase
+      .from("crownlink_profiles")
+      .select(`
+        user_id,
+        display_name,
+        tiktok_username,
+        agency_name,
+        diamond_level,
+        profile_photo_url,
+        profile_status
+      `)
+      .eq("user_id", user.id)
+      .maybeSingle(),
 
-      adminSupabase
-        .from("crownlink_agent_codes")
-        .select(`
-          code,
-          status
-        `)
-        .eq("agent_user_id", user.id)
-        .maybeSingle(),
+    adminSupabase
+      .from("crownlink_agent_codes")
+      .select(`
+        code,
+        status
+      `)
+      .eq("agent_user_id", user.id)
+      .maybeSingle(),
 
-      adminSupabase
-        .from("crownlink_profiles")
-        .select(`
-          user_id,
-          display_name,
-          tiktok_username,
-          agency_name,
-          diamond_level,
-          profile_photo_url,
-          profile_status
-        `)
-        .eq("agent_user_id", user.id)
-        .order("display_name", { ascending: true }),
-    ]);
+    adminSupabase
+      .from("crownlink_profiles")
+      .select(`
+        user_id,
+        display_name,
+        tiktok_username,
+        agency_name,
+        diamond_level,
+        profile_photo_url,
+        profile_status
+      `)
+      .eq("agent_user_id", user.id)
+      .order("display_name", { ascending: true }),
+  ]);
 
   const activeCreators =
-    creators?.filter((creator) => creator.profile_status === "active") ?? [];
+    creators?.filter(
+      (creator) => creator.profile_status === "active"
+    ) ?? [];
 
   const displayName =
     agentProfile?.display_name?.trim() ||
@@ -196,7 +201,8 @@ export default async function CrownLinkAgentDashboardPage() {
                     height: 7,
                     borderRadius: "50%",
                     background: "#c99732",
-                    boxShadow: "0 0 12px rgba(201,151,50,0.55)",
+                    boxShadow:
+                      "0 0 12px rgba(201,151,50,0.55)",
                   }}
                 />
 
@@ -222,7 +228,8 @@ export default async function CrownLinkAgentDashboardPage() {
                   letterSpacing: -2.8,
                   textTransform: "uppercase",
                   color: "#f9f4ed",
-                  textShadow: "0 4px 30px rgba(0,0,0,0.55)",
+                  textShadow:
+                    "0 4px 30px rgba(0,0,0,0.55)",
                 }}
               >
                 Agent
@@ -237,7 +244,8 @@ export default async function CrownLinkAgentDashboardPage() {
                   marginTop: 17,
                   background:
                     "linear-gradient(90deg, #e86f00, #c99732, transparent)",
-                  boxShadow: "0 0 12px rgba(232,111,0,0.28)",
+                  boxShadow:
+                    "0 0 12px rgba(232,111,0,0.28)",
                 }}
               />
 
@@ -267,9 +275,17 @@ export default async function CrownLinkAgentDashboardPage() {
                 gap: 9,
                 flexWrap: "wrap",
                 justifyContent: "flex-end",
-                maxWidth: 500,
+                maxWidth: 600,
               }}
             >
+              {/* NEW UNIFIED PORTAL BUTTON */}
+              <Link
+                href="/portal"
+                style={heroGoldButton}
+              >
+                ← Portal
+              </Link>
+
               <Link
                 href="/crownlink/agent/events"
                 style={heroPrimaryButton}
@@ -411,7 +427,8 @@ export default async function CrownLinkAgentDashboardPage() {
               style={{
                 padding: 18,
                 borderRadius: 18,
-                border: "1px solid rgba(201,151,50,0.13)",
+                border:
+                  "1px solid rgba(201,151,50,0.13)",
                 background:
                   "linear-gradient(145deg, rgba(45,5,9,0.18), rgba(0,0,0,0.45))",
               }}
@@ -440,11 +457,7 @@ export default async function CrownLinkAgentDashboardPage() {
                 "repeat(auto-fit, minmax(300px, 1fr))",
             }}
           >
-            <div
-              style={{
-                padding: 30,
-              }}
-            >
+            <div style={{ padding: 30 }}>
               <SectionTitle
                 eyebrow="Team Access"
                 title="Registration Code"
@@ -502,11 +515,7 @@ export default async function CrownLinkAgentDashboardPage() {
         </section>
 
         {/* CREATORS */}
-        <section
-          style={{
-            marginTop: 26,
-          }}
-        >
+        <section style={{ marginTop: 26 }}>
           <div
             style={{
               display: "flex",
@@ -527,8 +536,10 @@ export default async function CrownLinkAgentDashboardPage() {
               style={{
                 padding: "8px 12px",
                 borderRadius: 999,
-                border: "1px solid rgba(201,151,50,0.17)",
-                background: "rgba(201,151,50,0.05)",
+                border:
+                  "1px solid rgba(201,151,50,0.17)",
+                background:
+                  "rgba(201,151,50,0.05)",
                 fontSize: 11,
                 fontWeight: 900,
                 color: "#d9b15c",
@@ -583,7 +594,10 @@ export default async function CrownLinkAgentDashboardPage() {
                         fontSize: 13,
                       }}
                     >
-                      {String(index + 1).padStart(2, "0")}
+                      {String(index + 1).padStart(
+                        2,
+                        "0"
+                      )}
                     </div>
 
                     <div style={{ minWidth: 0 }}>
@@ -604,7 +618,8 @@ export default async function CrownLinkAgentDashboardPage() {
                       <p
                         style={{
                           margin: "4px 0 0",
-                          color: "rgba(247,241,232,0.38)",
+                          color:
+                            "rgba(247,241,232,0.38)",
                           fontSize: 11,
                         }}
                       >
@@ -624,7 +639,8 @@ export default async function CrownLinkAgentDashboardPage() {
                     <CreatorMetric
                       label="Agency"
                       value={
-                        agentProfile?.agency_name || "Not set"
+                        agentProfile?.agency_name ||
+                        "Not set"
                       }
                     />
 
@@ -705,7 +721,8 @@ function DashboardStat({
             borderRadius: "50%",
             right: -30,
             top: -45,
-            background: "rgba(232,111,0,0.09)",
+            background:
+              "rgba(232,111,0,0.09)",
             filter: "blur(35px)",
           }}
         />
@@ -729,7 +746,9 @@ function DashboardStat({
       <p
         style={{
           margin: "11px 0 0",
-          color: featured ? "#e86f00" : "#f9f4ed",
+          color: featured
+            ? "#e86f00"
+            : "#f9f4ed",
           fontSize: featured ? 25 : 22,
           fontWeight: 950,
           lineHeight: 1.1,
@@ -897,7 +916,8 @@ function CreatorMetric({
         padding: 11,
         borderRadius: 13,
         background: "rgba(0,0,0,0.32)",
-        border: "1px solid rgba(255,255,255,0.05)",
+        border:
+          "1px solid rgba(255,255,255,0.05)",
       }}
     >
       <p
@@ -933,7 +953,8 @@ const largeGlassPanel = {
   padding: 28,
   borderRadius: 26,
   marginBottom: 22,
-  border: "1px solid rgba(201,151,50,0.14)",
+  border:
+    "1px solid rgba(201,151,50,0.14)",
   background:
     "linear-gradient(145deg, rgba(18,15,15,0.92), rgba(5,5,5,0.96))",
   boxShadow:
@@ -944,7 +965,8 @@ const largeGlassPanel = {
 const heroPrimaryButton = {
   padding: "11px 16px",
   borderRadius: 999,
-  border: "1px solid rgba(232,111,0,0.35)",
+  border:
+    "1px solid rgba(232,111,0,0.35)",
   background:
     "linear-gradient(180deg, rgba(232,111,0,0.14), rgba(76,18,0,0.18))",
   color: "#e98322",
@@ -953,13 +975,15 @@ const heroPrimaryButton = {
   textDecoration: "none",
   textTransform: "uppercase" as const,
   letterSpacing: 0.7,
-  boxShadow: "0 8px 20px rgba(0,0,0,0.26)",
+  boxShadow:
+    "0 8px 20px rgba(0,0,0,0.26)",
 };
 
 const heroGoldButton = {
   padding: "11px 16px",
   borderRadius: 999,
-  border: "1px solid rgba(201,151,50,0.35)",
+  border:
+    "1px solid rgba(201,151,50,0.35)",
   background:
     "linear-gradient(180deg, rgba(201,151,50,0.12), rgba(61,43,8,0.12))",
   color: "#d9b15c",
@@ -968,13 +992,15 @@ const heroGoldButton = {
   textDecoration: "none",
   textTransform: "uppercase" as const,
   letterSpacing: 0.7,
-  boxShadow: "0 8px 20px rgba(0,0,0,0.26)",
+  boxShadow:
+    "0 8px 20px rgba(0,0,0,0.26)",
 };
 
 const heroSecondaryButton = {
   padding: "11px 16px",
   borderRadius: 999,
-  border: "1px solid rgba(255,255,255,0.09)",
+  border:
+    "1px solid rgba(255,255,255,0.09)",
   background: "rgba(0,0,0,0.34)",
   color: "rgba(247,241,232,0.68)",
   fontSize: 10,
@@ -988,7 +1014,8 @@ const permissionCardStyle = {
   minHeight: 135,
   padding: 17,
   borderRadius: 18,
-  border: "1px solid rgba(201,151,50,0.13)",
+  border:
+    "1px solid rgba(201,151,50,0.13)",
   background:
     "linear-gradient(145deg, rgba(42,5,8,0.48), rgba(5,5,5,0.88))",
   textDecoration: "none",
@@ -996,22 +1023,26 @@ const permissionCardStyle = {
   flexDirection: "column" as const,
   justifyContent: "space-between",
   gap: 20,
-  boxShadow: "0 12px 28px rgba(0,0,0,0.26)",
+  boxShadow:
+    "0 12px 28px rgba(0,0,0,0.26)",
 };
 
 const creatorCardStyle = {
   padding: 18,
   borderRadius: 20,
-  border: "1px solid rgba(255,255,255,0.06)",
+  border:
+    "1px solid rgba(255,255,255,0.06)",
   background:
     "linear-gradient(145deg, rgba(18,15,15,0.94), rgba(5,5,5,0.96))",
-  boxShadow: "0 16px 35px rgba(0,0,0,0.34)",
+  boxShadow:
+    "0 16px 35px rgba(0,0,0,0.34)",
 };
 
 const emptyStateStyle = {
   padding: 26,
   borderRadius: 20,
-  border: "1px dashed rgba(201,151,50,0.19)",
+  border:
+    "1px dashed rgba(201,151,50,0.19)",
   background: "rgba(10,8,8,0.74)",
   color: "rgba(247,241,232,0.4)",
   fontSize: 13,

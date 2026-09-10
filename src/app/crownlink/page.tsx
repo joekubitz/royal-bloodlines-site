@@ -11,7 +11,7 @@ export default async function CrownLinkPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/login");
   }
 
   const { data: userRole, error: roleError } = await supabase
@@ -21,14 +21,14 @@ export default async function CrownLinkPage() {
     .single();
 
   if (roleError || !userRole) {
-    redirect("/crownlink/login");
+    redirect("/portal");
   }
 
   if (
     userRole.status !== "active" ||
     !["creator", "admin", "agent"].includes(userRole.role)
   ) {
-    redirect("/crownlink/login");
+    redirect("/portal");
   }
 
   const { data: profile } = await supabase
@@ -82,7 +82,6 @@ export default async function CrownLinkPage() {
         }}
       >
         {/* HERO */}
-
         <section
           style={{
             position: "relative",
@@ -234,7 +233,6 @@ export default async function CrownLinkPage() {
         </section>
 
         {/* CREATOR PROFILE */}
-
         <section
           style={{
             padding: 28,
@@ -315,7 +313,6 @@ export default async function CrownLinkPage() {
           </div>
 
           {/* PROFILE STATS */}
-
           <div
             style={{
               display: "grid",
@@ -340,7 +337,6 @@ export default async function CrownLinkPage() {
           </div>
 
           {/* PROFILE ACTIONS */}
-
           <div
             style={{
               display: "flex",
@@ -369,7 +365,6 @@ export default async function CrownLinkPage() {
         </section>
 
         {/* QUICK ACTIONS */}
-
         <section>
           <div
             style={{
@@ -451,7 +446,6 @@ export default async function CrownLinkPage() {
         </section>
 
         {/* FOOTER */}
-
         <footer
           style={{
             marginTop: 48,

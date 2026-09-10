@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
+import { createAdminClient } from "@/app/supabase/admin";
 import AnalyticsDashboardClient from "./AnalyticsDashboardClient";
 import LogoutButton from "./LogoutButton";
 
@@ -70,6 +71,32 @@ type HistoricalCreatorRow = {
   import_id: string | null;
   imported_at: string;
 };
+
+type DiamondGoal = {
+  id: string;
+  goal_month: string;
+  goal_type: "overall" | "manager";
+  backstage_manager: string | null;
+  diamond_goal: number;
+};
+
+/*
+  CURRENT MONTH
+*/
+
+function getCurrentMonthStart() {
+  const now = new Date();
+
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1
+    )
+  )
+    .toISOString()
+    .slice(0, 10);
+}
 
 /*
   LOAD LATEST IMPORT
@@ -278,11 +305,6 @@ function buildAgentTrendHistory(
     );
   }
 
-  /*
-    Group rows by:
-    import -> agent -> creators
-  */
-
   const grouped = new Map<
     string,
     Map<string, HistoricalCreatorRow[]>
@@ -319,10 +341,6 @@ function buildAgentTrendHistory(
   }
 
   const history: AgentTrendHistory = {};
-
-  /*
-    Process snapshots chronologically
-  */
 
   for (const snapshot of snapshots) {
     const agentMap =
@@ -371,8 +389,7 @@ function buildAgentTrendHistory(
         creators.filter(
           (creator) =>
             Number(
-              creator.live_duration ??
-                0
+              creator.live_duration ?? 0
             ) >= 25
         ).length;
 
@@ -383,8 +400,7 @@ function buildAgentTrendHistory(
               creator.live_days ?? 0
             ) >= 12 &&
             Number(
-              creator.live_duration ??
-                0
+              creator.live_duration ?? 0
             ) >= 25
         ).length;
 
@@ -431,10 +447,6 @@ function buildAgentTrendHistory(
     }
   }
 
-  /*
-    Guarantee chronological order
-  */
-
   for (const agent of Object.keys(
     history
   )) {
@@ -450,6 +462,173 @@ function buildAgentTrendHistory(
   }
 
   return history;
+}
+
+/*
+  GOAL CARD
+*/
+
+function DiamondGoalCard({
+  title,
+  eyebrow,
+  goal,
+  currentDiamonds,
+  privateGoal = false,
+}: {
+  title: string;
+  eyebrow: string;
+  goal: DiamondGoal;
+  currentDiamonds: number;
+  privateGoal?: boolean;
+}) {
+  const target = Number(goal.diamond_goal || 0);
+
+  const percentage =
+    target > 0
+      ? (currentDiamonds / target) * 100
+      : 0;
+
+  const progressWidth = Math.min(
+    Math.max(percentage, 0),
+    100
+  );
+
+  const remaining = Math.max(
+    target - currentDiamonds,
+    0
+  );
+
+  const reached =
+    target > 0 &&
+    currentDiamonds >= target;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#080808] shadow-[0_18px_60px_rgba(0,0,0,0.45)]">
+      {/* TOP */}
+      <div className="flex flex-col gap-4 border-b border-white/[0.06] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d3a33c]/20 bg-[#d3a33c]/[0.07] text-xl text-[#d3a33c]">
+            ♛
+          </div>
+
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#d3a33c]">
+              {eyebrow}
+            </p>
+
+            <h2 className="mt-1 text-xl font-black text-white">
+              {title}
+            </h2>
+
+            {privateGoal && (
+              <p className="mt-1 text-[11px] text-gray-600">
+                Visible to administrators only
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] ${
+            reached
+              ? "border-green-500/20 bg-green-500/[0.08] text-green-400"
+              : "border-[#d3a33c]/20 bg-[#d3a33c]/[0.06] text-[#d3a33c]"
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              reached
+                ? "bg-green-400"
+                : "bg-[#d3a33c]"
+            }`}
+          />
+
+          {reached
+            ? "Goal Reached"
+            : "In Progress"}
+        </div>
+      </div>
+
+      {/* METRICS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        <div className="border-b border-r border-white/[0.06] p-5 lg:border-b-0">
+          <p className="text-[8px] font-black uppercase tracking-[0.22em] text-gray-600">
+            Current Diamonds
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-white">
+            {currentDiamonds.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="border-b border-white/[0.06] p-5 lg:border-b-0 lg:border-r">
+          <p className="text-[8px] font-black uppercase tracking-[0.22em] text-gray-600">
+            Monthly Goal
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-gray-200">
+            {target.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="border-r border-white/[0.06] p-5">
+          <p className="text-[8px] font-black uppercase tracking-[0.22em] text-gray-600">
+            Progress
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-[#d3a33c]">
+            {percentage.toFixed(1)}%
+          </p>
+        </div>
+
+        <div className="p-5">
+          <p className="text-[8px] font-black uppercase tracking-[0.22em] text-gray-600">
+            Remaining
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-white">
+            {remaining.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      {/* PROGRESS */}
+      <div className="border-t border-white/[0.06] px-6 py-5">
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-600">
+            Monthly Progress
+          </p>
+
+          <p className="text-xs font-black text-[#d3a33c]">
+            {percentage.toFixed(1)}%
+          </p>
+        </div>
+
+        <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-red-700 via-orange-600 to-[#d3a33c]"
+            style={{
+              width: `${progressWidth}%`,
+            }}
+          />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-gray-600">
+            {reached
+              ? "The monthly diamond target has been reached."
+              : `${remaining.toLocaleString()} diamonds needed to reach this month's goal.`}
+          </p>
+
+          {reached && (
+            <span className="text-xs font-black text-green-400">
+              🎯 Complete
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default async function AnalyticsPage() {
@@ -492,13 +671,17 @@ export default async function AnalyticsPage() {
   const isAgent =
     !analyticsAccessError &&
     analyticsAccess?.status === "active" &&
-    Boolean(analyticsAccess?.backstage_manager);
+    Boolean(
+      analyticsAccess?.backstage_manager
+    );
 
   if (!isAdmin && !isAgent) {
-    redirect("/");
+    redirect("/portal");
   }
 
-  let backstageManager: string | null = null;
+  let backstageManager:
+    | string
+    | null = null;
 
   if (isAgent) {
     backstageManager =
@@ -519,6 +702,10 @@ export default async function AnalyticsPage() {
 
   let agentTrendHistory:
     AgentTrendHistory = {};
+
+  let visibleGoal:
+    | DiamondGoal
+    | null = null;
 
   let loadError:
     | string
@@ -541,13 +728,108 @@ export default async function AnalyticsPage() {
           latestImportRecord.id
         );
 
-      if (isAgent && backstageManager) {
-        creators = creators.filter(
-          (creator) =>
-            creator.manager?.trim().toLowerCase() ===
-            backstageManager
-        );
+      if (
+        isAgent &&
+        backstageManager
+      ) {
+        creators =
+          creators.filter(
+            (creator) =>
+              creator.manager
+                ?.trim()
+                .toLowerCase() ===
+              backstageManager
+          );
       }
+    }
+
+    /*
+      LOAD CURRENT MONTH GOAL
+
+      Use admin client here because:
+      - Admin may see overall goal.
+      - Agent goal is filtered server-side.
+      - We never send other goals to an agent.
+    */
+
+    const adminSupabase =
+      createAdminClient();
+
+    const currentMonth =
+      getCurrentMonthStart();
+
+    if (isAdmin) {
+      const {
+        data: overallGoal,
+        error: overallGoalError,
+      } = await adminSupabase
+        .from("analytics_diamond_goals")
+        .select(
+          `
+            id,
+            goal_month,
+            goal_type,
+            backstage_manager,
+            diamond_goal
+          `
+        )
+        .eq(
+          "goal_month",
+          currentMonth
+        )
+        .eq(
+          "goal_type",
+          "overall"
+        )
+        .maybeSingle();
+
+      if (overallGoalError) {
+        throw overallGoalError;
+      }
+
+      visibleGoal =
+        overallGoal as DiamondGoal | null;
+    } else if (
+      isAgent &&
+      backstageManager
+    ) {
+      const {
+        data: managerGoals,
+        error: managerGoalError,
+      } = await adminSupabase
+        .from("analytics_diamond_goals")
+        .select(
+          `
+            id,
+            goal_month,
+            goal_type,
+            backstage_manager,
+            diamond_goal
+          `
+        )
+        .eq(
+          "goal_month",
+          currentMonth
+        )
+        .eq(
+          "goal_type",
+          "manager"
+        );
+
+      if (managerGoalError) {
+        throw managerGoalError;
+      }
+
+      visibleGoal =
+        (
+          managerGoals ?? []
+        ).find(
+          (goal) =>
+            goal.backstage_manager
+              ?.trim()
+              .toLowerCase() ===
+            backstageManager
+        ) as DiamondGoal | undefined ?? null;
     }
 
     /*
@@ -575,7 +857,9 @@ export default async function AnalyticsPage() {
       isAgent && backstageManager
         ? historicalCreatorRows.filter(
             (creator) =>
-              creator.manager?.trim().toLowerCase() ===
+              creator.manager
+                ?.trim()
+                .toLowerCase() ===
               backstageManager
           )
         : historicalCreatorRows;
@@ -607,12 +891,21 @@ export default async function AnalyticsPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
+              <Link
+                href="/portal"
+                className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#d3a33c]"
+              >
+                ← Back to Portal
+              </Link>
+
               <p className="text-sm uppercase tracking-[0.3em] text-red-500">
                 Royals Bloodline
               </p>
 
               <h1 className="mt-2 text-3xl font-bold">
-                {isAgent ? "My Team Analytics" : "Analytics"}
+                {isAgent
+                  ? "My Team Analytics"
+                  : "Analytics"}
               </h1>
             </div>
 
@@ -621,21 +914,28 @@ export default async function AnalyticsPage() {
                 <>
                   <Link
                     href="/admin/analytics/agents"
-                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200"
                   >
                     Manage Agent Access
                   </Link>
 
                   <Link
+                    href="/admin/analytics/goals"
+                    className="rounded-xl border border-[#d3a33c]/30 bg-[#d3a33c]/10 px-4 py-2 text-sm font-semibold text-[#d3a33c]"
+                  >
+                    Diamond Goals
+                  </Link>
+
+                  <Link
                     href="/admin/analytics/imports"
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Import History
                   </Link>
 
                   <Link
                     href="/admin/analytics/upload"
-                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Upload Backstage Data
                   </Link>
@@ -664,12 +964,21 @@ export default async function AnalyticsPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
+              <Link
+                href="/portal"
+                className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#d3a33c]"
+              >
+                ← Back to Portal
+              </Link>
+
               <p className="text-sm uppercase tracking-[0.3em] text-red-500">
                 Royals Bloodline
               </p>
 
               <h1 className="mt-2 text-3xl font-bold">
-                {isAgent ? "My Team Analytics" : "Analytics"}
+                {isAgent
+                  ? "My Team Analytics"
+                  : "Analytics"}
               </h1>
             </div>
 
@@ -678,14 +987,21 @@ export default async function AnalyticsPage() {
                 <>
                   <Link
                     href="/admin/analytics/agents"
-                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200"
                   >
                     Manage Agent Access
                   </Link>
 
                   <Link
+                    href="/admin/analytics/goals"
+                    className="rounded-xl border border-[#d3a33c]/30 bg-[#d3a33c]/10 px-4 py-2 text-sm font-semibold text-[#d3a33c]"
+                  >
+                    Diamond Goals
+                  </Link>
+
+                  <Link
                     href="/admin/analytics/upload"
-                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                    className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Upload Backstage Data
                   </Link>
@@ -702,7 +1018,8 @@ export default async function AnalyticsPage() {
             </h2>
 
             <p className="mt-2 text-sm text-gray-400">
-              Upload a Backstage report to begin viewing analytics.
+              Upload a Backstage report to begin
+              viewing analytics.
             </p>
           </div>
         </div>
@@ -717,22 +1034,50 @@ export default async function AnalyticsPage() {
   const latestImport =
     latestImportRecord.imported_at;
 
-  /*
-    Agent data is filtered on the server before
-    it is passed into the client dashboard.
-  */
+  const currentDiamonds =
+    creators.reduce(
+      (total, creator) =>
+        total +
+        Number(
+          creator.diamonds ?? 0
+        ),
+      0
+    );
+
+  const currentMonth =
+    getCurrentMonthStart();
+
+  const monthLabel =
+    new Date(
+      `${currentMonth}T12:00:00`
+    ).toLocaleDateString(
+      "en-US",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
 
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-7xl px-6 pt-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
+            <Link
+              href="/portal"
+              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#d3a33c]"
+            >
+              ← Back to Portal
+            </Link>
+
             <p className="text-sm uppercase tracking-[0.3em] text-red-500">
               Royals Bloodline
             </p>
 
             <h1 className="mt-2 text-3xl font-bold">
-              {isAgent ? "My Team Analytics" : "Analytics"}
+              {isAgent
+                ? "My Team Analytics"
+                : "Analytics"}
             </h1>
 
             {latestImportRecord.data_period && (
@@ -748,21 +1093,28 @@ export default async function AnalyticsPage() {
               <>
                 <Link
                   href="/admin/analytics/agents"
-                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200"
                 >
                   Manage Agent Access
                 </Link>
 
                 <Link
+                  href="/admin/analytics/goals"
+                  className="rounded-xl border border-[#d3a33c]/30 bg-[#d3a33c]/10 px-4 py-2 text-sm font-semibold text-[#d3a33c]"
+                >
+                  Diamond Goals
+                </Link>
+
+                <Link
                   href="/admin/analytics/imports"
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white"
                 >
                   Import History
                 </Link>
 
                 <Link
                   href="/admin/analytics/upload"
-                  className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                  className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white"
                 >
                   Upload Backstage Data
                 </Link>
@@ -771,6 +1123,54 @@ export default async function AnalyticsPage() {
 
             <LogoutButton />
           </div>
+        </div>
+
+        {/* MONTHLY DIAMOND GOAL */}
+        <div className="mt-7">
+          {visibleGoal ? (
+            <DiamondGoalCard
+              eyebrow={
+                isAdmin
+                  ? `${monthLabel} · Overall Agency`
+                  : `${monthLabel} · Team Goal`
+              }
+              title={
+                isAdmin
+                  ? "Royals Bloodline Diamond Goal"
+                  : "My Team Diamond Goal"
+              }
+              goal={visibleGoal}
+              currentDiamonds={
+                currentDiamonds
+              }
+              privateGoal={isAdmin}
+            />
+          ) : (
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d3a33c]">
+                    {monthLabel} Diamond Goal
+                  </p>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    {isAdmin
+                      ? "No overall diamond goal has been set for this month."
+                      : "A team diamond goal has not been set for this month yet."}
+                  </p>
+                </div>
+
+                {isAdmin && (
+                  <Link
+                    href="/admin/analytics/goals"
+                    className="rounded-xl border border-[#d3a33c]/30 bg-[#d3a33c]/10 px-4 py-2 text-sm font-black text-[#d3a33c]"
+                  >
+                    Set Diamond Goal
+                  </Link>
+                )}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
