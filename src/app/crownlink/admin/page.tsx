@@ -78,18 +78,12 @@ export default async function CrownLinkAdminPage() {
               flexWrap: "wrap",
             }}
           >
-            <Link
-              href="/portal"
-              style={portalButtonStyle}
-            >
+            <Link href="/portal" style={portalButtonStyle}>
               <span style={{ fontSize: 14 }}>←</span>
               Portal
             </Link>
 
-            <Link
-              href="/crownlink"
-              style={backButtonStyle}
-            >
+            <Link href="/crownlink" style={backButtonStyle}>
               <span style={{ fontSize: 14 }}>←</span>
               Creator View
             </Link>
@@ -123,8 +117,7 @@ export default async function CrownLinkAdminPage() {
                 rgba(3,3,3,0.98)
               )
             `,
-            boxShadow:
-              "0 22px 55px rgba(0,0,0,0.45)",
+            boxShadow: "0 22px 55px rgba(0,0,0,0.45)",
             marginBottom: 26,
           }}
         >
@@ -134,8 +127,7 @@ export default async function CrownLinkAdminPage() {
               width: 250,
               height: 250,
               borderRadius: "50%",
-              background:
-                "rgba(110,7,14,0.18)",
+              background: "rgba(110,7,14,0.18)",
               filter: "blur(80px)",
               left: -100,
               top: -140,
@@ -155,10 +147,8 @@ export default async function CrownLinkAdminPage() {
                 gap: 7,
                 padding: "5px 9px",
                 borderRadius: 999,
-                border:
-                  "1px solid rgba(201,151,50,0.20)",
-                background:
-                  "rgba(201,151,50,0.045)",
+                border: "1px solid rgba(201,151,50,0.20)",
+                background: "rgba(201,151,50,0.045)",
                 marginBottom: 10,
               }}
             >
@@ -168,8 +158,7 @@ export default async function CrownLinkAdminPage() {
                   height: 5,
                   borderRadius: "50%",
                   background: "#c99732",
-                  boxShadow:
-                    "0 0 8px rgba(201,151,50,0.55)",
+                  boxShadow: "0 0 8px rgba(201,151,50,0.55)",
                 }}
               />
 
@@ -205,14 +194,13 @@ export default async function CrownLinkAdminPage() {
               style={{
                 margin: "10px 0 0",
                 maxWidth: 650,
-                color:
-                  "rgba(247,241,232,0.4)",
+                color: "rgba(247,241,232,0.4)",
                 fontSize: 11,
                 lineHeight: 1.6,
               }}
             >
               Your central workspace for running Crown Link events,
-              matchmaking, battles, teams, and reporting.
+              matchmaking, battles, teams, support, and reporting.
             </p>
           </div>
         </section>
@@ -272,7 +260,7 @@ export default async function CrownLinkAdminPage() {
           <SectionHeading
             eyebrow="Network Management"
             title="People & Access"
-            description="Manage the creators, agents, and agencies using Crown Link."
+            description="Manage creators, agents, agencies, and support requests."
           />
 
           <div
@@ -302,6 +290,13 @@ export default async function CrownLinkAdminPage() {
               symbol="◆"
               title="Agencies"
               description="Approved Crown Link agencies."
+            />
+
+            <CompactCard
+              href="/crownlink/admin/support"
+              symbol="?"
+              title="Support Tickets"
+              description="Review and manage support requests from creators and agents."
             />
           </div>
         </section>
@@ -343,14 +338,12 @@ export default async function CrownLinkAdminPage() {
           style={{
             marginTop: 45,
             paddingTop: 17,
-            borderTop:
-              "1px solid rgba(201,151,50,0.08)",
+            borderTop: "1px solid rgba(201,151,50,0.08)",
             display: "flex",
             justifyContent: "space-between",
             gap: 12,
             flexWrap: "wrap",
-            color:
-              "rgba(247,241,232,0.14)",
+            color: "rgba(247,241,232,0.14)",
             fontSize: 8,
             fontWeight: 900,
             letterSpacing: 2,
@@ -375,11 +368,7 @@ function SectionHeading({
   description: string;
 }) {
   return (
-    <div
-      style={{
-        marginBottom: 12,
-      }}
-    >
+    <div style={{ marginBottom: 12 }}>
       <p
         style={{
           margin: 0,
@@ -418,8 +407,7 @@ function SectionHeading({
         <p
           style={{
             margin: 0,
-            color:
-              "rgba(247,241,232,0.27)",
+            color: "rgba(247,241,232,0.27)",
             fontSize: 9,
           }}
         >
@@ -466,8 +454,7 @@ function ControlCard({
         `,
         color: "#f9f4ed",
         textDecoration: "none",
-        boxShadow:
-          "0 16px 35px rgba(0,0,0,0.3)",
+        boxShadow: "0 16px 35px rgba(0,0,0,0.3)",
       }}
     >
       <div
@@ -478,8 +465,7 @@ function ControlCard({
           borderRadius: "50%",
           right: -45,
           top: -55,
-          background:
-            "rgba(232,111,0,0.045)",
+          background: "rgba(232,111,0,0.045)",
           filter: "blur(35px)",
         }}
       />
@@ -495,10 +481,8 @@ function ControlCard({
             width: 34,
             height: 34,
             borderRadius: 11,
-            border:
-              "1px solid rgba(201,151,50,0.17)",
-            background:
-              "rgba(201,151,50,0.04)",
+            border: "1px solid rgba(201,151,50,0.17)",
+            background: "rgba(201,151,50,0.04)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -524,8 +508,7 @@ function ControlCard({
         <p
           style={{
             margin: "6px 0 0",
-            color:
-              "rgba(247,241,232,0.32)",
+            color: "rgba(247,241,232,0.32)",
             fontSize: 9,
             lineHeight: 1.5,
           }}
@@ -570,14 +553,12 @@ function CompactCard({
         gap: 14,
         padding: "16px 17px",
         borderRadius: 16,
-        border:
-          "1px solid rgba(201,151,50,0.11)",
+        border: "1px solid rgba(201,151,50,0.11)",
         background:
           "linear-gradient(145deg, rgba(17,14,14,0.93), rgba(5,5,5,0.96))",
         color: "#f9f4ed",
         textDecoration: "none",
-        boxShadow:
-          "0 14px 30px rgba(0,0,0,0.25)",
+        boxShadow: "0 14px 30px rgba(0,0,0,0.25)",
       }}
     >
       <div
@@ -586,10 +567,8 @@ function CompactCard({
           height: 38,
           flexShrink: 0,
           borderRadius: 12,
-          border:
-            "1px solid rgba(201,151,50,0.16)",
-          background:
-            "rgba(201,151,50,0.035)",
+          border: "1px solid rgba(201,151,50,0.16)",
+          background: "rgba(201,151,50,0.035)",
           color: "#c99732",
           display: "flex",
           alignItems: "center",
@@ -620,8 +599,7 @@ function CompactCard({
         <p
           style={{
             margin: "4px 0 0",
-            color:
-              "rgba(247,241,232,0.29)",
+            color: "rgba(247,241,232,0.29)",
             fontSize: 9,
             lineHeight: 1.45,
           }}
@@ -632,8 +610,7 @@ function CompactCard({
 
       <span
         style={{
-          color:
-            "rgba(201,151,50,0.55)",
+          color: "rgba(201,151,50,0.55)",
           fontSize: 14,
         }}
       >
@@ -663,14 +640,12 @@ function WideCard({
         gap: 15,
         padding: 18,
         borderRadius: 17,
-        border:
-          "1px solid rgba(201,151,50,0.13)",
+        border: "1px solid rgba(201,151,50,0.13)",
         background:
           "linear-gradient(145deg, rgba(25,5,7,0.38), rgba(6,6,6,0.96))",
         color: "#f9f4ed",
         textDecoration: "none",
-        boxShadow:
-          "0 15px 34px rgba(0,0,0,0.27)",
+        boxShadow: "0 15px 34px rgba(0,0,0,0.27)",
       }}
     >
       <div
@@ -679,10 +654,8 @@ function WideCard({
           height: 42,
           flexShrink: 0,
           borderRadius: 13,
-          border:
-            "1px solid rgba(201,151,50,0.17)",
-          background:
-            "rgba(201,151,50,0.04)",
+          border: "1px solid rgba(201,151,50,0.17)",
+          background: "rgba(201,151,50,0.04)",
           color: "#c99732",
           display: "flex",
           alignItems: "center",
@@ -713,8 +686,7 @@ function WideCard({
         <p
           style={{
             margin: "5px 0 0",
-            color:
-              "rgba(247,241,232,0.3)",
+            color: "rgba(247,241,232,0.3)",
             fontSize: 9,
             lineHeight: 1.5,
           }}
@@ -725,8 +697,7 @@ function WideCard({
 
       <span
         style={{
-          color:
-            "rgba(201,151,50,0.6)",
+          color: "rgba(201,151,50,0.6)",
           fontSize: 15,
         }}
       >
@@ -751,8 +722,7 @@ const portalButtonStyle = {
   gap: 7,
   padding: "7px 11px",
   borderRadius: 999,
-  border:
-    "1px solid rgba(201,151,50,0.28)",
+  border: "1px solid rgba(201,151,50,0.28)",
   background:
     "linear-gradient(180deg, rgba(201,151,50,0.11), rgba(61,43,8,0.12))",
   color: "#d9b15c",
@@ -761,8 +731,7 @@ const portalButtonStyle = {
   fontWeight: 950,
   letterSpacing: 0.5,
   textTransform: "uppercase" as const,
-  boxShadow:
-    "0 7px 18px rgba(0,0,0,0.2)",
+  boxShadow: "0 7px 18px rgba(0,0,0,0.2)",
 };
 
 const backButtonStyle = {
@@ -771,10 +740,8 @@ const backButtonStyle = {
   gap: 7,
   padding: "7px 10px",
   borderRadius: 999,
-  border:
-    "1px solid rgba(201,151,50,0.13)",
-  background:
-    "rgba(0,0,0,0.28)",
+  border: "1px solid rgba(201,151,50,0.13)",
+  background: "rgba(0,0,0,0.28)",
   color: "#d9b15c",
   textDecoration: "none",
   fontSize: 8,
@@ -789,8 +756,7 @@ const agentButtonStyle = {
   gap: 8,
   padding: "7px 11px",
   borderRadius: 999,
-  border:
-    "1px solid rgba(232,111,0,0.22)",
+  border: "1px solid rgba(232,111,0,0.22)",
   background:
     "linear-gradient(180deg, rgba(232,111,0,0.09), rgba(76,18,0,0.12))",
   color: "#e98322",

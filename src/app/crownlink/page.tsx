@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/supabase/server";
+import { createAdminClient } from "@/app/supabase/admin";
 import SignOutButton from "./SignOutButton";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CrownLinkPage() {
   const supabase = await createClient();
@@ -50,6 +54,51 @@ export default async function CrownLinkPage() {
       agencyName = agency.name;
     }
   }
+
+  const adminSupabase = createAdminClient();
+
+  const { data: notifications, error: notificationError } =
+    await adminSupabase
+      .from("crownlink_notifications")
+      .select(
+        `
+        id,
+        type,
+        title,
+        message,
+        href,
+        is_read,
+        created_at
+        `
+      )
+      .eq("user_id", user.id)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(10);
+
+  if (notificationError) {
+    console.error(
+      "Crown Link notification load error:",
+      notificationError
+    );
+  }
+
+  const notificationList = notifications ?? [];
+
+  const unreadNotifications = notificationList.filter(
+    (notification) => !notification.is_read
+  );
+
+  const unreadNotificationCount = unreadNotifications.length;
+
+  const unreadSupportCount = unreadNotifications.filter(
+    (notification) =>
+      notification.type === "support_reply"
+  ).length;
+
+  const latestUnreadNotification =
+    unreadNotifications[0] ?? null;
 
   const displayName =
     profile?.display_name?.trim() ||
@@ -305,14 +354,13 @@ export default async function CrownLinkPage() {
                   height: 6,
                   borderRadius: "50%",
                   background: "#c99732",
-                  boxShadow: "0 0 10px rgba(201,151,50,0.5)",
                 }}
               />
+
               Active
             </div>
           </div>
 
-          {/* PROFILE STATS */}
           <div
             style={{
               display: "grid",
@@ -336,7 +384,6 @@ export default async function CrownLinkPage() {
             />
           </div>
 
-          {/* PROFILE ACTIONS */}
           <div
             style={{
               display: "flex",
@@ -364,44 +411,126 @@ export default async function CrownLinkPage() {
           </div>
         </section>
 
+        {/* NOTIFICATION */}
+        {unreadNotificationCount > 0 && (
+          <section style={{ marginBottom: 22 }}>
+            <Link
+              href={
+                latestUnreadNotification?.href ||
+                "/crownlink/support"
+              }
+              prefetch={false}
+              style={{
+                display: "block",
+                padding: 20,
+                borderRadius: 20,
+                border: "1px solid rgba(232,111,0,0.30)",
+                background:
+                  "linear-gradient(135deg, rgba(73,15,3,0.82), rgba(27,7,5,0.92), rgba(5,5,5,0.97))",
+                color: "#f7f1e8",
+                textDecoration: "none",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 18,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 14,
+                      border: "1px solid rgba(232,111,0,0.28)",
+                      background: "rgba(232,111,0,0.09)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#e98322",
+                      fontSize: 19,
+                      fontWeight: 950,
+                    }}
+                  >
+                    !
+                  </div>
+
+                  <div>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#e98322",
+                        fontSize: 8,
+                        fontWeight: 950,
+                        textTransform: "uppercase",
+                        letterSpacing: 1.8,
+                      }}
+                    >
+                      New Notification · {unreadNotificationCount} Unread
+                    </p>
+
+                    <h3
+                      style={{
+                        margin: "6px 0 0",
+                        color: "#f9f4ed",
+                        fontSize: 16,
+                        fontWeight: 950,
+                      }}
+                    >
+                      {latestUnreadNotification?.title}
+                    </h3>
+
+                    <p
+                      style={{
+                        margin: "6px 0 0",
+                        color: "rgba(247,241,232,0.48)",
+                        fontSize: 11,
+                      }}
+                    >
+                      {latestUnreadNotification?.message}
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    color: "#d9b15c",
+                    fontSize: 9,
+                    fontWeight: 950,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  View →
+                </span>
+              </div>
+            </Link>
+          </section>
+        )}
+
         {/* QUICK ACTIONS */}
         <section>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: 16,
-              flexWrap: "wrap",
-              marginBottom: 11,
-            }}
-          >
-            <div>
-              <p style={eyebrowStyle}>Battle Center</p>
+          <div style={{ marginBottom: 11 }}>
+            <p style={eyebrowStyle}>Battle Center</p>
 
-              <h2
-                style={{
-                  margin: "6px 0 0",
-                  color: "#f9f4ed",
-                  fontSize: "clamp(24px,3vw,30px)",
-                  fontWeight: 950,
-                  letterSpacing: -0.7,
-                }}
-              >
-                Quick Actions
-              </h2>
-
-              <p
-                style={{
-                  margin: "9px 0 0",
-                  color: "rgba(247,241,232,0.4)",
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                }}
-              >
-                Find events, track matchmaking, and view your battles.
-              </p>
-            </div>
+            <h2
+              style={{
+                margin: "6px 0 0",
+                color: "#f9f4ed",
+                fontSize: "clamp(24px,3vw,30px)",
+                fontWeight: 950,
+              }}
+            >
+              Quick Actions
+            </h2>
           </div>
 
           <div
@@ -442,29 +571,29 @@ export default async function CrownLinkPage() {
               symbol="♛"
               featured
             />
+
+            <ActionCard
+              number="04"
+              eyebrow="Help Center"
+              title="Support"
+              description={
+                unreadSupportCount > 0
+                  ? `You have ${unreadSupportCount} unread support ${
+                      unreadSupportCount === 1 ? "reply" : "replies"
+                    }.`
+                  : "Having an issue? Send a support request."
+              }
+              action={
+                unreadSupportCount > 0
+                  ? "View Support Reply"
+                  : "Get Support"
+              }
+              href="/crownlink/support"
+              symbol="?"
+              notificationCount={unreadSupportCount}
+            />
           </div>
         </section>
-
-        {/* FOOTER */}
-        <footer
-          style={{
-            marginTop: 48,
-            paddingTop: 18,
-            borderTop: "1px solid rgba(201,151,50,0.1)",
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            color: "rgba(247,241,232,0.17)",
-            fontSize: 8,
-            fontWeight: 900,
-            letterSpacing: 2.2,
-            textTransform: "uppercase",
-          }}
-        >
-          <span>Royals Bloodline</span>
-          <span>Crown Link</span>
-        </footer>
       </div>
     </main>
   );
@@ -484,56 +613,23 @@ function ProfileStat({
   return (
     <div
       style={{
-        position: "relative",
-        overflow: "hidden",
         padding: 20,
         borderRadius: 19,
         border: featured
           ? "1px solid rgba(201,151,50,0.25)"
           : "1px solid rgba(255,255,255,0.06)",
-        background: featured
-          ? "linear-gradient(145deg, rgba(45,5,9,0.72), rgba(7,7,7,0.94))"
-          : "linear-gradient(145deg, rgba(14,14,14,0.94), rgba(5,5,5,0.96))",
+        background:
+          "linear-gradient(145deg, rgba(14,14,14,0.94), rgba(5,5,5,0.96))",
       }}
     >
-      {featured && (
-        <div
-          style={{
-            position: "absolute",
-            width: 110,
-            height: 110,
-            borderRadius: "50%",
-            right: -35,
-            top: -45,
-            background: "rgba(232,111,0,0.07)",
-            filter: "blur(32px)",
-          }}
-        />
-      )}
-
-      <p
-        style={{
-          margin: 0,
-          color: featured
-            ? "#c99732"
-            : "rgba(247,241,232,0.28)",
-          fontSize: 8,
-          fontWeight: 950,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-        }}
-      >
-        {eyebrow}
-      </p>
+      <p style={eyebrowStyle}>{eyebrow}</p>
 
       <p
         style={{
           margin: "9px 0 0",
           color: featured ? "#d9b15c" : "#f9f4ed",
           fontSize: 20,
-          lineHeight: 1.15,
           fontWeight: 950,
-          position: "relative",
         }}
       >
         {value}
@@ -544,7 +640,6 @@ function ProfileStat({
           margin: "6px 0 0",
           color: "rgba(247,241,232,0.32)",
           fontSize: 9,
-          fontWeight: 800,
         }}
       >
         {label}
@@ -562,6 +657,7 @@ function ActionCard({
   href,
   symbol,
   featured = false,
+  notificationCount = 0,
 }: {
   number: string;
   eyebrow: string;
@@ -571,156 +667,95 @@ function ActionCard({
   href: string;
   symbol: string;
   featured?: boolean;
+  notificationCount?: number;
 }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       style={{
         position: "relative",
-        overflow: "hidden",
-        minHeight: 230,
         padding: 22,
         borderRadius: 22,
-        border: featured
-          ? "1px solid rgba(201,151,50,0.28)"
-          : "1px solid rgba(201,151,50,0.13)",
-        background: featured
-          ? `
-            linear-gradient(
-              145deg,
-              rgba(48,5,9,0.82),
-              rgba(7,7,7,0.96)
-            )
-          `
-          : `
-            linear-gradient(
-              145deg,
-              rgba(18,15,15,0.92),
-              rgba(5,5,5,0.96)
-            )
-          `,
-        boxShadow: featured
-          ? "0 18px 42px rgba(0,0,0,0.4), 0 0 25px rgba(88,7,12,0.09)"
-          : "0 18px 42px rgba(0,0,0,0.32)",
+        border:
+          notificationCount > 0
+            ? "1px solid rgba(239,68,68,0.28)"
+            : "1px solid rgba(201,151,50,0.13)",
+        background:
+          "linear-gradient(145deg, rgba(18,15,15,0.92), rgba(5,5,5,0.96))",
         color: "#f7f1e8",
         textDecoration: "none",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        gap: 22,
+        minHeight: 230,
       }}
     >
-      {featured && (
+      {notificationCount > 0 && (
         <div
           style={{
             position: "absolute",
-            width: 150,
-            height: 150,
-            borderRadius: "50%",
-            right: -50,
-            top: -55,
-            background: "rgba(232,111,0,0.07)",
-            filter: "blur(38px)",
-          }}
-        />
-      )}
-
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-        }}
-      >
-        <div>
-          <p
-            style={{
-              margin: 0,
-              color: "#c99732",
-              fontSize: 8,
-              fontWeight: 950,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-            }}
-          >
-            {number} · {eyebrow}
-          </p>
-
-          <div
-            style={{
-              marginTop: 16,
-              width: 45,
-              height: 45,
-              borderRadius: 14,
-              border: "1px solid rgba(201,151,50,0.2)",
-              background: "rgba(201,151,50,0.045)",
-              color: featured ? "#e86f00" : "#d9b15c",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 21,
-              fontWeight: 900,
-            }}
-          >
-            {symbol}
-          </div>
-        </div>
-
-        <div
-          style={{
-            width: 29,
-            height: 29,
-            borderRadius: "50%",
-            border: "1px solid rgba(201,151,50,0.18)",
+            right: 15,
+            top: 15,
+            minWidth: 24,
+            height: 24,
+            padding: "0 7px",
+            borderRadius: 999,
+            background: "#ef4444",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#c99732",
-            fontSize: 14,
+            fontSize: 9,
+            fontWeight: 950,
           }}
         >
-          →
+          {notificationCount}
         </div>
+      )}
+
+      <p style={eyebrowStyle}>
+        {number} · {eyebrow}
+      </p>
+
+      <div
+        style={{
+          marginTop: 16,
+          fontSize: 22,
+          color: featured ? "#e86f00" : "#d9b15c",
+        }}
+      >
+        {symbol}
       </div>
 
-      <div style={{ position: "relative" }}>
-        <h3
-          style={{
-            margin: 0,
-            color: "#f9f4ed",
-            fontSize: 20,
-            fontWeight: 950,
-          }}
-        >
-          {title}
-        </h3>
+      <h3
+        style={{
+          margin: "30px 0 0",
+          fontSize: 20,
+          fontWeight: 950,
+        }}
+      >
+        {title}
+      </h3>
 
-        <p
-          style={{
-            margin: "8px 0 0",
-            color: "rgba(247,241,232,0.37)",
-            fontSize: 11,
-            lineHeight: 1.6,
-          }}
-        >
-          {description}
-        </p>
+      <p
+        style={{
+          margin: "8px 0 0",
+          color: "rgba(247,241,232,0.37)",
+          fontSize: 11,
+          lineHeight: 1.6,
+        }}
+      >
+        {description}
+      </p>
 
-        <p
-          style={{
-            margin: "16px 0 0",
-            color: featured ? "#e86f00" : "#d9b15c",
-            fontSize: 10,
-            fontWeight: 950,
-            letterSpacing: 0.5,
-            textTransform: "uppercase",
-          }}
-        >
-          {action} →
-        </p>
-      </div>
+      <p
+        style={{
+          margin: "16px 0 0",
+          color: "#d9b15c",
+          fontSize: 10,
+          fontWeight: 950,
+          textTransform: "uppercase",
+        }}
+      >
+        {action} →
+      </p>
     </Link>
   );
 }
@@ -745,7 +780,6 @@ const primaryButtonStyle = {
   fontWeight: 950,
   textDecoration: "none",
   textTransform: "uppercase" as const,
-  letterSpacing: 0.7,
 };
 
 const signOutWrapperStyle = {
