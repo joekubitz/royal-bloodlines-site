@@ -174,8 +174,8 @@ export async function POST(request: Request) {
 
       THIS DOES NOT CHANGE:
       - THEIR PASSWORD
-      - THEIR CROWN LINK ROLE
-      - THEIR ROYALS BATTLES ROLE
+      - THEIR BLOODLINE ARENA ROLE
+      - THEIR BLOODLINE ARENA ROLE
     */
 
     const { error: accessError } = await admin
@@ -204,7 +204,7 @@ export async function POST(request: Request) {
       backstageManager,
       message: invited
         ? `Invite sent to ${email}. Analytics access will be ready when they finish setting up their account.`
-        : `${email} already had an account, so analytics access was added without changing their password or Crown Link role.`,
+        : `${email} already had an account, so analytics access was added without changing their password or Bloodline Arena role.`,
     });
   } catch (error) {
     console.error("Agent invite error:", error);

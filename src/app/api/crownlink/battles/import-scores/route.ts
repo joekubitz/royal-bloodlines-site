@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     if (roleError) {
       console.error(
-        "CROWN LINK SCORE IMPORT ROLE ERROR:",
+        "BLOODLINE ARENA SCORE IMPORT ROLE ERROR:",
         roleError
       );
 
@@ -123,14 +123,14 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       console.error(
-        "CROWN LINK SCORE IMPORT XLSX READ ERROR:",
+        "BLOODLINE ARENA SCORE IMPORT XLSX READ ERROR:",
         error
       );
 
       return NextResponse.json(
         {
           error:
-            "The spreadsheet could not be read. Please upload the original Crown Link Excel export.",
+            "The spreadsheet could not be read. Please upload the original Bloodline Arena Excel export.",
         },
         { status: 400 }
       );
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "This does not appear to be a valid Crown Link battle spreadsheet.",
+            "This does not appear to be a valid Bloodline Arena battle spreadsheet.",
           missingHeaders,
         },
         { status: 400 }
@@ -238,7 +238,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "No Battle IDs were found. Please upload the original Crown Link export without removing the hidden Battle ID column.",
+            "No Battle IDs were found. Please upload the original Bloodline Arena export without removing the hidden Battle ID column.",
         },
         { status: 400 }
       );
@@ -260,14 +260,14 @@ export async function POST(request: Request) {
 
     if (matchesError) {
       console.error(
-        "CROWN LINK SCORE IMPORT MATCH ERROR:",
+        "BLOODLINE ARENA SCORE IMPORT MATCH ERROR:",
         matchesError
       );
 
       return NextResponse.json(
         {
           error:
-            "Crown Link could not verify the battles in this spreadsheet.",
+            "Bloodline Arena could not verify the battles in this spreadsheet.",
         },
         { status: 500 }
       );
@@ -301,7 +301,7 @@ export async function POST(request: Request) {
 
     if (profilesError) {
       console.error(
-        "CROWN LINK SCORE IMPORT PROFILE ERROR:",
+        "BLOODLINE ARENA SCORE IMPORT PROFILE ERROR:",
         profilesError
       );
     }
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
 
         if (row.battleId && !match) {
           issues.push(
-            "Battle was not found in Crown Link"
+            "Battle was not found in Bloodline Arena"
           );
         }
 
@@ -469,7 +469,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK SCORE IMPORT ERROR:",
+      "BLOODLINE ARENA SCORE IMPORT ERROR:",
       error
     );
 

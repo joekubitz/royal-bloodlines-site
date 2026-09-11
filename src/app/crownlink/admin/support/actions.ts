@@ -22,7 +22,7 @@ async function context(ticketId: string) {
 
 async function notify(db: ReturnType<typeof createAdminClient>, userId: string, ticketId: string, title: string, message: string) {
   const warnings: string[] = [];
-  const href = `/crownlink/support#ticket-${ticketId}`;
+  const href = `/bloodline-arena/support#ticket-${ticketId}`;
   try {
     const { error } = await db.from("crownlink_notifications").insert({
       user_id: userId, type: "support_reply", title, message, href, is_read: false,
@@ -51,7 +51,7 @@ async function notify(db: ReturnType<typeof createAdminClient>, userId: string, 
       const channel = await post("users/@me/channels", { recipient_id: profile.discord_user_id });
       if (!channel.id) throw new Error("Missing DM channel");
       await post(`channels/${channel.id}/messages`, {
-        content: `**Crown Link Support**\n${title}\n${message}\n\nView your ticket: https://royalsbloodline.com${href}`,
+        content: `**Bloodline Arena Support**\n${title}\n${message}\n\nView your ticket: https://royalsbloodline.com${href}`,
         allowed_mentions: { parse: [] },
       });
     }

@@ -20,17 +20,17 @@ const ERROR_MESSAGES: Record<string, string> = {
   token_exchange_failed:
     "Discord authorization could not be completed.",
   profile_fetch_failed:
-    "Crown Link could not retrieve your Discord account.",
+    "Bloodline Arena could not retrieve your Discord account.",
   profile_update_failed:
-    "Your Discord account could not be saved to Crown Link.",
+    "Your Discord account could not be saved to Bloodline Arena.",
   missing_profile:
-    "Your Crown Link creator profile could not be found.",
+    "Your Bloodline Arena creator profile could not be found.",
   missing_configuration:
     "Discord connection is not fully configured yet.",
   invalid_creator_account:
-    "Your Crown Link creator account could not be verified.",
+    "Your Bloodline Arena creator account could not be verified.",
   discord_already_connected:
-    "That Discord account is already connected to another Crown Link creator.",
+    "That Discord account is already connected to another Bloodline Arena creator.",
   unexpected:
     "Something unexpected happened while connecting Discord.",
 };
@@ -59,7 +59,7 @@ export default function DiscordConnectCard() {
 
       if (connected === "1") {
         setMessage(
-          "Discord connected successfully. Crown Link can now send you battle notifications by DM."
+          "Discord connected successfully. Bloodline Arena can now send you battle and support notifications by DM."
         );
       }
 
@@ -96,12 +96,12 @@ export default function DiscordConnectCard() {
 
       if (profileError) {
         console.error(
-          "CROWN LINK DISCORD PROFILE LOAD ERROR:",
+          "BLOODLINE ARENA DISCORD PROFILE LOAD ERROR:",
           profileError
         );
 
         setError(
-          "Crown Link could not load your Discord connection."
+          "Bloodline Arena could not load your Discord connection."
         );
         setLoading(false);
         return;
@@ -165,9 +165,9 @@ export default function DiscordConnectCard() {
         ) : connected ? (
           <>
             <p className="discord-description">
-              Crown Link can send battle matchups,
-              schedule updates, reminders, and other
-              battle notifications directly to your
+              Bloodline Arena can send battle matchups,
+              schedule updates, reminders, support replies, and
+              ticket status changes directly to your
               Discord DMs.
             </p>
 
@@ -190,10 +190,10 @@ export default function DiscordConnectCard() {
         ) : (
           <>
             <p className="discord-description">
-              Link your Discord account so Crown Link
+              Link your Discord account so Bloodline Arena
               can DM you when you are matched, when
-              battle details change, and when reminders
-              are sent.
+              battle details change, when reminders are sent,
+              and when support replies or updates your ticket.
             </p>
 
             <a
@@ -205,7 +205,7 @@ export default function DiscordConnectCard() {
             </a>
 
             <small className="discord-note">
-              Crown Link only requests your basic
+              Bloodline Arena only requests your basic
               Discord identity. It does not read your
               messages.
             </small>

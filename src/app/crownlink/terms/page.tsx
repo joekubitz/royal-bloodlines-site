@@ -19,7 +19,7 @@ export default function CrownLinkTermsPage() {
         }}
       >
         <Link
-          href="/crownlink"
+          href="/bloodline-arena"
           style={{
             color: "#d3a33c",
             textDecoration: "none",
@@ -27,7 +27,7 @@ export default function CrownLinkTermsPage() {
             fontSize: 14,
           }}
         >
-          ← Back to Crown Link
+          ← Back to Bloodline Arena
         </Link>
 
         <div
@@ -49,7 +49,7 @@ export default function CrownLinkTermsPage() {
               margin: 0,
             }}
           >
-            CROWN LINK
+            BLOODLINE ARENA
           </p>
 
           <h1
@@ -81,7 +81,7 @@ export default function CrownLinkTermsPage() {
             }}
           >
             <p>
-              These Terms of Service govern your access to and use of Crown
+              These Terms of Service govern your access to and use of Bloodline
               Link, a private creator networking, event signup, and battle
               matchmaking service operated through the Royals Bloodline
               website.
@@ -90,9 +90,9 @@ export default function CrownLinkTermsPage() {
             <h2 style={headingStyle}>1. Eligibility and Access</h2>
 
             <p>
-              Crown Link is intended only for approved creators and authorized
+              Bloodline Arena is intended only for approved creators and authorized
               administrators. Access may be limited, suspended, or revoked at
-              any time if a user no longer meets Crown Link participation
+              any time if a user no longer meets Bloodline Arena participation
               requirements or violates these Terms.
             </p>
 
@@ -108,9 +108,9 @@ export default function CrownLinkTermsPage() {
             <h2 style={headingStyle}>3. TikTok Connection</h2>
 
             <p>
-              Crown Link may allow users to connect their TikTok account using
+              Bloodline Arena may allow users to connect their TikTok account using
               TikTok&apos;s official authorization tools. When a user chooses
-              to connect TikTok, Crown Link may receive authorized profile
+              to connect TikTok, Bloodline Arena may receive authorized profile
               information such as a TikTok display name, username, profile
               image, profile identifier, or other information approved by the
               user through TikTok.
@@ -118,16 +118,16 @@ export default function CrownLinkTermsPage() {
 
             <p>
               Connecting TikTok does not transfer ownership or control of your
-              TikTok account to Crown Link. Crown Link will only request and
+              TikTok account to Bloodline Arena. Bloodline Arena will only request and
               use information necessary to support creator identification,
               profile setup, matchmaking, event participation, and related
-              Crown Link features.
+              Bloodline Arena features.
             </p>
 
             <h2 style={headingStyle}>4. Events and Matchmaking</h2>
 
             <p>
-              Creators may sign up for available Crown Link events. Crown Link
+              Creators may sign up for available Bloodline Arena events. Bloodline Arena
               may use creator information, including agency affiliation and
               self-reported diamond levels, to suggest potential battle
               matchups.
@@ -149,7 +149,7 @@ export default function CrownLinkTermsPage() {
             </p>
 
             <p>
-              Users may not misuse Crown Link, interfere with its operation,
+              Users may not misuse Bloodline Arena, interfere with its operation,
               attempt to access unauthorized accounts or data, or use the
               service for harassment, impersonation, fraud, or other abusive
               activity.
@@ -158,16 +158,16 @@ export default function CrownLinkTermsPage() {
             <h2 style={headingStyle}>6. Diamond Levels</h2>
 
             <p>
-              Diamond levels displayed within Crown Link may be self-reported
+              Diamond levels displayed within Bloodline Arena may be self-reported
               or obtained through supported integrations where available.
-              Creators are expected to provide accurate information. Crown Link
+              Creators are expected to provide accurate information. Bloodline Arena
               may update or correct information when necessary.
             </p>
 
             <h2 style={headingStyle}>7. Availability of the Service</h2>
 
             <p>
-              Crown Link may be changed, updated, temporarily unavailable, or
+              Bloodline Arena may be changed, updated, temporarily unavailable, or
               discontinued at any time. Features may be added, removed, or
               modified as the service develops.
             </p>
@@ -175,26 +175,26 @@ export default function CrownLinkTermsPage() {
             <h2 style={headingStyle}>8. Third-Party Services</h2>
 
             <p>
-              Crown Link may interact with third-party services, including
+              Bloodline Arena may interact with third-party services, including
               TikTok. Use of those services is also governed by the applicable
               third party&apos;s own terms, policies, and platform rules.
-              Crown Link is not responsible for changes, outages, restrictions,
+              Bloodline Arena is not responsible for changes, outages, restrictions,
               or actions taken by third-party platforms.
             </p>
 
             <h2 style={headingStyle}>9. Suspension or Removal</h2>
 
             <p>
-              Crown Link administrators may suspend or remove access for
+              Bloodline Arena administrators may suspend or remove access for
               misuse, repeated event issues, inaccurate information, security
-              concerns, or other behavior that interferes with Crown Link or
+              concerns, or other behavior that interferes with Bloodline Arena or
               its participants.
             </p>
 
             <h2 style={headingStyle}>10. No Guarantee of Results</h2>
 
             <p>
-              Crown Link provides tools for creator networking, event
+              Bloodline Arena provides tools for creator networking, event
               participation, and matchmaking. It does not guarantee audience
               growth, diamond earnings, battle performance, partnerships,
               revenue, or any particular creator outcome.
@@ -203,15 +203,15 @@ export default function CrownLinkTermsPage() {
             <h2 style={headingStyle}>11. Changes to These Terms</h2>
 
             <p>
-              These Terms may be updated as Crown Link changes. Continued use
-              of Crown Link after updated Terms are posted constitutes
+              These Terms may be updated as Bloodline Arena changes. Continued use
+              of Bloodline Arena after updated Terms are posted constitutes
               acceptance of the revised Terms.
             </p>
 
             <h2 style={headingStyle}>12. Contact</h2>
 
             <p>
-              Questions regarding Crown Link or these Terms may be directed to
+              Questions regarding Bloodline Arena or these Terms may be directed to
               the Royals Bloodline administration team through the official
               Royals Bloodline communication channels.
             </p>
@@ -225,7 +225,7 @@ export default function CrownLinkTermsPage() {
                 fontSize: 12,
               }}
             >
-              Crown Link is an independent service and is not owned, sponsored,
+              Bloodline Arena is an independent service and is not owned, sponsored,
               endorsed, or operated by TikTok.
             </p>
           </div>

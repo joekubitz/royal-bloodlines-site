@@ -13,7 +13,7 @@ export async function GET() {
     if (!user) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/login",
+          "/bloodline-arena/login",
           process.env.NEXT_PUBLIC_SITE_URL ||
             "https://royalsbloodline.com"
         )

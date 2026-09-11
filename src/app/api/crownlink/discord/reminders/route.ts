@@ -22,7 +22,7 @@ function creatorName(
     profile?.display_name?.trim() ||
     (profile?.tiktok_username
       ? `@${profile.tiktok_username}`
-      : "Crown Link Creator")
+      : "Bloodline Arena Creator")
   );
 }
 
@@ -52,7 +52,7 @@ function formatTimeEST(timeString: string) {
  * Convert an America/New_York local date/time
  * into a real UTC Date without adding a package.
  *
- * Crown Link stores battle date + battle time
+ * Bloodline Arena stores battle date + battle time
  * separately as Eastern wall-clock values.
  */
 function easternDateTimeToUtc(
@@ -249,7 +249,7 @@ async function isAuthorized(
   }
 
   /*
-   * Also allow an active Crown Link admin
+   * Also allow an active Bloodline Arena admin
    * to run this route manually while testing
    * on localhost.
    */
@@ -334,8 +334,8 @@ function buildMessage({
     `**Time:** ${formatTimeEST(
       battleTime
     )}\n\n` +
-    `Log in to Crown Link to view your battle details.\n` +
-    `https://royalsbloodline.com/crownlink`
+    `Log in to Bloodline Arena to view your battle details.\n` +
+    `https://royalsbloodline.com/bloodline-arena`
   );
 }
 
@@ -669,7 +669,7 @@ export async function GET(
           }
 
           console.error(
-            "CROWN LINK REMINDER RESERVATION ERROR:",
+            "BLOODLINE ARENA REMINDER RESERVATION ERROR:",
             reservationError
           );
 
@@ -689,7 +689,7 @@ export async function GET(
               type: reminderType,
               eventName:
                 event?.name ||
-                "Crown Link Event",
+                "Bloodline Arena Event",
               opponentName:
                 creatorName(
                   recipient.opponent
@@ -706,7 +706,7 @@ export async function GET(
           failed += 1;
 
           console.error(
-            "CROWN LINK BATTLE REMINDER SEND ERROR:",
+            "BLOODLINE ARENA BATTLE REMINDER SEND ERROR:",
             error
           );
 
@@ -729,7 +729,7 @@ export async function GET(
     }
 
     console.log(
-      "CROWN LINK BATTLE REMINDERS:",
+      "BLOODLINE ARENA BATTLE REMINDERS:",
       {
         checked,
         sent,
@@ -747,7 +747,7 @@ export async function GET(
     });
   } catch (error) {
     console.error(
-      "CROWN LINK BATTLE REMINDER ERROR:",
+      "BLOODLINE ARENA BATTLE REMINDER ERROR:",
       error
     );
 

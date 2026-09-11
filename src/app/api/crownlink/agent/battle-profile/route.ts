@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK AGENT BATTLE PROFILE ERROR:",
+      "BLOODLINE ARENA AGENT BATTLE PROFILE ERROR:",
       error
     );
 

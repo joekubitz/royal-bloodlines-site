@@ -39,9 +39,14 @@ export default function Navbar() {
     };
   }, []);
 
-  // Crown Link is its own app experience.
-  // Hide the regular Royals Bloodline navbar on all /crownlink pages.
-  if (pathname.startsWith("/crownlink")) {
+  // Bloodline Arena is its own app experience.
+  // Hide the regular Royals Bloodline navbar on all /bloodline-arena pages.
+  if (
+    pathname === "/bloodline-arena" ||
+    pathname.startsWith("/bloodline-arena/") ||
+    pathname === "/crownlink" ||
+    pathname.startsWith("/crownlink/")
+  ) {
     return null;
   }
 
@@ -147,7 +152,7 @@ export default function Navbar() {
             {/* CTA */}
             <Link href="/join" className="rb-cta-btn">
               <span className="rb-cta-long">
-                Claim Your Crown →
+                Claim Your Bloodline →
               </span>
 
               <span className="rb-cta-short">
@@ -229,7 +234,7 @@ export default function Navbar() {
               }
               className="rb-mobile-join"
             >
-              Claim Your Crown →
+              Claim Your Bloodline →
             </Link>
           </div>
         )}

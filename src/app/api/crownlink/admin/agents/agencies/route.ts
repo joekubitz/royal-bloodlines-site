@@ -55,7 +55,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK AGENT AGENCY LIST ERROR:",
+      "BLOODLINE ARENA AGENT AGENCY LIST ERROR:",
       error
     );
 

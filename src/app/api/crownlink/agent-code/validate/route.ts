@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     if (codeError) {
       console.error(
-        "CROWN LINK AGENT CODE LOOKUP ERROR:",
+        "BLOODLINE ARENA AGENT CODE LOOKUP ERROR:",
         codeError
       );
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
         {
           valid: false,
           error:
-            "That registration code is not connected to an active Crown Link agent.",
+            "That registration code is not connected to an active Bloodline Arena agent.",
         },
         { status: 400 }
       );
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 
     if (agentProfileError) {
       console.error(
-        "CROWN LINK AGENT PROFILE LOOKUP ERROR:",
+        "BLOODLINE ARENA AGENT PROFILE LOOKUP ERROR:",
         agentProfileError
       );
 
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK AGENT CODE VALIDATION ERROR:",
+      "BLOODLINE ARENA AGENT CODE VALIDATION ERROR:",
       error
     );
 

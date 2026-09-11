@@ -87,8 +87,8 @@ export async function POST() {
         },
         body: JSON.stringify({
           content:
-            "👑 **Crown Link Test Notification**\n\n" +
-            "Your Discord account is successfully connected to the Crown Link notification system.\n\n" +
+            "👑 **Bloodline Arena Test Notification**\n\n" +
+            "Your Discord account is successfully connected to the Bloodline Arena notification system.\n\n" +
             "Future battle notifications will be sent here.",
         }),
       }
@@ -113,7 +113,7 @@ export async function POST() {
       message: "Test Discord DM sent successfully.",
     });
   } catch (error) {
-    console.error("CROWN LINK DISCORD TEST ERROR:", error);
+    console.error("BLOODLINE ARENA DISCORD TEST ERROR:", error);
 
     return NextResponse.json(
       { error: "Something went wrong sending the Discord test DM." },

@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       message: `${event.name} was archived.`,
     });
   } catch (error) {
-    console.error("Archive Crown Link event error:", error);
+    console.error("Archive Bloodline Arena event error:", error);
 
     return NextResponse.json(
       { error: "Something went wrong while archiving the event." },

@@ -91,7 +91,7 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error(
-      "DELETE CROWN LINK EVENT ERROR:",
+      "DELETE BLOODLINE ARENA EVENT ERROR:",
       error
     );
 

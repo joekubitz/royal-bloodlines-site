@@ -23,7 +23,7 @@ if (roleError || !userRole) {
 }
 
 if (userRole.role !== "admin" || userRole.status !== "active") {
-  redirect("/crownlink");
+  redirect("/bloodline-arena");
 }
   const { data: clicks, error } = await supabase
     .from("clicks")

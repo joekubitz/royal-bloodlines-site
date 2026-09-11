@@ -165,7 +165,7 @@ export async function POST(request: Request) {
 
     if (createEventError) {
       console.error(
-        "CREATE CROWN LINK EVENT ERROR:",
+        "CREATE BLOODLINE ARENA EVENT ERROR:",
         createEventError
       );
 
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
 
     if (createDateError) {
       console.error(
-        "CREATE CROWN LINK EVENT DATE ERROR:",
+        "CREATE BLOODLINE ARENA EVENT DATE ERROR:",
         createDateError
       );
 
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CREATE CROWN LINK EVENT ERROR:",
+      "CREATE BLOODLINE ARENA EVENT ERROR:",
       error
     );
 

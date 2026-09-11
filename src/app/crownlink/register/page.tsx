@@ -59,7 +59,7 @@ export default function CrownLinkRegisterPage() {
       if (!response.ok) {
         setError(
           result.error ||
-            "Your Crown Link account could not be created."
+            "Your Bloodline Arena account could not be created."
         );
         setLoading(false);
         return;
@@ -75,13 +75,13 @@ export default function CrownLinkRegisterPage() {
 
       if (loginError) {
         setError(
-          "Your account was created, but Crown Link could not sign you in automatically. Please return to the login page and sign in."
+          "Your account was created, but Bloodline Arena could not sign you in automatically. Please return to the login page and sign in."
         );
         setLoading(false);
         return;
       }
 
-      window.location.href = "/crownlink/profile/setup";
+      window.location.href = "/bloodline-arena/profile/setup";
     } catch (err) {
       setError(
         err instanceof Error
@@ -98,7 +98,7 @@ export default function CrownLinkRegisterPage() {
         <div className="cl-brand">
           <div className="cl-crown">♛</div>
           <p className="cl-agency">ROYALS BLOODLINE</p>
-          <h1>Crown Link</h1>
+          <h1>Bloodline Arena</h1>
           <p className="cl-tagline">Connect. Match. Battle.</p>
         </div>
 
@@ -106,7 +106,7 @@ export default function CrownLinkRegisterPage() {
           <div className="cl-card-header">
             <h2>Create Creator Account</h2>
             <p>
-              Enter the registration code from your Crown Link agent,
+              Enter the registration code from your Bloodline Arena agent,
               then create your login.
             </p>
           </div>
@@ -193,7 +193,7 @@ export default function CrownLinkRegisterPage() {
 
           <div className="cl-back">
             Already have an account?{" "}
-            <Link href="/crownlink/login">Sign in</Link>
+            <Link href="/bloodline-arena/login">Sign in</Link>
           </div>
         </div>
       </div>

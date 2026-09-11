@@ -19,6 +19,8 @@ export default function CrownLinkForgotPasswordPage() {
 
     const supabase = createClient();
 
+    // Preserve the Supabase allow-listed callback; the app redirects it
+    // to /bloodline-arena/reset-password while retaining the recovery URL.
     const redirectTo =
       typeof window !== "undefined"
         ? `${window.location.origin}/crownlink/reset-password`
@@ -54,13 +56,13 @@ export default function CrownLinkForgotPasswordPage() {
         <div className="cl-crown">♛</div>
 
         <p className="cl-eyebrow">
-          CROWN LINK ACCOUNT RECOVERY
+          BLOODLINE ARENA ACCOUNT RECOVERY
         </p>
 
         <h1>Reset Password</h1>
 
         <p className="cl-description">
-          Enter the email address associated with your Crown Link
+          Enter the email address associated with your Bloodline Arena
           account and we’ll send you a password reset link.
         </p>
 
@@ -111,7 +113,7 @@ export default function CrownLinkForgotPasswordPage() {
         </form>
 
         <Link
-          href="/crownlink/login"
+          href="/bloodline-arena/login"
           className="cl-back-link"
         >
           ← Back to Sign In
@@ -119,7 +121,7 @@ export default function CrownLinkForgotPasswordPage() {
       </div>
 
       <p className="cl-bottom-brand">
-        ROYALS BLOODLINE · CROWN LINK
+        ROYALS BLOODLINE · BLOODLINE ARENA
       </p>
 
       <style jsx>{`

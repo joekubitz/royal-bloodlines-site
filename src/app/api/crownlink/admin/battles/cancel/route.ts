@@ -188,7 +188,7 @@ export async function POST(request: Request) {
       message,
     });
   } catch (error) {
-    console.error("Cancel Crown Link battle error:", error);
+    console.error("Cancel Bloodline Arena battle error:", error);
 
     return NextResponse.json(
       {

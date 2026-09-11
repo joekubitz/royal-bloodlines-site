@@ -13,7 +13,7 @@ export default function SignOutButton() {
 
     await supabase.auth.signOut();
 
-    window.location.href = "/crownlink/login";
+    window.location.href = "/bloodline-arena/login";
   }
 
   return (

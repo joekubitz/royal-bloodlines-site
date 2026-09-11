@@ -19,7 +19,7 @@ export default async function CrownLinkEventsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -33,13 +33,13 @@ export default async function CrownLinkEventsPage() {
     userRole.status !== "active" ||
     !["creator", "agent", "admin"].includes(userRole.role)
   ) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const adminSupabase = createAdminClient();
 
   /*
-   * Crown Link uses Eastern Time across the
+   * Bloodline Arena uses Eastern Time across the
    * platform. Do not use toISOString() here,
    * because UTC can roll over to the next day
    * before Eastern Time does.
@@ -47,7 +47,7 @@ export default async function CrownLinkEventsPage() {
   const today = getEasternToday();
 
   /*
-   * Load active Crown Link events.
+   * Load active Bloodline Arena events.
    *
    * event_time is now treated as the
    * FIRST battle time.
@@ -81,7 +81,7 @@ export default async function CrownLinkEventsPage() {
 
   if (eventsError) {
     console.error(
-      "CROWN LINK EVENTS ERROR:",
+      "BLOODLINE ARENA EVENTS ERROR:",
       eventsError
     );
   }
@@ -106,7 +106,7 @@ export default async function CrownLinkEventsPage() {
 
   if (eventDatesError) {
     console.error(
-      "CROWN LINK EVENT DATES ERROR:",
+      "BLOODLINE ARENA EVENT DATES ERROR:",
       eventDatesError
     );
   }
@@ -129,7 +129,7 @@ export default async function CrownLinkEventsPage() {
 
   if (signupsError) {
     console.error(
-      "CROWN LINK EVENT SIGNUPS ERROR:",
+      "BLOODLINE ARENA EVENT SIGNUPS ERROR:",
       signupsError
     );
   }
@@ -164,7 +164,7 @@ export default async function CrownLinkEventsPage() {
 
   if (unavailableTimesError) {
     console.error(
-      "CROWN LINK UNAVAILABLE TIMES ERROR:",
+      "BLOODLINE ARENA UNAVAILABLE TIMES ERROR:",
       unavailableTimesError
     );
   }
@@ -189,7 +189,7 @@ export default async function CrownLinkEventsPage() {
 
   if (scheduleSlotsError) {
     console.error(
-      "CROWN LINK SCHEDULE SLOTS ERROR:",
+      "BLOODLINE ARENA SCHEDULE SLOTS ERROR:",
       scheduleSlotsError
     );
   }
@@ -211,7 +211,7 @@ export default async function CrownLinkEventsPage() {
         }}
       >
         <Link
-          href="/crownlink"
+          href="/bloodline-arena"
           style={{
             color: "#d3a33c",
             textDecoration: "none",
@@ -219,7 +219,7 @@ export default async function CrownLinkEventsPage() {
             fontSize: 14,
           }}
         >
-          ← Back to Crown Link
+          ← Back to Bloodline Arena
         </Link>
 
         <div
@@ -237,7 +237,7 @@ export default async function CrownLinkEventsPage() {
               marginBottom: 8,
             }}
           >
-            CROWN LINK
+            BLOODLINE ARENA
           </p>
 
           <h1
@@ -258,7 +258,7 @@ export default async function CrownLinkEventsPage() {
               lineHeight: 1.6,
             }}
           >
-            View upcoming Crown Link
+            View upcoming Bloodline Arena
             events, sign up for the full
             event, and mark any specific
             battle times you cannot make.
@@ -279,7 +279,7 @@ export default async function CrownLinkEventsPage() {
                 "rgba(255,255,255,0.5)",
             }}
           >
-            No upcoming Crown Link events
+            No upcoming Bloodline Arena events
             right now.
           </div>
         ) : (

@@ -38,7 +38,7 @@ export default function CrownLinkLoginPage() {
       }
 
       /*
-        CHECK ROYALS BATTLES ROLE
+        CHECK BLOODLINE ARENA ROLE
       */
       const {
         data: userRole,
@@ -100,13 +100,13 @@ export default function CrownLinkLoginPage() {
 
       /*
         CREATORS GO DIRECTLY
-        INTO ROYALS BATTLES
+        INTO BLOODLINE ARENA
       */
       if (
         userRole?.role === "creator" &&
         userRole?.status === "active"
       ) {
-        window.location.href = "/crownlink";
+        window.location.href = "/bloodline-arena";
         return;
       }
 
@@ -148,9 +148,9 @@ export default function CrownLinkLoginPage() {
             </p>
 
             <h1>
-              Crown
+              Bloodline
               <br />
-              <span>Link</span>
+              <span>Arena</span>
             </h1>
 
             <div className="cl-title-line" />
@@ -167,7 +167,7 @@ export default function CrownLinkLoginPage() {
             <div className="cl-brand-footer">
               <span>ROYALS BLOODLINE</span>
               <span className="cl-brand-footer-dot" />
-              <span>CROWN LINK</span>
+              <span>BLOODLINE ARENA</span>
             </div>
           </div>
         </section>
@@ -182,7 +182,7 @@ export default function CrownLinkLoginPage() {
             <h2>Welcome Back</h2>
 
             <p>
-              Sign in to continue to Crown Link.
+              Sign in to continue to Bloodline Arena.
             </p>
           </div>
 
@@ -225,7 +225,7 @@ export default function CrownLinkLoginPage() {
 
             <div className="cl-forgot-row">
               <Link
-                href="/crownlink/forgot-password"
+                href="/bloodline-arena/forgot-password"
                 className="cl-forgot-link"
               >
                 Forgot Password?
@@ -247,7 +247,7 @@ export default function CrownLinkLoginPage() {
               <span>
                 {loading
                   ? "Signing In..."
-                  : "Enter Crown Link"}
+                  : "Enter Bloodline Arena"}
               </span>
 
               {!loading && (
@@ -259,11 +259,11 @@ export default function CrownLinkLoginPage() {
           </form>
 
           <div className="cl-divider">
-            <span>New to Crown Link?</span>
+            <span>New to Bloodline Arena?</span>
           </div>
 
           <Link
-            href="/crownlink/register"
+            href="/bloodline-arena/register"
             className="cl-register-button"
           >
             <span>Create Creator Account</span>
@@ -287,7 +287,7 @@ export default function CrownLinkLoginPage() {
               <strong>Approved Access Only</strong>
 
               <p>
-                Crown Link is available to approved agency
+                Bloodline Arena is available to approved agency
                 creators and agents.
               </p>
             </div>
@@ -296,7 +296,7 @@ export default function CrownLinkLoginPage() {
       </div>
 
       <p className="cl-bottom-brand">
-        ROYALS BLOODLINE · CROWN LINK
+        ROYALS BLOODLINE · BLOODLINE ARENA
       </p>
 
       <style jsx>{`
@@ -525,7 +525,7 @@ export default function CrownLinkLoginPage() {
         .cl-brand-side h1 {
           margin: 0;
 
-          font-size: clamp(56px, 7vw, 82px);
+          font-size: clamp(36px, 5vw, 60px);
 
           line-height: 0.84;
 
@@ -1044,7 +1044,7 @@ export default function CrownLinkLoginPage() {
           }
 
           .cl-brand-side h1 {
-            font-size: clamp(50px, 14vw, 70px);
+            font-size: clamp(32px, 9vw, 58px);
           }
 
           .cl-brand-footer {

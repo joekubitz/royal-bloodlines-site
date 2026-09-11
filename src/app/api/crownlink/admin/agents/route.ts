@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     }
 
     /*
-      Make sure the agent's agency exists in Crown Link.
+      Make sure the agent's agency exists in Bloodline Arena.
 
       If an active agency with the same name already exists, reuse it.
       If not, create it automatically so the admin does not have to
@@ -328,7 +328,7 @@ export async function POST(request: Request) {
         "Agent created successfully. Share the temporary password with the agent so they can sign in.",
     });
   } catch (error) {
-    console.error("Create Crown Link agent error:", error);
+    console.error("Create Bloodline Arena agent error:", error);
 
     return NextResponse.json(
       { error: "Something went wrong while creating the agent." },

@@ -513,7 +513,7 @@ export async function POST(
     }
 
     /*
-     * Old Crown Link matches created
+     * Old Bloodline Arena matches created
      * before the multi-date system
      * do not have a date or slot.
      *
@@ -917,7 +917,7 @@ export async function POST(
              * A same-agency matchup adds a smaller
              * 10,000-diamond penalty.
              *
-             * This means Crown Link will still prefer
+             * This means Bloodline Arena will still prefer
              * fresh, cross-agency opponents when the
              * diamond levels are reasonably close,
              * but it will choose a repeat/fallback
@@ -1196,7 +1196,7 @@ export async function POST(
         );
 
       console.log(
-        "CROWN LINK DISCORD MATCH NOTIFICATIONS:",
+        "BLOODLINE ARENA DISCORD MATCH NOTIFICATIONS:",
         {
           sent: discordNotificationsSent,
           skipped: discordNotificationsSkipped,

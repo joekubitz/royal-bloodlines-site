@@ -78,7 +78,7 @@ export default function DownloadSchedulePdf({
         .toLowerCase();
 
       pdf.save(
-        `${safeEventName || "crown-link"}-${safeDate || "schedule"}.pdf`
+        `${safeEventName || "bloodline-arena"}-${safeDate || "schedule"}.pdf`
       );
     } catch (err) {
       console.error(err);

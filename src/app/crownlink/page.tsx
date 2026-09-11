@@ -79,7 +79,7 @@ export default async function CrownLinkPage() {
 
   if (notificationError) {
     console.error(
-      "Crown Link notification load error:",
+      "Bloodline Arena notification load error:",
       notificationError
     );
   }
@@ -216,7 +216,7 @@ export default async function CrownLinkPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Royals Bloodline · Crown Link
+                Royals Bloodline · Bloodline Arena
               </span>
             </div>
 
@@ -245,7 +245,7 @@ export default async function CrownLinkPage() {
                 textShadow: "0 4px 30px rgba(0,0,0,0.55)",
               }}
             >
-              Crown
+              Bloodline
               <br />
               <span
                 style={{
@@ -253,7 +253,7 @@ export default async function CrownLinkPage() {
                   textShadow: "0 0 24px rgba(232,111,0,0.13)",
                 }}
               >
-                Link
+                Arena
               </span>
             </h1>
 
@@ -397,8 +397,8 @@ export default async function CrownLinkPage() {
             <Link
               href={
                 isAgent
-                  ? "/crownlink/agent"
-                  : "/crownlink/profile/setup"
+                  ? "/bloodline-arena/agent"
+                  : "/bloodline-arena/profile/setup"
               }
               style={primaryButtonStyle}
             >
@@ -417,7 +417,7 @@ export default async function CrownLinkPage() {
             <Link
               href={
                 latestUnreadNotification?.href ||
-                "/crownlink/support"
+                "/bloodline-arena/support"
               }
               prefetch={false}
               style={{
@@ -545,9 +545,9 @@ export default async function CrownLinkPage() {
               number="01"
               eyebrow="Discover"
               title="Events"
-              description="Browse upcoming Crown Link events and sign up to compete."
+              description="Browse upcoming Bloodline Arena events and sign up to compete."
               action="View Upcoming Events"
-              href="/crownlink/events"
+              href="/bloodline-arena/events"
               symbol="◇"
             />
 
@@ -557,7 +557,7 @@ export default async function CrownLinkPage() {
               title="Matchmaking"
               description="Check your event matchmaking status and opponent information."
               action="Check Match Status"
-              href="/crownlink/matchmaking"
+              href="/bloodline-arena/matchmaking"
               symbol="⚔"
             />
 
@@ -567,7 +567,7 @@ export default async function CrownLinkPage() {
               title="My Battles"
               description="View your approved battles, opponents, dates, and battle times."
               action="View My Battles"
-              href="/crownlink/battles"
+              href="/bloodline-arena/battles"
               symbol="♛"
               featured
             />
@@ -588,7 +588,7 @@ export default async function CrownLinkPage() {
                   ? "View Support Reply"
                   : "Get Support"
               }
-              href="/crownlink/support"
+              href="/bloodline-arena/support"
               symbol="?"
               notificationCount={unreadSupportCount}
             />

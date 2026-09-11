@@ -97,7 +97,7 @@ export async function POST(request: Request) {
      * Approval is kept for compatibility
      * with any older suggested matches.
      *
-     * New Crown Link matches are now
+     * New Bloodline Arena matches are now
      * approved automatically.
      */
     if (action === "approve") {

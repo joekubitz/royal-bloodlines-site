@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "This creator is not currently an active Crown Link creator.",
+            "This creator is not currently an active Bloodline Arena creator.",
         },
         { status: 400 }
       );
@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "Restore Crown Link signup error:",
+      "Restore Bloodline Arena signup error:",
       error
     );
 

@@ -383,7 +383,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "GENERATE CROWN LINK SLOTS ERROR:",
+      "GENERATE BLOODLINE ARENA SLOTS ERROR:",
       error
     );
 

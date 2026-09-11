@@ -92,7 +92,7 @@ export default function AddCreatorForm({
           fontSize: 13,
         }}
       >
-        Create Crown Link login access for an approved
+        Create Bloodline Arena login access for an approved
         creator.
       </p>
 

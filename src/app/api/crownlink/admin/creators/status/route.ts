@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK CREATOR STATUS ERROR:",
+      "BLOODLINE ARENA CREATOR STATUS ERROR:",
       error
     );
 

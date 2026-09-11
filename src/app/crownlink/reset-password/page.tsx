@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
 
     window.setTimeout(() => {
-      router.push("/crownlink/login");
+      router.push("/bloodline-arena/login");
     }, 1800);
   }
 
@@ -177,12 +177,12 @@ export default function ResetPasswordPage() {
         <section className="cl-card">
           <div className="cl-crown">♛</div>
 
-          <p className="cl-eyebrow">CROWN LINK</p>
+          <p className="cl-eyebrow">BLOODLINE ARENA</p>
 
           <h1>Reset Password</h1>
 
           <p className="cl-description">
-            Create a new password for your Crown Link account.
+            Create a new password for your Bloodline Arena account.
           </p>
 
           {checkingSession ? (
@@ -249,7 +249,7 @@ export default function ResetPasswordPage() {
               </div>
 
               <Link
-                href="/crownlink/forgot-password"
+                href="/bloodline-arena/forgot-password"
                 className="cl-button cl-link-button"
               >
                 Request New Reset Link
@@ -258,7 +258,7 @@ export default function ResetPasswordPage() {
           )}
 
           <div className="cl-back-row">
-            <Link href="/crownlink/login" className="cl-back-link">
+            <Link href="/bloodline-arena/login" className="cl-back-link">
               Back to Sign In
             </Link>
           </div>

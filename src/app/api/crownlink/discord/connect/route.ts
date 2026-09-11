@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.redirect(
-        new URL("/crownlink/login", request.url)
+        new URL("/bloodline-arena/login", request.url)
       );
     }
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       roleData.status !== "active"
     ) {
       return NextResponse.redirect(
-        new URL("/crownlink?discord_error=invalid_creator_account", request.url)
+        new URL("/bloodline-arena?discord_error=invalid_creator_account", request.url)
       );
     }
 
@@ -77,11 +77,11 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("CROWN LINK DISCORD CONNECT ERROR:", error);
+    console.error("BLOODLINE ARENA DISCORD CONNECT ERROR:", error);
 
     return NextResponse.redirect(
       new URL(
-        "/crownlink?discord_error=unexpected",
+        "/bloodline-arena?discord_error=unexpected",
         request.url
       )
     );

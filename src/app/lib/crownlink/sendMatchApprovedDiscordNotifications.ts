@@ -19,7 +19,7 @@ function creatorName(profile: DiscordProfile | undefined) {
     profile?.display_name?.trim() ||
     (profile?.tiktok_username
       ? `@${profile.tiktok_username}`
-      : "Crown Link Creator")
+      : "Bloodline Arena Creator")
   );
 }
 
@@ -265,7 +265,7 @@ export async function sendMatchApprovedDiscordNotifications(
       null;
 
     const eventName =
-      event?.name?.trim() || "Crown Link Event";
+      event?.name?.trim() || "Bloodline Arena Event";
 
     const notifications = [
       {
@@ -297,8 +297,8 @@ export async function sendMatchApprovedDiscordNotifications(
         )}\n` +
         `**Date:** ${formatDate(battleDate)}\n` +
         `**Time:** ${formatTime(battleTime)}\n\n` +
-        `Log in to Crown Link to view your battle details.\n` +
-        `https://royalsbloodline.com/crownlink`;
+        `Log in to Bloodline Arena to view your battle details.\n` +
+        `https://royalsbloodline.com/bloodline-arena`;
 
       try {
         await sendDiscordDm(

@@ -33,12 +33,12 @@ export default function EventBattleSelector({
     setChanging(true);
 
     if (value === "all") {
-      router.push("/crownlink/admin/battles?eventId=all");
+      router.push("/bloodline-arena/admin/battles?eventId=all");
       return;
     }
 
     router.push(
-      `/crownlink/admin/battles?eventId=${encodeURIComponent(value)}`
+      `/bloodline-arena/admin/battles?eventId=${encodeURIComponent(value)}`
     );
   }
 

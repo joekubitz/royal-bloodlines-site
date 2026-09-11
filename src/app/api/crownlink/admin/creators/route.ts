@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       agencyId: agency.id,
     });
   } catch (error) {
-    console.error("CREATE CROWN LINK CREATOR ERROR:", error);
+    console.error("CREATE BLOODLINE ARENA CREATOR ERROR:", error);
 
     return NextResponse.json(
       { error: "Unexpected server error." },

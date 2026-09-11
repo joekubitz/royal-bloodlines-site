@@ -11,7 +11,7 @@ export default async function CrownLinkResultsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -25,7 +25,7 @@ export default async function CrownLinkResultsPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -152,7 +152,7 @@ export default async function CrownLinkResultsPage() {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>←</span>
@@ -223,7 +223,7 @@ export default async function CrownLinkResultsPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · History
+                Bloodline Arena · History
               </span>
             </div>
 
@@ -259,7 +259,7 @@ export default async function CrownLinkResultsPage() {
                 lineHeight: 1.6,
               }}
             >
-              Review archived Crown Link events, completed battles,
+              Review archived Bloodline Arena events, completed battles,
               attendance issues, replacements, and recorded results.
             </p>
           </div>
@@ -513,7 +513,7 @@ export default async function CrownLinkResultsPage() {
                     </div>
 
                     <Link
-                      href={`/crownlink/admin/results/${event.id}`}
+                      href={`/bloodline-arena/admin/results/${event.id}`}
                       style={viewResultsButtonStyle}
                     >
                       View Event Results
@@ -650,7 +650,7 @@ export default async function CrownLinkResultsPage() {
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link · Event History</span>
+          <span>Bloodline Arena · Event History</span>
         </footer>
       </div>
     </main>

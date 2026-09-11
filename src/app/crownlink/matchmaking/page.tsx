@@ -11,7 +11,7 @@ export default async function CrownLinkMatchmakingPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -25,7 +25,7 @@ export default async function CrownLinkMatchmakingPage() {
     userRole.status !== "active" ||
     !["creator", "admin", "agent"].includes(userRole.role)
   ) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const adminSupabase = createAdminClient();
@@ -120,7 +120,7 @@ export default async function CrownLinkMatchmakingPage() {
         type: "review",
         label: "Match Awaiting Approval",
         description:
-          "Crown Link found a potential matchup. An admin is reviewing it now.",
+          "Bloodline Arena found a potential matchup. An admin is reviewing it now.",
         color: "#e98322",
         background: "rgba(232,111,0,0.07)",
         border: "rgba(232,111,0,0.22)",
@@ -132,7 +132,7 @@ export default async function CrownLinkMatchmakingPage() {
         type: "waiting",
         label: "Waiting for Match",
         description:
-          "You are signed up and waiting for Crown Link matchmaking.",
+          "You are signed up and waiting for Bloodline Arena matchmaking.",
         color: "#d9b15c",
         background: "rgba(201,151,50,0.055)",
         border: "rgba(201,151,50,0.18)",
@@ -174,9 +174,9 @@ export default async function CrownLinkMatchmakingPage() {
       >
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
-          <Link href="/crownlink" style={backButtonStyle}>
+          <Link href="/bloodline-arena" style={backButtonStyle}>
             <span style={{ fontSize: 15 }}>←</span>
-            Back to Crown Link
+            Back to Bloodline Arena
           </Link>
         </div>
 
@@ -265,7 +265,7 @@ export default async function CrownLinkMatchmakingPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Crown Link · Battle Center
+                Bloodline Arena · Battle Center
               </span>
             </div>
 
@@ -304,7 +304,7 @@ export default async function CrownLinkMatchmakingPage() {
               }}
             >
               Follow your progress from event signup to your
-              approved Crown Link matchup.
+              approved Bloodline Arena matchup.
             </p>
           </div>
         </section>
@@ -402,7 +402,7 @@ export default async function CrownLinkMatchmakingPage() {
                 fontSize: 12,
               }}
             >
-              There are no upcoming Crown Link events
+              There are no upcoming Bloodline Arena events
               right now.
             </p>
           </div>
@@ -627,7 +627,7 @@ export default async function CrownLinkMatchmakingPage() {
                       }}
                     >
                       <Link
-                        href="/crownlink/events"
+                        href="/bloodline-arena/events"
                         style={primaryButtonStyle}
                       >
                         View Events
@@ -643,7 +643,7 @@ export default async function CrownLinkMatchmakingPage() {
                       }}
                     >
                       <Link
-                        href="/crownlink/battles"
+                        href="/bloodline-arena/battles"
                         style={primaryButtonStyle}
                       >
                         View My Battle
@@ -685,13 +685,13 @@ export default async function CrownLinkMatchmakingPage() {
             <ProcessStep
               number="01"
               title="Sign Up"
-              description="Join an active Crown Link event."
+              description="Join an active Bloodline Arena event."
             />
 
             <ProcessStep
               number="02"
               title="Matchmaking"
-              description="Crown Link builds compatible matchups."
+              description="Bloodline Arena builds compatible matchups."
             />
 
             <ProcessStep
@@ -727,7 +727,7 @@ export default async function CrownLinkMatchmakingPage() {
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link · Matchmaking</span>
+          <span>Bloodline Arena · Matchmaking</span>
         </footer>
       </div>
     </main>

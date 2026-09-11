@@ -12,7 +12,7 @@ export default async function CrownLinkAgentDashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -33,7 +33,7 @@ export default async function CrownLinkAgentDashboardPage() {
     !["agent", "admin"].includes(userRole.role) ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const adminSupabase = createAdminClient();
@@ -215,7 +215,7 @@ export default async function CrownLinkAgentDashboardPage() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Royals Bloodline · Crown Link
+                  Royals Bloodline · Bloodline Arena
                 </span>
               </div>
 
@@ -287,14 +287,14 @@ export default async function CrownLinkAgentDashboardPage() {
               </Link>
 
               <Link
-                href="/crownlink/agent/events"
+                href="/bloodline-arena/agent/events"
                 style={heroPrimaryButton}
               >
                 Team Events
               </Link>
 
               <Link
-                href="/crownlink/events"
+                href="/bloodline-arena/events"
                 style={heroSecondaryButton}
               >
                 Browse Events
@@ -302,7 +302,7 @@ export default async function CrownLinkAgentDashboardPage() {
 
               {isAdmin && (
                 <Link
-                  href="/crownlink/admin"
+                  href="/bloodline-arena/admin"
                   style={heroGoldButton}
                 >
                   Admin Center
@@ -310,7 +310,7 @@ export default async function CrownLinkAgentDashboardPage() {
               )}
 
               <Link
-                href="/crownlink"
+                href="/bloodline-arena"
                 style={heroSecondaryButton}
               >
                 Creator View
@@ -355,7 +355,7 @@ export default async function CrownLinkAgentDashboardPage() {
             <SectionTitle
               eyebrow="Authorized Access"
               title="Admin Tools"
-              description="Your account has been granted access to selected Crown Link management tools."
+              description="Your account has been granted access to selected Bloodline Arena management tools."
             />
 
             <div
@@ -371,8 +371,8 @@ export default async function CrownLinkAgentDashboardPage() {
                 <PermissionCard
                   number="01"
                   title="Manage Events"
-                  description="Create and manage Crown Link events."
-                  href="/crownlink/admin/events"
+                  description="Create and manage Bloodline Arena events."
+                  href="/bloodline-arena/admin/events"
                 />
               )}
 
@@ -381,7 +381,7 @@ export default async function CrownLinkAgentDashboardPage() {
                   number="02"
                   title="Run Matchmaking"
                   description="Generate and review creator matchups."
-                  href="/crownlink/admin/matchmaking"
+                  href="/bloodline-arena/admin/matchmaking"
                 />
               )}
 
@@ -390,7 +390,7 @@ export default async function CrownLinkAgentDashboardPage() {
                   number="03"
                   title="Schedule Export"
                   description="Build downloadable battle schedules."
-                  href="/crownlink/admin/schedule-export"
+                  href="/bloodline-arena/admin/schedule-export"
                 />
               )}
 
@@ -399,7 +399,7 @@ export default async function CrownLinkAgentDashboardPage() {
                   number="04"
                   title="Leaderboard"
                   description="View event rankings and recorded results."
-                  href="/crownlink/admin/leaderboard"
+                  href="/bloodline-arena/admin/leaderboard"
                 />
               )}
             </div>
@@ -420,7 +420,7 @@ export default async function CrownLinkAgentDashboardPage() {
             <SectionTitle
               eyebrow="Battle Identity"
               title="My Battle Profile"
-              description="Set the typical diamond amount you expect to do during a battle. Crown Link uses this to help place you with an appropriate opponent."
+              description="Set the typical diamond amount you expect to do during a battle. Bloodline Arena uses this to help place you with an appropriate opponent."
             />
 
             <div
@@ -461,7 +461,7 @@ export default async function CrownLinkAgentDashboardPage() {
               <SectionTitle
                 eyebrow="Team Access"
                 title="Registration Code"
-                description="Share your registration code with creators on your team so Crown Link can automatically connect them to you and your agency."
+                description="Share your registration code with creators on your team so Bloodline Arena can automatically connect them to you and your agency."
               />
             </div>
 
@@ -676,7 +676,7 @@ export default async function CrownLinkAgentDashboardPage() {
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link</span>
+          <span>Bloodline Arena</span>
         </footer>
       </div>
     </main>

@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     if (timeSlotError) {
       console.error(
-        "CREATE CROWN LINK TIME SLOT ERROR:",
+        "CREATE BLOODLINE ARENA TIME SLOT ERROR:",
         timeSlotError
       );
 
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CREATE CROWN LINK TIME SLOT ERROR:",
+      "CREATE BLOODLINE ARENA TIME SLOT ERROR:",
       error
     );
 
@@ -188,7 +188,7 @@ export async function DELETE(request: Request) {
 
     if (deleteError) {
       console.error(
-        "DELETE CROWN LINK TIME SLOT ERROR:",
+        "DELETE BLOODLINE ARENA TIME SLOT ERROR:",
         deleteError
       );
 
@@ -203,7 +203,7 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error(
-      "DELETE CROWN LINK TIME SLOT ERROR:",
+      "DELETE BLOODLINE ARENA TIME SLOT ERROR:",
       error
     );
 

@@ -11,7 +11,7 @@ export default async function CrownLinkAgentEventsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -25,7 +25,7 @@ export default async function CrownLinkAgentEventsPage() {
     !["agent", "admin"].includes(userRole.role) ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const adminSupabase = createAdminClient();
@@ -43,7 +43,7 @@ export default async function CrownLinkAgentEventsPage() {
     .eq("profile_status", "active");
 
   if (creatorsError) {
-    console.error("CROWN LINK AGENT CREATORS ERROR:", creatorsError);
+    console.error("BLOODLINE ARENA AGENT CREATORS ERROR:", creatorsError);
   }
 
   const creatorIds = creators?.map((creator) => creator.user_id) ?? [];
@@ -66,7 +66,7 @@ export default async function CrownLinkAgentEventsPage() {
       .eq("status", "signed_up");
 
     if (error) {
-      console.error("CROWN LINK AGENT SIGNUPS ERROR:", error);
+      console.error("BLOODLINE ARENA AGENT SIGNUPS ERROR:", error);
     }
 
     signups = data ?? [];
@@ -169,19 +169,19 @@ export default async function CrownLinkAgentEventsPage() {
     ]);
 
     if (eventsError) {
-      console.error("CROWN LINK AGENT EVENTS ERROR:", eventsError);
+      console.error("BLOODLINE ARENA AGENT EVENTS ERROR:", eventsError);
     }
 
     if (datesError) {
-      console.error("CROWN LINK AGENT EVENT DATES ERROR:", datesError);
+      console.error("BLOODLINE ARENA AGENT EVENT DATES ERROR:", datesError);
     }
 
     if (matchesError) {
-      console.error("CROWN LINK AGENT MATCHES ERROR:", matchesError);
+      console.error("BLOODLINE ARENA AGENT MATCHES ERROR:", matchesError);
     }
 
     if (slotsError) {
-      console.error("CROWN LINK AGENT SLOTS ERROR:", slotsError);
+      console.error("BLOODLINE ARENA AGENT SLOTS ERROR:", slotsError);
     }
 
     events = eventData ?? [];
@@ -230,7 +230,7 @@ export default async function CrownLinkAgentEventsPage() {
         }}
       >
         <Link
-          href="/crownlink/agent"
+          href="/bloodline-arena/agent"
           style={{
             color: "#d3a33c",
             textDecoration: "none",
@@ -251,7 +251,7 @@ export default async function CrownLinkAgentEventsPage() {
               fontWeight: 800,
             }}
           >
-            CROWN LINK
+            BLOODLINE ARENA
           </p>
 
           <h1
@@ -271,7 +271,7 @@ export default async function CrownLinkAgentEventsPage() {
               lineHeight: 1.6,
             }}
           >
-            View the Crown Link events your creators are participating in and
+            View the Bloodline Arena events your creators are participating in and
             their approved battle schedules.
           </p>
         </div>
@@ -286,7 +286,7 @@ export default async function CrownLinkAgentEventsPage() {
               color: "rgba(255,255,255,0.5)",
             }}
           >
-            None of your creators are currently signed up for a Crown Link
+            None of your creators are currently signed up for a Bloodline Arena
             event.
           </div>
         ) : (

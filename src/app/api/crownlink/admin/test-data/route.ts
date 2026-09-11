@@ -401,7 +401,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CREATE CROWN LINK TEST DATA ERROR:",
+      "CREATE BLOODLINE ARENA TEST DATA ERROR:",
       error
     );
 
@@ -571,7 +571,7 @@ export async function DELETE(
     });
   } catch (error) {
     console.error(
-      "DELETE CROWN LINK TEST DATA ERROR:",
+      "DELETE BLOODLINE ARENA TEST DATA ERROR:",
       error
     );
 

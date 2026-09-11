@@ -88,7 +88,7 @@ export default function MatchActions({
   async function handleRematch() {
     const confirmed =
       window.confirm(
-        "Rematch this battle? Crown Link will cancel this matchup and automatically generate a replacement while preserving the other scheduled matches."
+        "Rematch this battle? Bloodline Arena will cancel this matchup and automatically generate a replacement while preserving the other scheduled matches."
       );
 
     if (!confirmed) {
@@ -131,7 +131,7 @@ export default function MatchActions({
       if (!response.ok) {
         throw new Error(
           result.error ||
-            "The match was cancelled, but Crown Link could not generate a replacement."
+            "The match was cancelled, but Bloodline Arena could not generate a replacement."
         );
       }
 

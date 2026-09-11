@@ -41,7 +41,7 @@ export default function LoginPage() {
       }
 
       /*
-        CHECK ROYALS BATTLES ROLE
+        CHECK BLOODLINE ARENA ROLE
       */
       const {
         data: userRole,
@@ -103,13 +103,13 @@ export default function LoginPage() {
 
       /*
         CREATORS GO DIRECTLY
-        TO ROYALS BATTLES
+        TO BLOODLINE ARENA
       */
       if (
         userRole?.role === "creator" &&
         userRole?.status === "active"
       ) {
-        router.push("/crownlink");
+        router.push("/bloodline-arena");
         router.refresh();
         return;
       }
@@ -159,7 +159,7 @@ export default function LoginPage() {
             </h1>
 
             <p className="mt-2 text-sm text-gray-400">
-              Sign in to access Royals Battles,
+              Sign in to access Bloodline Arena,
               Analytics, and your available tools.
             </p>
           </div>
@@ -205,7 +205,7 @@ export default function LoginPage() {
           {/* FORGOT PASSWORD */}
           <div className="mt-3 text-right">
             <Link
-              href="/crownlink/forgot-password"
+              href="/bloodline-arena/forgot-password"
               className="text-sm font-semibold text-[#d3a33c] transition hover:opacity-80"
             >
               Forgot Password?
@@ -244,7 +244,7 @@ export default function LoginPage() {
 
           {/* CREATOR REGISTRATION */}
           <Link
-            href="/crownlink/register"
+            href="/bloodline-arena/register"
             className="block w-full rounded-xl border border-[#d3a33c]/40 bg-[#d3a33c]/10 px-5 py-3 text-center font-black text-[#d3a33c] transition hover:bg-[#d3a33c]/15"
           >
             Create Creator Account

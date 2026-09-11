@@ -20,7 +20,7 @@ export default async function EditAgentPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: currentUserRole } = await supabase
@@ -34,7 +34,7 @@ export default async function EditAgentPage({ params }: PageProps) {
     currentUserRole.role !== "admin" ||
     currentUserRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -56,7 +56,7 @@ export default async function EditAgentPage({ params }: PageProps) {
     .maybeSingle();
 
   if (!agentRole) {
-    redirect("/crownlink/admin/agents");
+    redirect("/bloodline-arena/admin/agents");
   }
 
   const [{ data: profile }, { data: code }] = await Promise.all([
@@ -99,7 +99,7 @@ export default async function EditAgentPage({ params }: PageProps) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      redirect("/crownlink/login");
+      redirect("/bloodline-arena/login");
     }
 
     const { data: adminRole } = await supabase
@@ -113,7 +113,7 @@ export default async function EditAgentPage({ params }: PageProps) {
       adminRole.role !== "admin" ||
       adminRole.status !== "active"
     ) {
-      redirect("/crownlink");
+      redirect("/bloodline-arena");
     }
 
     const adminSupabase = createAdminClient();
@@ -162,13 +162,13 @@ export default async function EditAgentPage({ params }: PageProps) {
       !registrationCode
     ) {
       redirect(
-        `/crownlink/admin/agents/${agentUserId}?error=missing`
+        `/bloodline-arena/admin/agents/${agentUserId}?error=missing`
       );
     }
 
     if (!["active", "suspended"].includes(status)) {
       redirect(
-        `/crownlink/admin/agents/${agentUserId}?error=status`
+        `/bloodline-arena/admin/agents/${agentUserId}?error=status`
       );
     }
 
@@ -185,7 +185,7 @@ export default async function EditAgentPage({ params }: PageProps) {
 
     if (existingCode) {
       redirect(
-        `/crownlink/admin/agents/${agentUserId}?error=code`
+        `/bloodline-arena/admin/agents/${agentUserId}?error=code`
       );
     }
 
@@ -224,7 +224,7 @@ export default async function EditAgentPage({ params }: PageProps) {
 
       if (agencyError || !newAgency) {
         redirect(
-          `/crownlink/admin/agents/${agentUserId}?error=agency`
+          `/bloodline-arena/admin/agents/${agentUserId}?error=agency`
         );
       }
 
@@ -249,12 +249,12 @@ export default async function EditAgentPage({ params }: PageProps) {
 
     if (roleError) {
       redirect(
-        `/crownlink/admin/agents/${agentUserId}?error=save`
+        `/bloodline-arena/admin/agents/${agentUserId}?error=save`
       );
     }
 
     /*
-     * Update the agent's Crown Link profile.
+     * Update the agent's Bloodline Arena profile.
      */
     const { error: profileError } = await adminSupabase
       .from("crownlink_profiles")
@@ -268,7 +268,7 @@ export default async function EditAgentPage({ params }: PageProps) {
 
     if (profileError) {
       redirect(
-        `/crownlink/admin/agents/${agentUserId}?error=profile`
+        `/bloodline-arena/admin/agents/${agentUserId}?error=profile`
       );
     }
 
@@ -294,7 +294,7 @@ export default async function EditAgentPage({ params }: PageProps) {
 
       if (codeError) {
         redirect(
-          `/crownlink/admin/agents/${agentUserId}?error=code-save`
+          `/bloodline-arena/admin/agents/${agentUserId}?error=code-save`
         );
       }
     } else {
@@ -309,23 +309,23 @@ export default async function EditAgentPage({ params }: PageProps) {
 
       if (codeError) {
         redirect(
-          `/crownlink/admin/agents/${agentUserId}?error=code-save`
+          `/bloodline-arena/admin/agents/${agentUserId}?error=code-save`
         );
       }
     }
 
-    revalidatePath("/crownlink/admin/agents");
+    revalidatePath("/bloodline-arena/admin/agents");
     revalidatePath(
-      `/crownlink/admin/agents/${agentUserId}`
+      `/bloodline-arena/admin/agents/${agentUserId}`
     );
 
-    redirect("/crownlink/admin/agents");
+    redirect("/bloodline-arena/admin/agents");
   }
 
   const agentName =
     profile?.display_name?.trim() ||
     profile?.tiktok_username?.trim() ||
-    "Crown Link Agent";
+    "Bloodline Arena Agent";
 
   const permissionCount = [
     agentRole.can_manage_events,
@@ -359,7 +359,7 @@ export default async function EditAgentPage({ params }: PageProps) {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin/agents"
+            href="/bloodline-arena/admin/agents"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>←</span>
@@ -435,7 +435,7 @@ export default async function EditAgentPage({ params }: PageProps) {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · Agent Management
+                Bloodline Arena · Agent Management
               </span>
             </div>
 
@@ -484,7 +484,7 @@ export default async function EditAgentPage({ params }: PageProps) {
                 >
                   Update {agentName}&apos;s profile,
                   agency, registration code, account
-                  status, and Crown Link permissions.
+                  status, and Bloodline Arena permissions.
                 </p>
               </div>
 
@@ -557,7 +557,7 @@ export default async function EditAgentPage({ params }: PageProps) {
             <SectionHeader
               eyebrow="Agent Profile"
               title="Profile & Agency"
-              description="Manage the agent's Crown Link identity and agency assignment."
+              description="Manage the agent's Bloodline Arena identity and agency assignment."
             />
 
             <div
@@ -639,7 +639,7 @@ export default async function EditAgentPage({ params }: PageProps) {
                 <span style={helperTextStyle}>
                   Changing this will move the agent to
                   the entered agency. If it does not
-                  exist, Crown Link will create it.
+                  exist, Bloodline Arena will create it.
                 </span>
               </label>
 
@@ -675,7 +675,7 @@ export default async function EditAgentPage({ params }: PageProps) {
             <SectionHeader
               eyebrow="Account Access"
               title="Agent Status"
-              description="Control whether this agent can access Crown Link."
+              description="Control whether this agent can access Bloodline Arena."
             />
 
             <label style={labelStyle}>
@@ -738,7 +738,7 @@ export default async function EditAgentPage({ params }: PageProps) {
                   false
                 }
                 title="Run Matchmaking"
-                description="Generate and manage Crown Link battle matches."
+                description="Generate and manage Bloodline Arena battle matches."
                 number="02"
               />
 
@@ -839,7 +839,7 @@ export default async function EditAgentPage({ params }: PageProps) {
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · Agent Management
+            Bloodline Arena · Agent Management
           </span>
         </footer>
       </div>

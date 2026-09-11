@@ -89,7 +89,7 @@ export default function AgentBattleProfileForm({
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setError(
-          "The save request timed out. Check the terminal running your Crown Link site for an error."
+          "The save request timed out. Check the terminal running your Bloodline Arena site for an error."
         );
       } else {
         setError(

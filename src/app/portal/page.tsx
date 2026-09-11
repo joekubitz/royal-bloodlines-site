@@ -55,7 +55,7 @@ export default async function PortalPage() {
   if (isAdmin) {
     displayRole = "Administrator";
     subtitle =
-      "Manage Royals Battles, Analytics, and website administration from one place.";
+      "Manage Bloodline Arena, Analytics, and website administration from one place.";
   } else if (isAgent) {
     displayRole = "Agent";
     subtitle =
@@ -70,12 +70,12 @@ export default async function PortalPage() {
       "Access your Royals Bloodline performance analytics.";
   }
 
-  let battleHref = "/crownlink";
+  let battleHref = "/bloodline-arena";
 
   if (isAdmin) {
-    battleHref = "/crownlink/admin";
+    battleHref = "/bloodline-arena/admin";
   } else if (isAgent) {
-    battleHref = "/crownlink/agent";
+    battleHref = "/bloodline-arena/agent";
   }
 
   const toolCount = [
@@ -184,7 +184,7 @@ export default async function PortalPage() {
 
               <div className="mt-8">
                 <p className="text-[9px] font-black tracking-[0.25em] text-[#d3a33c]">
-                  ROYALS BATTLES
+                  BLOODLINE ARENA
                 </p>
 
                 <h3 className="mt-2 text-2xl font-black">
@@ -198,7 +198,7 @@ export default async function PortalPage() {
               </div>
 
               <div className="mt-auto flex items-center justify-between pt-8 text-sm font-black text-[#d3a33c]">
-                <span>Open Royals Battles</span>
+                <span>Open Bloodline Arena</span>
                 <span className="text-xl transition group-hover:translate-x-1">
                   →
                 </span>

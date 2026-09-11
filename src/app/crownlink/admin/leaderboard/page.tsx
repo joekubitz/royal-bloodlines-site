@@ -30,7 +30,7 @@ export default async function CrownLinkLeaderboardPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -44,7 +44,7 @@ export default async function CrownLinkLeaderboardPage({
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -290,7 +290,7 @@ export default async function CrownLinkLeaderboardPage({
         }}
       >
         <Link
-          href="/crownlink/admin"
+          href="/bloodline-arena/admin"
           style={{
             color: "#d3a33c",
             textDecoration: "none",
@@ -316,7 +316,7 @@ export default async function CrownLinkLeaderboardPage({
               fontWeight: 800,
             }}
           >
-            CROWN LINK
+            BLOODLINE ARENA
           </p>
 
           <h1

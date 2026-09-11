@@ -26,7 +26,7 @@ export default async function CrownLinkScheduleExportPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -41,7 +41,7 @@ export default async function CrownLinkScheduleExportPage({
       userRole.can_export_schedule === true);
 
   if (!canExportSchedule) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -259,7 +259,7 @@ export default async function CrownLinkScheduleExportPage({
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>
@@ -338,7 +338,7 @@ export default async function CrownLinkScheduleExportPage({
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · Battle Operations
+                Bloodline Arena · Battle Operations
               </span>
             </div>
 
@@ -693,7 +693,7 @@ export default async function CrownLinkScheduleExportPage({
                         "uppercase",
                     }}
                   >
-                    Crown Link
+                    Bloodline Arena
                   </p>
 
                   <h2
@@ -962,7 +962,7 @@ export default async function CrownLinkScheduleExportPage({
                 }}
               >
                 Royals Bloodline · Powered by
-                Crown Link
+                Bloodline Arena
               </div>
             </section>
           </>
@@ -989,7 +989,7 @@ export default async function CrownLinkScheduleExportPage({
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · Schedule Export
+            Bloodline Arena · Schedule Export
           </span>
         </footer>
       </div>

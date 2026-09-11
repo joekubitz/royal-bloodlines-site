@@ -23,7 +23,7 @@ export default async function CrownLinkAdminBattlesPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole, error: roleError } = await supabase
@@ -38,7 +38,7 @@ export default async function CrownLinkAdminBattlesPage({
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -207,7 +207,7 @@ export default async function CrownLinkAdminBattlesPage({
       >
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
-          <Link href="/crownlink/admin" style={backButtonStyle}>
+          <Link href="/bloodline-arena/admin" style={backButtonStyle}>
             <span style={{ fontSize: 14 }}>←</span>
             Admin Center
           </Link>
@@ -276,7 +276,7 @@ export default async function CrownLinkAdminBattlesPage({
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · Battle Operations
+                Bloodline Arena · Battle Operations
               </span>
             </div>
 
@@ -322,7 +322,7 @@ export default async function CrownLinkAdminBattlesPage({
                     lineHeight: 1.6,
                   }}
                 >
-                  View and manage all approved Crown Link battles.
+                  View and manage all approved Bloodline Arena battles.
                 </p>
               </div>
 
@@ -568,7 +568,7 @@ export default async function CrownLinkAdminBattlesPage({
                             letterSpacing: -0.25,
                           }}
                         >
-                          {event?.name ?? "Crown Link Event"}
+                          {event?.name ?? "Bloodline Arena Event"}
                         </h3>
 
                         {event && (
@@ -821,7 +821,7 @@ export default async function CrownLinkAdminBattlesPage({
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link · Battle Management</span>
+          <span>Bloodline Arena · Battle Management</span>
         </footer>
       </div>
     </main>

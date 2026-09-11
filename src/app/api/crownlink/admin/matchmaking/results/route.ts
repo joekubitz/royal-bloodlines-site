@@ -374,7 +374,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK MATCH RESULTS ERROR:",
+      "BLOODLINE ARENA MATCH RESULTS ERROR:",
       error
     );
 
@@ -532,7 +532,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK MATCH RESULTS GET ERROR:",
+      "BLOODLINE ARENA MATCH RESULTS GET ERROR:",
       error
     );
 

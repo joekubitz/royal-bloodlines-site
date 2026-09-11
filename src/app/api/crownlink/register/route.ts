@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     if (codeError) {
       console.error(
-        "CROWN LINK REGISTER CODE LOOKUP ERROR:",
+        "BLOODLINE ARENA REGISTER CODE LOOKUP ERROR:",
         codeError
       );
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
       If the agent already has agency_id on user_roles,
       we will use it. If not, we fall back to the
-      agent's Crown Link profile agency_name.
+      agent's Bloodline Arena profile agency_name.
     */
     const { data: agentRole, error: roleError } =
       await adminSupabase
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "That registration code is not connected to an active Crown Link agent.",
+            "That registration code is not connected to an active Bloodline Arena agent.",
         },
         { status: 400 }
       );
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "The agent's assigned agency could not be verified. Please contact a Crown Link administrator.",
+              "The agent's assigned agency could not be verified. Please contact a Bloodline Arena administrator.",
           },
           { status: 400 }
         );
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "This agent does not have an agency assigned in Crown Link. Please contact an administrator.",
+              "This agent does not have an agency assigned in Bloodline Arena. Please contact an administrator.",
           },
           { status: 400 }
         );
@@ -197,14 +197,14 @@ export async function POST(request: Request) {
         !matchingAgency
       ) {
         console.error(
-          "CROWN LINK REGISTER AGENCY LOOKUP ERROR:",
+          "BLOODLINE ARENA REGISTER AGENCY LOOKUP ERROR:",
           matchingAgencyError
         );
 
         return NextResponse.json(
           {
             error:
-              `The agent's agency "${agentProfile.agency_name}" is not connected to an active Crown Link agency. Please contact an administrator.`,
+              `The agent's agency "${agentProfile.agency_name}" is not connected to an active Bloodline Arena agency. Please contact an administrator.`,
           },
           { status: 400 }
         );
@@ -302,7 +302,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK CREATOR REGISTER ERROR:",
+      "BLOODLINE ARENA CREATOR REGISTER ERROR:",
       error
     );
 
@@ -317,7 +317,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "Something went wrong while creating your Crown Link account.",
+            : "Something went wrong while creating your Bloodline Arena account.",
       },
       { status: 500 }
     );

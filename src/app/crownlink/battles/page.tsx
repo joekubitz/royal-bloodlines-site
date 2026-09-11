@@ -11,7 +11,7 @@ export default async function CrownLinkMyBattlesPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -25,13 +25,13 @@ export default async function CrownLinkMyBattlesPage() {
     userRole.status !== "active" ||
     !["creator", "admin", "agent"].includes(userRole.role)
   ) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   /*
    * Authentication and authorization are complete.
    * From here on, use the server-only admin client so we can
-   * safely retrieve the opponent's public Crown Link profile data.
+   * safely retrieve the opponent's public Bloodline Arena profile data.
    */
   const adminSupabase = createAdminClient();
 
@@ -54,7 +54,7 @@ export default async function CrownLinkMyBattlesPage() {
 
   if (matchesError) {
     console.error(
-      "CROWN LINK MY BATTLES ERROR:",
+      "BLOODLINE ARENA MY BATTLES ERROR:",
       matchesError
     );
   }
@@ -250,7 +250,7 @@ export default async function CrownLinkMyBattlesPage() {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink"
+            href="/bloodline-arena"
             style={backButtonStyle}
           >
             <span
@@ -262,7 +262,7 @@ export default async function CrownLinkMyBattlesPage() {
               ←
             </span>
 
-            Back to Crown Link
+            Back to Bloodline Arena
           </Link>
         </div>
 
@@ -358,7 +358,7 @@ export default async function CrownLinkMyBattlesPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Crown Link · Battle Center
+                Bloodline Arena · Battle Center
               </span>
             </div>
 
@@ -398,7 +398,7 @@ export default async function CrownLinkMyBattlesPage() {
                 lineHeight: 1.6,
               }}
             >
-              Your approved Crown Link
+              Your approved Bloodline Arena
               matchups and opponent details.
             </p>
           </div>
@@ -501,7 +501,7 @@ export default async function CrownLinkMyBattlesPage() {
               }}
             >
               Once an admin approves one of
-              your Crown Link matches, your
+              your Bloodline Arena matches, your
               opponent and battle details will
               appear here.
             </p>
@@ -512,7 +512,7 @@ export default async function CrownLinkMyBattlesPage() {
               }}
             >
               <Link
-                href="/crownlink/matchmaking"
+                href="/bloodline-arena/matchmaking"
                 style={primaryButtonStyle}
               >
                 Check Matchmaking
@@ -686,7 +686,7 @@ export default async function CrownLinkMyBattlesPage() {
                                   "uppercase",
                               }}
                             >
-                              Crown Link
+                              Bloodline Arena
                             </p>
                           </div>
 
@@ -705,7 +705,7 @@ export default async function CrownLinkMyBattlesPage() {
                             }}
                           >
                             {event?.name ??
-                              "Crown Link Event"}
+                              "Bloodline Arena Event"}
                           </h2>
 
                           {event && (
@@ -970,7 +970,7 @@ export default async function CrownLinkMyBattlesPage() {
                           >
                             This matchup has
                             been finalized by
-                            Crown Link.
+                            Bloodline Arena.
                           </p>
                         </div>
                       </div>
@@ -1004,7 +1004,7 @@ export default async function CrownLinkMyBattlesPage() {
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · My Battles
+            Bloodline Arena · My Battles
           </span>
         </footer>
       </div>

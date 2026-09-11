@@ -18,7 +18,7 @@ export default async function CrownLinkEventsAdminPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -33,7 +33,7 @@ export default async function CrownLinkEventsAdminPage() {
       userRole.can_manage_events === true);
 
   if (!canAccessEvents) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -251,7 +251,7 @@ export default async function CrownLinkEventsAdminPage() {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>
@@ -330,7 +330,7 @@ export default async function CrownLinkEventsAdminPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · Battle Operations
+                Bloodline Arena · Battle Operations
               </span>
             </div>
 
@@ -368,7 +368,7 @@ export default async function CrownLinkEventsAdminPage() {
                 lineHeight: 1.6,
               }}
             >
-              Create Crown Link events, set
+              Create Bloodline Arena events, set
               required battle dates, and manage
               creator participation.
             </p>
@@ -392,7 +392,7 @@ export default async function CrownLinkEventsAdminPage() {
           <SectionHeading
             eyebrow="Event Setup"
             title="Create Event"
-            description="Start a new Crown Link battle event."
+            description="Start a new Bloodline Arena battle event."
           />
 
           <div
@@ -447,7 +447,7 @@ export default async function CrownLinkEventsAdminPage() {
         {!events ||
         events.length === 0 ? (
           <div style={emptyStateStyle}>
-            No active Crown Link events have
+            No active Bloodline Arena events have
             been created yet.
           </div>
         ) : (
@@ -587,7 +587,7 @@ export default async function CrownLinkEventsAdminPage() {
                                 "uppercase",
                             }}
                           >
-                            Crown Link Event
+                            Bloodline Arena Event
                           </span>
                         </div>
 
@@ -1316,7 +1316,7 @@ export default async function CrownLinkEventsAdminPage() {
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · Event Management
+            Bloodline Arena · Event Management
           </span>
         </footer>
       </div>

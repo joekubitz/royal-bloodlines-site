@@ -12,7 +12,7 @@ export default async function CrownLinkAgentsAdminPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -26,7 +26,7 @@ export default async function CrownLinkAgentsAdminPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -145,7 +145,7 @@ export default async function CrownLinkAgentsAdminPage() {
       >
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
-          <Link href="/crownlink/admin" style={backButtonStyle}>
+          <Link href="/bloodline-arena/admin" style={backButtonStyle}>
             <span style={{ fontSize: 14 }}>←</span>
             Admin Center
           </Link>
@@ -214,7 +214,7 @@ export default async function CrownLinkAgentsAdminPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · People & Access
+                Bloodline Arena · People & Access
               </span>
             </div>
 
@@ -250,7 +250,7 @@ export default async function CrownLinkAgentsAdminPage() {
                 lineHeight: 1.6,
               }}
             >
-              Create and manage Crown Link agents, their agency
+              Create and manage Bloodline Arena agents, their agency
               assignments, registration codes, account status, and
               permissions.
             </p>
@@ -334,7 +334,7 @@ export default async function CrownLinkAgentsAdminPage() {
                 lineHeight: 1.5,
               }}
             >
-              Add a Crown Link agent and assign their agency and
+              Add a Bloodline Arena agent and assign their agency and
               registration code.
             </p>
           </div>
@@ -395,7 +395,7 @@ export default async function CrownLinkAgentsAdminPage() {
                   fontWeight: 900,
                 }}
               >
-                No Crown Link agents yet
+                No Bloodline Arena agents yet
               </p>
 
               <p
@@ -604,7 +604,7 @@ export default async function CrownLinkAgentsAdminPage() {
                         </span>
 
                         <Link
-                          href={`/crownlink/admin/agents/${role.user_id}`}
+                          href={`/bloodline-arena/admin/agents/${role.user_id}`}
                           style={editButtonStyle}
                         >
                           Edit
@@ -636,7 +636,7 @@ export default async function CrownLinkAgentsAdminPage() {
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link · Agent Management</span>
+          <span>Bloodline Arena · Agent Management</span>
         </footer>
       </div>
     </main>

@@ -172,7 +172,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "Remove Crown Link signup error:",
+      "Remove Bloodline Arena signup error:",
       error
     );
 

@@ -217,7 +217,7 @@ export default function CrownLinkSupportPage() {
       >
         <div style={{ marginBottom: 18 }}>
           <Link
-            href="/crownlink"
+            href="/bloodline-arena"
             prefetch={false}
             style={{
               display: "inline-flex",
@@ -231,7 +231,7 @@ export default function CrownLinkSupportPage() {
               letterSpacing: 1,
             }}
           >
-            ← Back to Crown Link
+            ← Back to Bloodline Arena
           </Link>
         </div>
 

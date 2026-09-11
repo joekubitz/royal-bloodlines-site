@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.redirect(
-        new URL("/crownlink/login", request.url)
+        new URL("/bloodline-arena/login", request.url)
       );
     }
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          `/crownlink/profile/setup?tiktok_error=${encodeURIComponent(
+          `/bloodline-arena/profile/setup?tiktok_error=${encodeURIComponent(
             errorDescription || error
           )}`,
           request.url
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (!code) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=missing_code",
+          "/bloodline-arena/profile/setup?tiktok_error=missing_code",
           request.url
         )
       );
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=invalid_state",
+          "/bloodline-arena/profile/setup?tiktok_error=invalid_state",
           request.url
         )
       );
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=token_exchange_failed",
+          "/bloodline-arena/profile/setup?tiktok_error=token_exchange_failed",
           request.url
         )
       );
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=missing_access_token",
+          "/bloodline-arena/profile/setup?tiktok_error=missing_access_token",
           request.url
         )
       );
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=profile_fetch_failed",
+          "/bloodline-arena/profile/setup?tiktok_error=profile_fetch_failed",
           request.url
         )
       );
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
     if (!tiktokUser?.open_id) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=missing_profile",
+          "/bloodline-arena/profile/setup?tiktok_error=missing_profile",
           request.url
         )
       );
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=missing_username",
+          "/bloodline-arena/profile/setup?tiktok_error=missing_username",
           request.url
         )
       );
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=invalid_creator_account",
+          "/bloodline-arena/profile/setup?tiktok_error=invalid_creator_account",
           request.url
         )
       );
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
     if (!roleData.agency_id) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=missing_agency",
+          "/bloodline-arena/profile/setup?tiktok_error=missing_agency",
           request.url
         )
       );
@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=invalid_agency",
+          "/bloodline-arena/profile/setup?tiktok_error=invalid_agency",
           request.url
         )
       );
@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
     if (existingTikTokProfile) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=tiktok_already_connected",
+          "/bloodline-arena/profile/setup?tiktok_error=tiktok_already_connected",
           request.url
         )
       );
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
     if (existingUsernameProfile) {
       return NextResponse.redirect(
         new URL(
-          "/crownlink/profile/setup?tiktok_error=username_already_connected",
+          "/bloodline-arena/profile/setup?tiktok_error=username_already_connected",
           request.url
         )
       );
@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.redirect(
           new URL(
-            "/crownlink/profile/setup?tiktok_error=profile_update_failed",
+            "/bloodline-arena/profile/setup?tiktok_error=profile_update_failed",
             request.url
           )
         );
@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.redirect(
           new URL(
-            "/crownlink/profile/setup?tiktok_error=profile_creation_failed",
+            "/bloodline-arena/profile/setup?tiktok_error=profile_creation_failed",
             request.url
           )
         );
@@ -324,7 +324,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.redirect(
       new URL(
-        "/crownlink/profile/setup?tiktok_connected=1",
+        "/bloodline-arena/profile/setup?tiktok_connected=1",
         request.url
       )
     );
@@ -343,7 +343,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(
       new URL(
-        "/crownlink/profile/setup?tiktok_error=unexpected",
+        "/bloodline-arena/profile/setup?tiktok_error=unexpected",
         request.url
       )
     );

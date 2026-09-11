@@ -79,7 +79,7 @@ export default function AddAgencyForm() {
           fontSize: 13,
         }}
       >
-        Add another approved agency to Crown Link.
+        Add another approved agency to Bloodline Arena.
       </p>
 
       <div

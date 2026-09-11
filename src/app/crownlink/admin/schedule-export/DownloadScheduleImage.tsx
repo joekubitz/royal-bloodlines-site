@@ -47,7 +47,7 @@ export default function DownloadScheduleImage({
         .toLowerCase();
 
       const link = document.createElement("a");
-      link.download = `${safeEventName || "crown-link"}-${safeDate || "schedule"}.png`;
+      link.download = `${safeEventName || "bloodline-arena"}-${safeDate || "schedule"}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {

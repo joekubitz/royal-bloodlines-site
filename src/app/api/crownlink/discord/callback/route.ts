@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (discordError) {
       return redirectWithCookieCleared(
         request,
-        `/crownlink?discord_error=${encodeURIComponent(
+        `/bloodline-arena?discord_error=${encodeURIComponent(
           discordError === "access_denied"
             ? "access_denied"
             : "discord_authorization_failed"
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     if (!code) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=missing_code"
+        "/bloodline-arena?discord_error=missing_code"
       );
     }
 
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     ) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=invalid_state"
+        "/bloodline-arena?discord_error=invalid_state"
       );
     }
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     if (!clientId || !clientSecret) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=missing_configuration"
+        "/bloodline-arena?discord_error=missing_configuration"
       );
     }
 
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink/login"
+        "/bloodline-arena/login"
       );
     }
 
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     ) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=invalid_creator_account"
+        "/bloodline-arena?discord_error=invalid_creator_account"
       );
     }
 
@@ -154,13 +154,13 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok || !tokenData.access_token) {
       console.error(
-        "CROWN LINK DISCORD TOKEN EXCHANGE ERROR:",
+        "BLOODLINE ARENA DISCORD TOKEN EXCHANGE ERROR:",
         tokenData
       );
 
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=token_exchange_failed"
+        "/bloodline-arena?discord_error=token_exchange_failed"
       );
     }
 
@@ -183,13 +183,13 @@ export async function GET(request: NextRequest) {
       !discordUser.username
     ) {
       console.error(
-        "CROWN LINK DISCORD USER FETCH ERROR:",
+        "BLOODLINE ARENA DISCORD USER FETCH ERROR:",
         discordUser
       );
 
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=profile_fetch_failed"
+        "/bloodline-arena?discord_error=profile_fetch_failed"
       );
     }
 
@@ -204,20 +204,20 @@ export async function GET(request: NextRequest) {
 
     if (duplicateError) {
       console.error(
-        "CROWN LINK DISCORD DUPLICATE CHECK ERROR:",
+        "BLOODLINE ARENA DISCORD DUPLICATE CHECK ERROR:",
         duplicateError
       );
 
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=profile_update_failed"
+        "/bloodline-arena?discord_error=profile_update_failed"
       );
     }
 
     if (duplicateProfile) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=discord_already_connected"
+        "/bloodline-arena?discord_error=discord_already_connected"
       );
     }
 
@@ -242,33 +242,33 @@ export async function GET(request: NextRequest) {
 
     if (updateError) {
       console.error(
-        "CROWN LINK DISCORD PROFILE UPDATE ERROR:",
+        "BLOODLINE ARENA DISCORD PROFILE UPDATE ERROR:",
         updateError
       );
 
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=profile_update_failed"
+        "/bloodline-arena?discord_error=profile_update_failed"
       );
     }
 
     if (!updatedProfile) {
       return redirectWithCookieCleared(
         request,
-        "/crownlink?discord_error=missing_profile"
+        "/bloodline-arena?discord_error=missing_profile"
       );
     }
 
     return redirectWithCookieCleared(
       request,
-      "/crownlink?discord_connected=1"
+      "/bloodline-arena?discord_connected=1"
     );
   } catch (error) {
-    console.error("CROWN LINK DISCORD CALLBACK ERROR:", error);
+    console.error("BLOODLINE ARENA DISCORD CALLBACK ERROR:", error);
 
     return redirectWithCookieCleared(
       request,
-      "/crownlink?discord_error=unexpected"
+      "/bloodline-arena?discord_error=unexpected"
     );
   }
 }

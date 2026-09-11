@@ -62,21 +62,21 @@ export default function CrownLinkProfileSetupPage() {
           missing_username:
             "TikTok did not return your username. Please reconnect your TikTok account.",
           profile_lookup_failed:
-            "Your Crown Link profile could not be loaded.",
+            "Your Bloodline Arena profile could not be loaded.",
           profile_update_failed:
             "Your TikTok information could not be saved.",
           profile_creation_failed:
-            "Your Crown Link profile could not be created.",
+            "Your Bloodline Arena profile could not be created.",
           invalid_creator_account:
-            "Your Crown Link creator account could not be verified.",
+            "Your Bloodline Arena creator account could not be verified.",
           missing_agency:
-            "Your Crown Link account does not have an assigned agency.",
+            "Your Bloodline Arena account does not have an assigned agency.",
           invalid_agency:
             "Your assigned agency could not be verified.",
           tiktok_already_connected:
-            "That TikTok account is already connected to another Crown Link creator.",
+            "That TikTok account is already connected to another Bloodline Arena creator.",
           username_already_connected:
-            "That TikTok username is already connected to another Crown Link creator.",
+            "That TikTok username is already connected to another Bloodline Arena creator.",
           unexpected:
             "Something unexpected happened while connecting TikTok.",
         };
@@ -92,7 +92,7 @@ export default function CrownLinkProfileSetupPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/crownlink/login");
+        router.replace("/bloodline-arena/login");
         return;
       }
 
@@ -105,12 +105,12 @@ export default function CrownLinkProfileSetupPage() {
 
       if (roleError || !roleData) {
         console.error(
-          "CROWN LINK ROLE ERROR:",
+          "BLOODLINE ARENA ROLE ERROR:",
           roleError
         );
 
         setError(
-          "We couldn't verify your Crown Link account."
+          "We couldn't verify your Bloodline Arena account."
         );
 
         setLoading(false);
@@ -119,18 +119,18 @@ export default function CrownLinkProfileSetupPage() {
 
       if (roleData.status !== "active") {
         await supabase.auth.signOut();
-        router.replace("/crownlink/login");
+        router.replace("/bloodline-arena/login");
         return;
       }
 
       if (roleData.role !== "creator") {
-        router.replace("/crownlink");
+        router.replace("/bloodline-arena");
         return;
       }
 
       if (!roleData.agency_id) {
         setError(
-          "No agency has been assigned to your Crown Link account. Please contact an administrator."
+          "No agency has been assigned to your Bloodline Arena account. Please contact an administrator."
         );
 
         setLoading(false);
@@ -150,7 +150,7 @@ export default function CrownLinkProfileSetupPage() {
         agency.status !== "active"
       ) {
         console.error(
-          "CROWN LINK AGENCY ERROR:",
+          "BLOODLINE ARENA AGENCY ERROR:",
           agencyError
         );
 
@@ -185,12 +185,12 @@ export default function CrownLinkProfileSetupPage() {
 
       if (profileError) {
         console.error(
-          "CROWN LINK PROFILE ERROR:",
+          "BLOODLINE ARENA PROFILE ERROR:",
           profileError
         );
 
         setError(
-          "Your Crown Link profile could not be loaded."
+          "Your Bloodline Arena profile could not be loaded."
         );
 
         setLoading(false);
@@ -281,16 +281,16 @@ export default function CrownLinkProfileSetupPage() {
               setConnectedAgentName(
                 validation.agentDisplayName ||
                   validation.agentAgencyName ||
-                  "Crown Link Agent"
+                  "Bloodline Arena Agent"
               );
             } else {
               setConnectedAgentName(
-                "Crown Link Agent"
+                "Bloodline Arena Agent"
               );
             }
           } else {
             setConnectedAgentName(
-              "Crown Link Agent"
+              "Bloodline Arena Agent"
             );
           }
         }
@@ -345,16 +345,16 @@ export default function CrownLinkProfileSetupPage() {
               setConnectedAgentName(
                 validation.agentDisplayName ||
                   validation.agentAgencyName ||
-                  "Crown Link Agent"
+                  "Bloodline Arena Agent"
               );
             } else {
               setConnectedAgentName(
-                "Crown Link Agent"
+                "Bloodline Arena Agent"
               );
             }
           } else {
             setConnectedAgentName(
-              "Crown Link Agent"
+              "Bloodline Arena Agent"
             );
           }
         }
@@ -381,7 +381,7 @@ export default function CrownLinkProfileSetupPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.replace("/crownlink/login");
+      router.replace("/bloodline-arena/login");
       return;
     }
 
@@ -399,7 +399,7 @@ export default function CrownLinkProfileSetupPage() {
       roleData.status !== "active"
     ) {
       setError(
-        "We couldn't verify your Crown Link account."
+        "We couldn't verify your Bloodline Arena account."
       );
 
       setSaving(false);
@@ -439,7 +439,7 @@ export default function CrownLinkProfileSetupPage() {
      * TEMPORARY SOFT LAUNCH:
      *
      * TikTok connection is NOT required while the
-     * Crown Link TikTok integration is awaiting
+     * Bloodline Arena TikTok integration is awaiting
      * production approval.
      *
      * Keep all TikTok fields and connection logic
@@ -504,7 +504,7 @@ export default function CrownLinkProfileSetupPage() {
     }
 
     /*
-     * Only Crown Link-editable information is
+     * Only Bloodline Arena-editable information is
      * updated here.
      *
      * If TikTok is connected, the secure TikTok
@@ -553,7 +553,7 @@ export default function CrownLinkProfileSetupPage() {
 
     if (saveError) {
       console.error(
-        "CROWN LINK PROFILE SAVE ERROR:",
+        "BLOODLINE ARENA PROFILE SAVE ERROR:",
         saveError
       );
 
@@ -563,7 +563,7 @@ export default function CrownLinkProfileSetupPage() {
           .includes("tiktok_username")
       ) {
         setError(
-          "That TikTok username is already being used by another Crown Link account."
+          "That TikTok username is already being used by another Bloodline Arena account."
         );
       } else {
         setError(
@@ -575,7 +575,7 @@ export default function CrownLinkProfileSetupPage() {
       return;
     }
 
-    router.push("/crownlink");
+    router.push("/bloodline-arena");
     router.refresh();
   }
 
@@ -586,7 +586,7 @@ export default function CrownLinkProfileSetupPage() {
           ♛
         </div>
 
-        <p>Loading Crown Link...</p>
+        <p>Loading Bloodline Arena...</p>
 
         <style jsx>{`
           .cl-loading {
@@ -649,7 +649,7 @@ export default function CrownLinkProfileSetupPage() {
               </div>
 
               <h1>
-                Crown <span>Link</span>
+                Bloodline <span>Arena</span>
               </h1>
 
               <div className="cl-fire-line" />
@@ -678,10 +678,10 @@ export default function CrownLinkProfileSetupPage() {
             <h2>Set up your profile</h2>
 
             <p>
-              Complete your Crown Link
+              Complete your Bloodline Arena
               information below. TikTok
               verification is temporarily
-              optional while the Crown Link
+              optional while the Bloodline Arena
               TikTok integration is awaiting
               approval.
             </p>
@@ -707,11 +707,11 @@ export default function CrownLinkProfileSetupPage() {
                     </strong>
 
                     <span>
-                      Crown Link&apos;s TikTok
+                      Bloodline Arena&apos;s TikTok
                       connection is currently
                       awaiting approval. You can
                       finish your profile and use
-                      Crown Link without linking
+                      Bloodline Arena without linking
                       TikTok for now.
                     </span>
                   </div>
@@ -798,7 +798,7 @@ export default function CrownLinkProfileSetupPage() {
             />
 
             <small>
-              This is the name other Crown
+              This is the name other Bloodline
               Link creators will see.
             </small>
           </div>
@@ -877,7 +877,7 @@ export default function CrownLinkProfileSetupPage() {
 
             <small>
               Your agency was assigned
-              automatically when your Crown
+              automatically when your Bloodline
               Link account was created.
             </small>
           </div>
@@ -897,7 +897,7 @@ export default function CrownLinkProfileSetupPage() {
 
                     <strong>
                       {connectedAgentName ||
-                        "Crown Link Agent"}
+                        "Bloodline Arena Agent"}
                     </strong>
 
                     {agentRegistrationCode && (
@@ -944,7 +944,7 @@ export default function CrownLinkProfileSetupPage() {
 
                 <small>
                   Enter the registration code
-                  provided by your Crown Link
+                  provided by your Bloodline Arena
                   agent.
                 </small>
               </>
@@ -978,7 +978,7 @@ export default function CrownLinkProfileSetupPage() {
 
             <small>
               Enter your typical diamond count
-              for battles. Crown Link uses this
+              for battles. Bloodline Arena uses this
               to help create balanced matchups.
               You can update it later.
             </small>
@@ -1016,11 +1016,11 @@ export default function CrownLinkProfileSetupPage() {
               <span>♛</span>
 
               <p>
-                You can start using Crown Link
+                You can start using Bloodline Arena
                 now. Once TikTok verification
                 becomes available, you&apos;ll
                 be able to connect your TikTok
-                account from Crown Link.
+                account from Bloodline Arena.
               </p>
             </div>
           )}
@@ -1029,11 +1029,11 @@ export default function CrownLinkProfileSetupPage() {
             <div className="legal-links">
               By connecting TikTok, you agree
               to the{" "}
-              <a href="/crownlink/terms">
+              <a href="/bloodline-arena/terms">
                 Terms of Service
               </a>{" "}
               and acknowledge the{" "}
-              <a href="/crownlink/privacy">
+              <a href="/bloodline-arena/privacy">
                 Privacy Policy
               </a>
               .
@@ -1044,7 +1044,7 @@ export default function CrownLinkProfileSetupPage() {
         <footer className="cl-footer">
           <span>ROYALS BLOODLINE</span>
           <span>
-            CROWN LINK · CREATOR SETUP
+            BLOODLINE ARENA · CREATOR SETUP
           </span>
         </footer>
       </div>

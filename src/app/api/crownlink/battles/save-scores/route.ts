@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     if (roleError) {
       console.error(
-        "CROWN LINK SAVE SCORES ROLE ERROR:",
+        "BLOODLINE ARENA SAVE SCORES ROLE ERROR:",
         roleError
       );
 
@@ -173,14 +173,14 @@ export async function POST(request: Request) {
 
     if (battlesError) {
       console.error(
-        "CROWN LINK SAVE SCORES BATTLE ERROR:",
+        "BLOODLINE ARENA SAVE SCORES BATTLE ERROR:",
         battlesError
       );
 
       return NextResponse.json(
         {
           error:
-            "Crown Link could not verify the battles.",
+            "Bloodline Arena could not verify the battles.",
         },
         { status: 500 }
       );
@@ -263,7 +263,7 @@ export async function POST(request: Request) {
 
       if (updateError) {
         console.error(
-          "CROWN LINK SAVE SCORE UPDATE ERROR:",
+          "BLOODLINE ARENA SAVE SCORE UPDATE ERROR:",
           updateError
         );
 
@@ -288,7 +288,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK SAVE SCORES ERROR:",
+      "BLOODLINE ARENA SAVE SCORES ERROR:",
       error
     );
 

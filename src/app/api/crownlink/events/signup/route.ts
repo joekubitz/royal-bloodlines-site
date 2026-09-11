@@ -273,7 +273,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK SIGNUP ERROR:",
+      "BLOODLINE ARENA SIGNUP ERROR:",
       error
     );
 

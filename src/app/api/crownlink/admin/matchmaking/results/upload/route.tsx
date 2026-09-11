@@ -251,7 +251,7 @@ export async function POST(request: Request) {
         }
       } catch (cleanupError) {
         console.warn(
-          "Could not remove old Crown Link score screenshot:",
+          "Could not remove old Bloodline Arena score screenshot:",
           cleanupError
         );
       }
@@ -266,7 +266,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK SCORE SCREENSHOT UPLOAD ERROR:",
+      "BLOODLINE ARENA SCORE SCREENSHOT UPLOAD ERROR:",
       error
     );
 

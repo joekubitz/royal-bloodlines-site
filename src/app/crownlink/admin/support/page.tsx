@@ -13,7 +13,7 @@ export default async function SupportAdminPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   // Check the dedicated support-admin allow-list
@@ -24,7 +24,7 @@ export default async function SupportAdminPage() {
     .maybeSingle();
 
   if (!supportAdmin) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -177,14 +177,14 @@ export default async function SupportAdminPage() {
           }}
         >
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             ← Admin Center
           </Link>
 
           <Link
-            href="/crownlink"
+            href="/bloodline-arena"
             style={secondaryButtonStyle}
           >
             Creator View
@@ -242,7 +242,7 @@ export default async function SupportAdminPage() {
               }}
             >
               <p style={eyebrowStyle}>
-                Crown Link · Support
+                Bloodline Arena · Support
               </p>
 
               {unreadReplyCount > 0 && (
@@ -295,7 +295,7 @@ export default async function SupportAdminPage() {
             >
               Review, manage, and
               reply to support requests
-              submitted through Crown
+              submitted through Bloodline
               Link.
             </p>
 

@@ -100,7 +100,7 @@ export default function AgentAccessClient() {
 
           <p className="mt-2 text-sm text-gray-400">
             Invite a new agent or connect an existing
-            Royals Battles account to their Backstage
+            Bloodline Arena account to their Backstage
             creator roster.
           </p>
         </div>

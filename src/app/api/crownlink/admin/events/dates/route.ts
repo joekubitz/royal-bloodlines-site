@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       }
 
       console.error(
-        "ADD CROWN LINK EVENT DATE ERROR:",
+        "ADD BLOODLINE ARENA EVENT DATE ERROR:",
         insertError
       );
 
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(
-      "ADD CROWN LINK EVENT DATE ERROR:",
+      "ADD BLOODLINE ARENA EVENT DATE ERROR:",
       error
     );
 
@@ -222,7 +222,7 @@ export async function DELETE(request: Request) {
 
     if (deleteError) {
       console.error(
-        "REMOVE CROWN LINK EVENT DATE ERROR:",
+        "REMOVE BLOODLINE ARENA EVENT DATE ERROR:",
         deleteError
       );
 
@@ -242,7 +242,7 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error(
-      "REMOVE CROWN LINK EVENT DATE ERROR:",
+      "REMOVE BLOODLINE ARENA EVENT DATE ERROR:",
       error
     );
 

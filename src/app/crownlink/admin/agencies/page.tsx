@@ -12,7 +12,7 @@ export default async function CrownLinkAgenciesPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -26,7 +26,7 @@ export default async function CrownLinkAgenciesPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const { data: agencies, error } = await supabase
@@ -75,7 +75,7 @@ export default async function CrownLinkAgenciesPage() {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>←</span>
@@ -151,7 +151,7 @@ export default async function CrownLinkAgenciesPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · People & Access
+                Bloodline Arena · People & Access
               </span>
             </div>
 
@@ -188,7 +188,7 @@ export default async function CrownLinkAgenciesPage() {
               }}
             >
               Manage the approved agencies that can participate
-              across the Crown Link network.
+              across the Bloodline Arena network.
             </p>
           </div>
         </section>
@@ -267,7 +267,7 @@ export default async function CrownLinkAgenciesPage() {
                 lineHeight: 1.5,
               }}
             >
-              Add an approved agency to Crown Link.
+              Add an approved agency to Bloodline Arena.
               Agents and creators can then be assigned
               to it.
             </p>
@@ -557,7 +557,7 @@ export default async function CrownLinkAgenciesPage() {
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · Agency Management
+            Bloodline Arena · Agency Management
           </span>
         </footer>
       </div>

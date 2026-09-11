@@ -13,7 +13,7 @@ export default async function CrownLinkCreatorsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -27,7 +27,7 @@ export default async function CrownLinkCreatorsPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -52,7 +52,7 @@ export default async function CrownLinkCreatorsPage() {
 
   if (creatorRolesError) {
     console.error(
-      "CROWN LINK CREATOR ROLE ERROR:",
+      "BLOODLINE ARENA CREATOR ROLE ERROR:",
       creatorRolesError
     );
   }
@@ -74,7 +74,7 @@ export default async function CrownLinkCreatorsPage() {
 
   if (profilesError) {
     console.error(
-      "CROWN LINK CREATOR PROFILE ERROR:",
+      "BLOODLINE ARENA CREATOR PROFILE ERROR:",
       profilesError
     );
   }
@@ -89,7 +89,7 @@ export default async function CrownLinkCreatorsPage() {
 
   if (authUsersError) {
     console.error(
-      "CROWN LINK AUTH USERS ERROR:",
+      "BLOODLINE ARENA AUTH USERS ERROR:",
       authUsersError
     );
   }
@@ -159,7 +159,7 @@ export default async function CrownLinkCreatorsPage() {
         {/* BACK */}
         <div style={{ marginBottom: 16 }}>
           <Link
-            href="/crownlink/admin"
+            href="/bloodline-arena/admin"
             style={backButtonStyle}
           >
             <span style={{ fontSize: 14 }}>←</span>
@@ -236,7 +236,7 @@ export default async function CrownLinkCreatorsPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · People & Access
+                Bloodline Arena · People & Access
               </span>
             </div>
 
@@ -274,7 +274,7 @@ export default async function CrownLinkCreatorsPage() {
                 lineHeight: 1.6,
               }}
             >
-              Create and manage Crown Link
+              Create and manage Bloodline Arena
               creator accounts, profile setup,
               agency assignments, and access
               status.
@@ -436,7 +436,7 @@ export default async function CrownLinkCreatorsPage() {
                   fontWeight: 900,
                 }}
               >
-                No Crown Link creators yet
+                No Bloodline Arena creators yet
               </p>
 
               <p
@@ -750,7 +750,7 @@ export default async function CrownLinkCreatorsPage() {
         >
           <span>Royals Bloodline</span>
           <span>
-            Crown Link · Creator Management
+            Bloodline Arena · Creator Management
           </span>
         </footer>
       </div>

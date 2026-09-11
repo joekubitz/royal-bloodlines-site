@@ -98,7 +98,7 @@ export default function AddAgentForm() {
             lineHeight: 1.5,
           }}
         >
-          Create an agent login, assign their Crown Link agency, and give them
+          Create an agent login, assign their Bloodline Arena agency, and give them
           a unique team registration code.
         </p>
       </div>

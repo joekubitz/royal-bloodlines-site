@@ -11,7 +11,7 @@ export default async function CrownLinkAdminPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole, error: roleError } = await supabase
@@ -26,7 +26,7 @@ export default async function CrownLinkAdminPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
@@ -83,7 +83,7 @@ export default async function CrownLinkAdminPage() {
               Portal
             </Link>
 
-            <Link href="/crownlink" style={backButtonStyle}>
+            <Link href="/bloodline-arena" style={backButtonStyle}>
               <span style={{ fontSize: 14 }}>←</span>
               Creator View
             </Link>
@@ -91,7 +91,7 @@ export default async function CrownLinkAdminPage() {
 
           {hasAgentAccess && (
             <Link
-              href="/crownlink/agent"
+              href="/bloodline-arena/agent"
               style={agentButtonStyle}
             >
               <span>♛</span>
@@ -163,7 +163,7 @@ export default async function CrownLinkAdminPage() {
               />
 
               <span style={eyebrowStyle}>
-                Crown Link · Administration
+                Bloodline Arena · Administration
               </span>
             </div>
 
@@ -199,7 +199,7 @@ export default async function CrownLinkAdminPage() {
                 lineHeight: 1.6,
               }}
             >
-              Your central workspace for running Crown Link events,
+              Your central workspace for running Bloodline Arena events,
               matchmaking, battles, teams, support, and reporting.
             </p>
           </div>
@@ -210,7 +210,7 @@ export default async function CrownLinkAdminPage() {
           <SectionHeading
             eyebrow="Battle Operations"
             title="Primary Operations"
-            description="The tools used to run active Crown Link events."
+            description="The tools used to run active Bloodline Arena events."
           />
 
           <div
@@ -222,7 +222,7 @@ export default async function CrownLinkAdminPage() {
             }}
           >
             <ControlCard
-              href="/crownlink/admin/events"
+              href="/bloodline-arena/admin/events"
               symbol="▣"
               title="Events"
               description="Create events, manage dates, and review signups."
@@ -230,7 +230,7 @@ export default async function CrownLinkAdminPage() {
             />
 
             <ControlCard
-              href="/crownlink/admin/matchmaking"
+              href="/bloodline-arena/admin/matchmaking"
               symbol="⚔"
               title="Matchmaking"
               description="Generate and manage creator matchups."
@@ -238,7 +238,7 @@ export default async function CrownLinkAdminPage() {
             />
 
             <ControlCard
-              href="/crownlink/admin/battles"
+              href="/bloodline-arena/admin/battles"
               symbol="♛"
               title="Battles"
               description="Manage approved battles, attendance, scores, and replacements."
@@ -246,7 +246,7 @@ export default async function CrownLinkAdminPage() {
             />
 
             <ControlCard
-              href="/crownlink/admin/schedule-export"
+              href="/bloodline-arena/admin/schedule-export"
               symbol="▤"
               title="Schedule Export"
               description="Preview and export finalized battle schedules."
@@ -272,28 +272,28 @@ export default async function CrownLinkAdminPage() {
             }}
           >
             <CompactCard
-              href="/crownlink/admin/creators"
+              href="/bloodline-arena/admin/creators"
               symbol="◇"
               title="Creators"
               description="Creator accounts, status, and access."
             />
 
             <CompactCard
-              href="/crownlink/admin/agents"
+              href="/bloodline-arena/admin/agents"
               symbol="♜"
               title="Agents"
               description="Agents, registration codes, and permissions."
             />
 
             <CompactCard
-              href="/crownlink/admin/agencies"
+              href="/bloodline-arena/admin/agencies"
               symbol="◆"
               title="Agencies"
-              description="Approved Crown Link agencies."
+              description="Approved Bloodline Arena agencies."
             />
 
             <CompactCard
-              href="/crownlink/admin/support"
+              href="/bloodline-arena/admin/support"
               symbol="?"
               title="Support Tickets"
               description="Review and manage support requests from creators and agents."
@@ -318,14 +318,14 @@ export default async function CrownLinkAdminPage() {
             }}
           >
             <WideCard
-              href="/crownlink/admin/leaderboard"
+              href="/bloodline-arena/admin/leaderboard"
               symbol="♕"
               title="Event Leaderboard"
               description="View live and final standings based on recorded battle scores."
             />
 
             <WideCard
-              href="/crownlink/admin/results"
+              href="/bloodline-arena/admin/results"
               symbol="◈"
               title="Past Events & Results"
               description="Review archived events, scores, attendance, no-shows, and replacements."
@@ -351,7 +351,7 @@ export default async function CrownLinkAdminPage() {
           }}
         >
           <span>Royals Bloodline</span>
-          <span>Crown Link · Admin Center</span>
+          <span>Bloodline Arena · Admin Center</span>
         </footer>
       </div>
     </main>

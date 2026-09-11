@@ -20,7 +20,7 @@ export default async function CrownLinkMatchmakingAdminPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/crownlink/login");
+    redirect("/bloodline-arena/login");
   }
 
   const { data: userRole } = await supabase
@@ -34,13 +34,13 @@ export default async function CrownLinkMatchmakingAdminPage() {
     userRole.role !== "admin" ||
     userRole.status !== "active"
   ) {
-    redirect("/crownlink");
+    redirect("/bloodline-arena");
   }
 
   const adminSupabase = createAdminClient();
 
   /*
-   * Crown Link uses Eastern Time everywhere.
+   * Bloodline Arena uses Eastern Time everywhere.
    * Using UTC here can hide same-day evening
    * events after midnight UTC but before
    * midnight in New York.
@@ -284,7 +284,7 @@ export default async function CrownLinkMatchmakingAdminPage() {
         }}
       >
         <Link
-          href="/crownlink/admin"
+          href="/bloodline-arena/admin"
           style={{
             color: "#d3a33c",
             textDecoration: "none",
@@ -310,7 +310,7 @@ export default async function CrownLinkMatchmakingAdminPage() {
               marginBottom: 8,
             }}
           >
-            CROWN LINK
+            BLOODLINE ARENA
           </p>
 
           <h1

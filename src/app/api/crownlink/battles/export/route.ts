@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
     if (roleError) {
       console.error(
-        "CROWN LINK BATTLE EXPORT ROLE ERROR:",
+        "BLOODLINE ARENA BATTLE EXPORT ROLE ERROR:",
         roleError
       );
 
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
 
     if (matchesError) {
       console.error(
-        "CROWN LINK BATTLE EXPORT MATCH ERROR:",
+        "BLOODLINE ARENA BATTLE EXPORT MATCH ERROR:",
         matchesError
       );
 
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
 
     if (eventsError) {
       console.error(
-        "CROWN LINK BATTLE EXPORT EVENT ERROR:",
+        "BLOODLINE ARENA BATTLE EXPORT EVENT ERROR:",
         eventsError
       );
 
@@ -152,7 +152,7 @@ export async function GET(request: Request) {
 
     if (profilesError) {
       console.error(
-        "CROWN LINK BATTLE EXPORT PROFILE ERROR:",
+        "BLOODLINE ARENA BATTLE EXPORT PROFILE ERROR:",
         profilesError
       );
 
@@ -182,7 +182,7 @@ export async function GET(request: Request) {
 
     if (agentsError) {
       console.error(
-        "CROWN LINK BATTLE EXPORT AGENT ERROR:",
+        "BLOODLINE ARENA BATTLE EXPORT AGENT ERROR:",
         agentsError
       );
 
@@ -320,7 +320,7 @@ export async function GET(request: Request) {
     const today = new Date().toISOString().slice(0, 10);
 
     const safeEventName =
-      (selectedEvent.name || "Crown-Link-Event")
+      (selectedEvent.name || "Bloodline-Arena-Event")
         .replace(/[^a-zA-Z0-9-_ ]/g, "")
         .trim()
         .replace(/\s+/g, "-");
@@ -336,7 +336,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error(
-      "CROWN LINK BATTLE EXPORT ERROR:",
+      "BLOODLINE ARENA BATTLE EXPORT ERROR:",
       error
     );
 

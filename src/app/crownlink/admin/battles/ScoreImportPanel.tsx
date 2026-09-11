@@ -187,7 +187,7 @@ export default function ScoreImportPanel() {
           lineHeight: 1.6,
         }}
       >
-        Upload a Crown Link Excel export after both
+        Upload a Bloodline Arena Excel export after both
         score columns have been completed.
       </p>
 
