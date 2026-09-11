@@ -4,13 +4,32 @@ import OpenAI from "openai";
 import { createClient } from "@/app/supabase/server";
 
 /*
-  GROQ CLIENT
+  GROQ CLIENT FACTORY
+
+  Important:
+  We do NOT create the Groq client at module load.
+
+  Vercel may evaluate route files during build,
+  and creating the OpenAI-compatible client too
+  early can cause a missing-credentials build error.
 */
 
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+function createGroqClient() {
+  const apiKey =
+    process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "GROQ_API_KEY is missing."
+    );
+  }
+
+  return new OpenAI({
+    apiKey,
+    baseURL:
+      "https://api.groq.com/openai/v1",
+  });
+}
 
 /*
   TYPES
@@ -35,29 +54,40 @@ type CreatorStat = {
 };
 
 type HistoryMessage = {
-  role: "user" | "assistant";
+  role:
+    | "user"
+    | "assistant";
   content: string;
 };
 
 /*
   CLEAN AI RESPONSE
 
-  We preserve **bold** because
-  RBAIChat renders that visually.
+  Preserve **bold** because
+  RBAIChat renders it visually.
 
-  Other report-style Markdown gets removed.
+  Remove the report-style Markdown
+  that we do not want in the bubble.
 */
 
-function cleanAIResponse(text: string) {
+function cleanAIResponse(
+  text: string
+) {
   return text
     // Remove Markdown headings
-    .replace(/^#{1,6}\s*/gm, "")
+    .replace(
+      /^#{1,6}\s*/gm,
+      ""
+    )
 
     // Remove horizontal rules
-    .replace(/^\s*---+\s*$/gm, "")
+    .replace(
+      /^\s*---+\s*$/gm,
+      ""
+    )
 
-    // Remove single-asterisk italics,
-    // but preserve **bold**
+    // Remove single-asterisk italics
+    // while preserving **bold**
     .replace(
       /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
       "$1"
@@ -70,7 +100,10 @@ function cleanAIResponse(text: string) {
     )
 
     // Remove table pipes
-    .replace(/\|/g, " ")
+    .replace(
+      /\|/g,
+      " "
+    )
 
     // Remove numbered report-style headings
     .replace(
@@ -79,7 +112,10 @@ function cleanAIResponse(text: string) {
     )
 
     // Remove excessive blank lines
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(
+      /\n{3,}/g,
+      "\n\n"
+    )
 
     .trim();
 }
@@ -87,8 +123,9 @@ function cleanAIResponse(text: string) {
 /*
   VALIDATE CHAT HISTORY
 
-  Only the last 4 messages are kept.
-  Each message is capped to control tokens.
+  We keep only the last 4 messages
+  and cap each message so the Groq
+  free-tier token usage stays under control.
 */
 
 function parseHistory(
@@ -108,26 +145,41 @@ function parseHistory(
       } =>
         Boolean(
           item &&
-            typeof item === "object"
+            typeof item ===
+              "object"
         )
     )
     .filter(
       (
         item
       ): item is HistoryMessage =>
-        (item.role === "user" ||
-          item.role === "assistant") &&
-        typeof item.content === "string"
+        (
+          item.role ===
+            "user" ||
+          item.role ===
+            "assistant"
+        ) &&
+        typeof item.content ===
+          "string"
     )
-    .map((item) => ({
-      role: item.role,
-      content: item.content
-        .trim()
-        .slice(0, 800),
-    }))
+    .map(
+      (item) => ({
+        role:
+          item.role,
+
+        content:
+          item.content
+            .trim()
+            .slice(
+              0,
+              800
+            ),
+      })
+    )
     .filter(
       (item) =>
-        item.content.length > 0
+        item.content.length >
+        0
     )
     .slice(-4);
 }
@@ -141,10 +193,13 @@ export async function POST(
 ) {
   try {
     /*
-      GROQ CONFIG
+      VERIFY GROQ CONFIG
     */
 
-    if (!process.env.GROQ_API_KEY) {
+    if (
+      !process.env
+        .GROQ_API_KEY
+    ) {
       console.error(
         "RB AI ANALYST ERROR: GROQ_API_KEY is missing."
       );
@@ -160,11 +215,27 @@ export async function POST(
       );
     }
 
+    /*
+      CREATE GROQ CLIENT
+
+      Done inside POST so Vercel
+      doesn't require credentials
+      while importing the route
+      during build.
+    */
+
+    const groq =
+      createGroqClient();
+
+    /*
+      SUPABASE
+    */
+
     const supabase =
       await createClient();
 
     /*
-      AUTHENTICATE
+      AUTHENTICATE USER
     */
 
     const {
@@ -189,7 +260,7 @@ export async function POST(
     }
 
     /*
-      ROLE
+      GET USER ROLE
     */
 
     const {
@@ -198,8 +269,13 @@ export async function POST(
     } =
       await supabase
         .from("user_roles")
-        .select("role, status")
-        .eq("user_id", user.id)
+        .select(
+          "role, status"
+        )
+        .eq(
+          "user_id",
+          user.id
+        )
         .maybeSingle();
 
     if (roleError) {
@@ -220,14 +296,25 @@ export async function POST(
     }
 
     const isAdmin =
-      userRole?.role === "admin" &&
-      userRole?.status === "active";
+      userRole?.role ===
+        "admin" &&
+      userRole?.status ===
+        "active";
 
     const isAgent =
-      userRole?.role === "agent" &&
-      userRole?.status === "active";
+      userRole?.role ===
+        "agent" &&
+      userRole?.status ===
+        "active";
 
-    if (!isAdmin && !isAgent) {
+    /*
+      ONLY ADMINS + AGENTS
+    */
+
+    if (
+      !isAdmin &&
+      !isAgent
+    ) {
       return NextResponse.json(
         {
           error:
@@ -240,7 +327,7 @@ export async function POST(
     }
 
     /*
-      REQUEST BODY
+      READ REQUEST
     */
 
     let body: {
@@ -281,6 +368,10 @@ export async function POST(
         body.history
       );
 
+    /*
+      VALIDATE QUESTION
+    */
+
     if (!question) {
       return NextResponse.json(
         {
@@ -294,7 +385,8 @@ export async function POST(
     }
 
     if (
-      question.length > 2000
+      question.length >
+      2000
     ) {
       return NextResponse.json(
         {
@@ -309,6 +401,10 @@ export async function POST(
 
     /*
       AGENT TEAM MAPPING
+
+      Agents are always locked
+      to their assigned Backstage
+      manager.
     */
 
     let backstageManager:
@@ -358,7 +454,8 @@ export async function POST(
       }
 
       if (
-        analyticsAccess?.status !==
+        analyticsAccess
+          ?.status !==
           "active" ||
         !analyticsAccess
           ?.backstage_manager
@@ -402,7 +499,8 @@ export async function POST(
         .order(
           "imported_at",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
         .limit(1)
@@ -444,9 +542,11 @@ export async function POST(
     const creators:
       CreatorStat[] = [];
 
-    const pageSize = 1000;
+    const pageSize =
+      1000;
 
-    let from = 0;
+    let from =
+      0;
 
     while (true) {
       let creatorQuery =
@@ -476,7 +576,8 @@ export async function POST(
           .order(
             "diamonds",
             {
-              ascending: false,
+              ascending:
+                false,
             }
           )
           .range(
@@ -487,8 +588,10 @@ export async function POST(
           );
 
       /*
-        AGENTS ARE ALWAYS
-        LOCKED TO THEIR TEAM
+        AGENT SECURITY
+
+        Agents can only load
+        their own team.
       */
 
       if (
@@ -504,12 +607,17 @@ export async function POST(
 
       /*
         ADMIN FILTER
+
+        Admins can choose:
+        - all agents
+        - one agent
       */
 
       if (
         isAdmin &&
         selectedAgent &&
-        selectedAgent !== "all"
+        selectedAgent !==
+          "all"
       ) {
         creatorQuery =
           creatorQuery.eq(
@@ -559,11 +667,17 @@ export async function POST(
         break;
       }
 
-      from += pageSize;
+      from +=
+        pageSize;
     }
 
+    /*
+      NO CREATOR DATA
+    */
+
     if (
-      creators.length === 0
+      creators.length ===
+      0
     ) {
       return NextResponse.json(
         {
@@ -591,7 +705,8 @@ export async function POST(
         ) =>
           sum +
           Number(
-            creator.diamonds ??
+            creator
+              .diamonds ??
               0
           ),
         0
@@ -620,7 +735,8 @@ export async function POST(
         ) =>
           sum +
           Number(
-            creator.matches ??
+            creator
+              .matches ??
               0
           ),
         0
@@ -649,7 +765,8 @@ export async function POST(
       creators.filter(
         (creator) =>
           Number(
-            creator.live_days ??
+            creator
+              .live_days ??
               0
           ) >= 12
       ).length;
@@ -658,7 +775,8 @@ export async function POST(
       creators.filter(
         (creator) =>
           Number(
-            creator.live_duration ??
+            creator
+              .live_duration ??
               0
           ) >= 25
       ).length;
@@ -667,11 +785,13 @@ export async function POST(
       creators.filter(
         (creator) =>
           Number(
-            creator.live_days ??
+            creator
+              .live_days ??
               0
           ) >= 12 &&
           Number(
-            creator.live_duration ??
+            creator
+              .live_duration ??
               0
           ) >= 25
       ).length;
@@ -683,16 +803,20 @@ export async function POST(
     /*
       DIAMOND CHANGE
 
-      Useful context only.
-      The model knows the current
-      period may be partial.
+      Used only as context.
+      The current month may be partial.
     */
 
     const diamondChangePercent =
-      lastMonthDiamonds > 0
-        ? ((totalDiamonds -
-            lastMonthDiamonds) /
-            lastMonthDiamonds) *
+      lastMonthDiamonds >
+      0
+        ? (
+            (
+              totalDiamonds -
+              lastMonthDiamonds
+            ) /
+            lastMonthDiamonds
+          ) *
           100
         : null;
 
@@ -705,13 +829,15 @@ export async function POST(
         (creator) => {
           const days =
             Number(
-              creator.live_days ??
+              creator
+                .live_days ??
                 0
             );
 
           const hours =
             Number(
-              creator.live_duration ??
+              creator
+                .live_duration ??
                 0
             );
 
@@ -731,19 +857,22 @@ export async function POST(
         (creator) => {
           const diamonds =
             Number(
-              creator.diamonds ??
+              creator
+                .diamonds ??
                 0
             );
 
           const days =
             Number(
-              creator.live_days ??
+              creator
+                .live_days ??
                 0
             );
 
           const hours =
             Number(
-              creator.live_duration ??
+              creator
+                .live_duration ??
                 0
             );
 
@@ -763,7 +892,8 @@ export async function POST(
         (creator) => {
           const current =
             Number(
-              creator.diamonds ??
+              creator
+                .diamonds ??
                 0
             );
 
@@ -797,301 +927,318 @@ export async function POST(
       gh hours needed
     */
 
-    const analyticsContext = {
-      report: {
-        period:
-          latestImport.data_period,
-      },
+    const analyticsContext =
+      {
+        report: {
+          period:
+            latestImport
+              .data_period,
+        },
 
-      scope: {
-        role:
-          isAdmin
-            ? "admin"
-            : "agent",
+        scope: {
+          role:
+            isAdmin
+              ? "admin"
+              : "agent",
 
-        team:
-          isAgent
-            ? backstageManager
-            : selectedAgent ===
-                "all"
-              ? "All Agents"
-              : selectedAgent,
-      },
+          team:
+            isAgent
+              ? backstageManager
+              : selectedAgent ===
+                  "all"
+                ? "All Agents"
+                : selectedAgent,
+        },
 
-      summary: {
+        summary: {
+          creators:
+            totalCreators,
+
+          diamonds:
+            totalDiamonds,
+
+          lastMonth:
+            lastMonthDiamonds,
+
+          diamondChange:
+            diamondChangePercent,
+
+          matches:
+            totalMatches,
+
+          matchDiamonds:
+            totalMatchDiamonds,
+
+          meetDays:
+            meetingDays,
+
+          meetHours:
+            meetingHours,
+
+          complete,
+
+          needsAttention,
+
+          closeToComplete,
+
+          highDiamondNeedsAttention,
+
+          diamondIncreases,
+        },
+
         creators:
-          totalCreators,
-
-        diamonds:
-          totalDiamonds,
-
-        lastMonth:
-          lastMonthDiamonds,
-
-        diamondChange:
-          diamondChangePercent,
-
-        matches:
-          totalMatches,
-
-        matchDiamonds:
-          totalMatchDiamonds,
-
-        meetDays:
-          meetingDays,
-
-        meetHours:
-          meetingHours,
-
-        complete,
-
-        needsAttention,
-
-        closeToComplete,
-
-        highDiamondNeedsAttention,
-
-        diamondIncreases,
-      },
-
-      creators:
-        creators.map(
-          (creator) => {
-            const liveDays =
-              Number(
-                creator.live_days ??
-                  0
-              );
-
-            const liveHours =
-              Number(
-                creator.live_duration ??
-                  0
-              );
-
-            return {
-              u:
-                creator.username,
-
-              d:
-                Number(
-                  creator.diamonds ??
-                    0
-                ),
-
-              pd:
+          creators.map(
+            (
+              creator
+            ) => {
+              const liveDays =
                 Number(
                   creator
-                    .last_month_diamonds ??
+                    .live_days ??
                     0
-                ),
+                );
 
-              ld:
-                liveDays,
-
-              lh:
-                liveHours,
-
-              m:
-                Number(
-                  creator.matches ??
-                    0
-                ),
-
-              md:
+              const liveHours =
                 Number(
                   creator
-                    .diamonds_from_matches ??
+                    .live_duration ??
                     0
-                ),
+                );
 
-              gd:
-                Math.max(
-                  0,
-                  12 -
-                    liveDays
-                ),
+              return {
+                u:
+                  creator
+                    .username,
 
-              gh:
-                Math.max(
-                  0,
-                  25 -
-                    liveHours
-                ),
-            };
-          }
-        ),
-    };
+                d:
+                  Number(
+                    creator
+                      .diamonds ??
+                      0
+                  ),
+
+                pd:
+                  Number(
+                    creator
+                      .last_month_diamonds ??
+                      0
+                  ),
+
+                ld:
+                  liveDays,
+
+                lh:
+                  liveHours,
+
+                m:
+                  Number(
+                    creator
+                      .matches ??
+                      0
+                  ),
+
+                md:
+                  Number(
+                    creator
+                      .diamonds_from_matches ??
+                      0
+                  ),
+
+                gd:
+                  Math.max(
+                    0,
+                    12 -
+                      liveDays
+                  ),
+
+                gh:
+                  Math.max(
+                    0,
+                    25 -
+                      liveHours
+                  ),
+              };
+            }
+          ),
+      };
 
     /*
       SYSTEM PROMPT
 
-      Shorter than before so there
-      is room for conversation history.
+      Short enough to leave room
+      for chat memory and analytics.
     */
 
-    const systemPrompt = [
-      "You are RB AI Analyst, the private TikTok LIVE performance assistant for Royals Bloodline.",
+    const systemPrompt =
+      [
+        "You are RB AI Analyst, the private TikTok LIVE performance assistant for Royals Bloodline.",
 
-      "",
+        "",
 
-      "ROLE:",
-      "- Talk like a knowledgeable teammate looking at the dashboard with the user.",
-      "- Do not act like a report generator.",
-      "- Interpret the numbers and help the user decide what deserves attention.",
-      "- Use only the supplied analytics.",
+        "ROLE:",
+        "- Talk like a knowledgeable teammate looking at the dashboard with the user.",
+        "- Do not act like a report generator.",
+        "- Interpret the numbers and help the user decide what deserves attention.",
+        "- Use only the supplied analytics.",
 
-      "",
+        "",
 
-      "REQUIREMENTS:",
-      "- 12 valid LIVE days.",
-      "- 25 LIVE hours.",
-      "- Both must be met.",
+        "REQUIREMENTS:",
+        "- 12 valid LIVE days.",
+        "- 25 LIVE hours.",
+        "- Both must be met.",
 
-      "",
+        "",
 
-      "DATA KEYS:",
-      "u=username",
-      "d=current diamonds",
-      "pd=previous month diamonds",
-      "ld=LIVE days",
-      "lh=LIVE hours",
-      "m=matches",
-      "md=match diamonds",
-      "gd=days still needed",
-      "gh=hours still needed",
+        "DATA KEYS:",
+        "u=username",
+        "d=current diamonds",
+        "pd=previous month diamonds",
+        "ld=LIVE days",
+        "lh=LIVE hours",
+        "m=matches",
+        "md=match diamonds",
+        "gd=days still needed",
+        "gh=hours still needed",
 
-      "",
+        "",
 
-      "ACCURACY:",
-      "- Never invent data, usernames, trends, causes, or requirement gaps.",
-      "- Use gd and gh for requirement gaps.",
-      "- If gd is 0, the day requirement is met.",
-      "- If gh is 0, the hour requirement is met.",
-      "- Never describe a decrease as growth.",
-      "- Do not claim more matches guarantee more diamonds.",
-      "- The current report may be partial while the previous month may be complete, so do not compare them as equal-length periods.",
+        "ACCURACY:",
+        "- Never invent data, usernames, trends, causes, or requirement gaps.",
+        "- Use gd and gh for requirement gaps.",
+        "- If gd is 0, the day requirement is met.",
+        "- If gh is 0, the hour requirement is met.",
+        "- Never describe a decrease as growth.",
+        "- Do not claim more matches guarantee more diamonds.",
+        "- The current report may be partial while the previous month may be complete, so do not compare them as equal-length periods.",
 
-      "",
+        "",
 
-      "STYLE:",
-      "- Be conversational, direct, and practical.",
-      "- Prefer short natural paragraphs.",
-      "- Do not use tables.",
-      "- Do not use Markdown headings.",
-      "- Do not use horizontal separators.",
-      "- Do not format answers like reports.",
-      "- Do not automatically create numbered sections or checklists.",
-      "- Usually discuss only the creators most relevant to the question.",
-      "- The only Markdown allowed is **bold**.",
-      "- Bold creator usernames when discussing them.",
-      "- Bold important requirement gaps or key takeaways selectively.",
-      "- Do not overuse bold.",
+        "STYLE:",
+        "- Be conversational, direct, and practical.",
+        "- Prefer short natural paragraphs.",
+        "- Do not use tables.",
+        "- Do not use Markdown headings.",
+        "- Do not use horizontal separators.",
+        "- Do not format answers like reports.",
+        "- Do not automatically create numbered sections or checklists.",
+        "- Usually discuss only the creators most relevant to the question.",
+        "- The only Markdown allowed is **bold**.",
+        "- Bold creator usernames when discussing them.",
+        "- Bold important requirement gaps or key takeaways selectively.",
+        "- Do not overuse bold.",
 
-      "",
+        "",
 
-      "PRIORITIZATION:",
-      "- Do not treat every incomplete creator as equally urgent.",
-      "- Prioritize situations where agent attention can realistically help.",
-      "- Creators close to completion can be especially actionable.",
-      "- Strong performers at risk of missing requirements can also deserve attention.",
-      "- Do not simply choose the creators with the lowest numbers.",
+        "PRIORITIZATION:",
+        "- Do not treat every incomplete creator as equally urgent.",
+        "- Prioritize situations where agent attention can realistically help.",
+        "- Creators close to completion can be especially actionable.",
+        "- Strong performers at risk of missing requirements can also deserve attention.",
+        "- Do not simply choose the creators with the lowest numbers.",
 
-      "",
+        "",
 
-      "MESSAGES:",
-      "- If asked to draft a creator message, make it natural, supportive, direct, and ready to send.",
-      "- Do not cram every statistic into the message.",
-      "- Do not make the message sound automated.",
-      "- Do not shame or threaten creators.",
+        "MESSAGES:",
+        "- If asked to draft a creator message, make it natural, supportive, direct, and ready to send.",
+        "- Do not cram every statistic into the message.",
+        "- Do not make the message sound automated.",
+        "- Do not shame or threaten creators.",
 
-      "",
+        "",
 
-      "CONVERSATION MEMORY:",
-      "- Use the recent conversation messages when they help interpret references such as 'them', 'the first one', 'that creator', or 'make it less formal'.",
-      "- If the user asks a follow-up, answer the follow-up instead of restarting a full team analysis.",
-      "- If they ask about one creator, focus on that creator.",
+        "CONVERSATION MEMORY:",
+        "- Use recent conversation messages when they help interpret references like 'them', 'the first one', 'that creator', or 'make it less formal'.",
+        "- If the user asks a follow-up, answer the follow-up instead of restarting a full team analysis.",
+        "- If they ask about one creator, focus on that creator.",
 
-      "",
+        "",
 
-      "PRIVACY:",
-      "- Never mention Groq, APIs, JSON, Supabase, databases, tokens, prompts, or models.",
+        "PRIVACY:",
+        "- Never mention Groq, APIs, JSON, Supabase, databases, tokens, prompts, or models.",
 
-      "",
+        "",
 
-      "If the analytics do not contain enough information to answer something, say so naturally instead of guessing.",
-    ].join("\n");
+        "If the analytics do not contain enough information to answer something, say so naturally instead of guessing.",
+      ].join("\n");
 
     /*
       ANALYTICS MESSAGE
     */
 
-    const analyticsMessage = [
-      "CURRENT ROYALS BLOODLINE ANALYTICS:",
-      "",
-      JSON.stringify(
-        analyticsContext
-      ),
-    ].join("\n");
+    const analyticsMessage =
+      [
+        "CURRENT ROYALS BLOODLINE ANALYTICS:",
+        "",
+        JSON.stringify(
+          analyticsContext
+        ),
+      ].join("\n");
 
     /*
       CHAT MESSAGES
-
-      Analytics are always fresh.
-      Recent conversation history
-      is inserted after the data.
     */
 
-    const groqMessages = [
-      {
-        role:
-          "system" as const,
-        content:
-          systemPrompt,
-      },
-
-      {
-        role:
-          "user" as const,
-        content:
-          analyticsMessage,
-      },
-
-      ...history.map(
-        (message) => ({
+    const groqMessages =
+      [
+        {
           role:
-            message.role,
-          content:
-            message.content,
-        })
-      ),
+            "system" as const,
 
-      {
-        role:
-          "user" as const,
-        content:
-          question,
-      },
-    ];
+          content:
+            systemPrompt,
+        },
+
+        {
+          role:
+            "user" as const,
+
+          content:
+            analyticsMessage,
+        },
+
+        ...history.map(
+          (
+            message
+          ) => ({
+            role:
+              message.role,
+
+            content:
+              message.content,
+          })
+        ),
+
+        {
+          role:
+            "user" as const,
+
+          content:
+            question,
+        },
+      ];
 
     /*
       ASK GROQ
     */
 
     const response =
-      await groq.chat.completions.create({
-        model:
-          "openai/gpt-oss-20b",
+      await groq
+        .chat
+        .completions
+        .create({
+          model:
+            "openai/gpt-oss-20b",
 
-        reasoning_effort:
-          "low",
+          reasoning_effort:
+            "low",
 
-        max_completion_tokens:
-          1600,
+          max_completion_tokens:
+            1600,
 
-        messages:
-          groqMessages,
-      });
+          messages:
+            groqMessages,
+        });
 
     /*
       RESPONSE
@@ -1132,20 +1279,30 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({
-      answer,
+    /*
+      SUCCESS
+    */
 
-      scope: {
-        creators:
-          totalCreators,
+    return NextResponse.json(
+      {
+        answer,
 
-        manager:
-          isAgent
-            ? backstageManager
-            : selectedAgent,
-      },
-    });
+        scope: {
+          creators:
+            totalCreators,
+
+          manager:
+            isAgent
+              ? backstageManager
+              : selectedAgent,
+        },
+      }
+    );
   } catch (error) {
+    /*
+      LOG ERROR
+    */
+
     console.error(
       "RB AI ANALYST ERROR:",
       error
@@ -1158,7 +1315,8 @@ export async function POST(
     if (
       error instanceof
         OpenAI.APIError &&
-      error.status === 429
+      error.status ===
+        429
     ) {
       return NextResponse.json(
         {
@@ -1178,7 +1336,8 @@ export async function POST(
     if (
       error instanceof
         OpenAI.APIError &&
-      error.status === 413
+      error.status ===
+        413
     ) {
       return NextResponse.json(
         {
@@ -1190,6 +1349,10 @@ export async function POST(
         }
       );
     }
+
+    /*
+      EVERYTHING ELSE
+    */
 
     return NextResponse.json(
       {
