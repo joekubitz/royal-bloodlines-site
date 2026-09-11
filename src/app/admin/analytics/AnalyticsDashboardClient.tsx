@@ -15,6 +15,7 @@ import DashboardAlerts, {
 } from "./DashboardAlerts";
 import LevelAnalytics from "./LevelAnalytics";
 import RankUpAnalytics from "./RankUpAnalytics";
+import RBAIChat from "./RBAIChat";
 
 export type CreatorStat = {
   id: string;
@@ -1011,6 +1012,12 @@ export default function AnalyticsDashboardClient({
         creators={
           filteredCreators
         }
+        selectedAgent={
+          effectiveAgentFilter
+        }
+      />
+
+      <RBAIChat
         selectedAgent={
           effectiveAgentFilter
         }
