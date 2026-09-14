@@ -1539,6 +1539,19 @@ export default async function CrownLinkPage() {
                 unreadNotificationCount
               }
             />
+
+            {userRole.role === "creator" && (
+              <ActionCard
+                number="06"
+                eyebrow="Performance"
+                title="Creator Analytics"
+                description="View your personal TikTok LIVE Backstage performance, including diamonds, LIVE days, hours, matches, and month-over-month stats."
+                action="View My Analytics"
+                href="/bloodline-arena/analytics"
+                symbol="◈"
+                featured
+              />
+            )}
           </div>
         </section>
       </div>

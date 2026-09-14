@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 
 type ImportCreatorRow = {
+  creator_id: string;
   username: string;
   manager?: string | null;
   days_since_joining?: number | null;
@@ -109,6 +110,10 @@ export async function POST(request: Request) {
 
     const cleanedRows = rows
       .map((row) => {
+        const creatorId = String(
+          row.creator_id ?? ""
+        ).trim();
+
         const username = String(
           row.username ?? ""
         )
@@ -116,6 +121,8 @@ export async function POST(request: Request) {
           .replace(/^@/, "");
 
         return {
+          creator_id: creatorId,
+
           username,
 
           manager:
@@ -183,13 +190,15 @@ export async function POST(request: Request) {
       })
       .filter(
         (row) =>
+          row.creator_id.length > 0 &&
           row.username.length > 0
       );
 
     if (cleanedRows.length === 0) {
       return NextResponse.json(
         {
-          error: "No valid creators were found.",
+          error:
+            "No valid creators with Creator IDs and usernames were found.",
         },
         {
           status: 400,
@@ -277,11 +286,6 @@ export async function POST(request: Request) {
           "Backstage creator import error:",
           error
         );
-
-        /*
-          CLEAN UP EMPTY HISTORY RECORD
-          IF CREATOR IMPORT FAILS
-        */
 
         await supabase
           .from("backstage_imports")

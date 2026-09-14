@@ -40,6 +40,30 @@ export default async function CrownLinkAdminPage() {
 
   const hasAgentAccess = Boolean(agentCode);
 
+  /*
+    PENDING CREATOR ANALYTICS LINK REQUESTS
+  */
+  const {
+    count: pendingAnalyticsLinkCount,
+    error: pendingAnalyticsLinkError,
+  } = await adminSupabase
+    .from("creator_analytics_link_requests")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("status", "pending");
+
+  if (pendingAnalyticsLinkError) {
+    console.error(
+      "Pending analytics link count error:",
+      pendingAnalyticsLinkError
+    );
+  }
+
+  const analyticsLinkCount =
+    pendingAnalyticsLinkCount ?? 0;
+
   return (
     <main
       style={{
@@ -298,6 +322,22 @@ export default async function CrownLinkAdminPage() {
               title="Support Tickets"
               description="Review and manage support requests from creators and agents."
             />
+
+            <CompactCard
+              href="/bloodline-arena/admin/analytics-links"
+              symbol="◈"
+              title="Analytics Links"
+              description={
+                analyticsLinkCount > 0
+                  ? `${analyticsLinkCount} creator analytics ${
+                      analyticsLinkCount === 1
+                        ? "request is"
+                        : "requests are"
+                    } waiting for approval.`
+                  : "Review and approve creator analytics connection requests."
+              }
+              notificationCount={analyticsLinkCount}
+            />
           </div>
         </section>
 
@@ -538,16 +578,19 @@ function CompactCard({
   symbol,
   title,
   description,
+  notificationCount = 0,
 }: {
   href: string;
   symbol: string;
   title: string;
   description: string;
+  notificationCount?: number;
 }) {
   return (
     <Link
       href={href}
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
         gap: 14,
@@ -561,6 +604,30 @@ function CompactCard({
         boxShadow: "0 14px 30px rgba(0,0,0,0.25)",
       }}
     >
+      {notificationCount > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            right: 12,
+            top: 10,
+            minWidth: 22,
+            height: 22,
+            padding: "0 6px",
+            borderRadius: 999,
+            background: "#ef4444",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 8,
+            fontWeight: 950,
+            boxShadow: "0 0 18px rgba(239,68,68,0.28)",
+          }}
+        >
+          {notificationCount}
+        </div>
+      )}
+
       <div
         style={{
           width: 38,

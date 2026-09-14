@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as XLSX from "xlsx";
 
 type CreatorRow = {
+  creator_id: string;
   username: string;
   manager: string;
   days_since_joining: number;
@@ -225,6 +226,12 @@ export default function AnalyticsUploadClient() {
           "Data period"
         );
 
+      const creatorIdIndex =
+        findHeaderIndex(
+          headers,
+          "Creator ID"
+        );
+
       const usernameIndex =
         findHeaderIndex(
           headers,
@@ -297,6 +304,12 @@ export default function AnalyticsUploadClient() {
 
       const missingHeaders: string[] =
         [];
+
+      if (creatorIdIndex === -1) {
+        missingHeaders.push(
+          "Creator ID"
+        );
+      }
 
       if (dataPeriodIndex === -1) {
         missingHeaders.push(
@@ -433,6 +446,12 @@ export default function AnalyticsUploadClient() {
         rawRows
           .slice(1)
           .map((row) => {
+            const creatorId = String(
+              row[
+                creatorIdIndex
+              ] ?? ""
+            ).trim();
+
             const username = String(
               row[
                 usernameIndex
@@ -448,6 +467,8 @@ export default function AnalyticsUploadClient() {
             ).trim();
 
             return {
+              creator_id: creatorId,
+
               username,
 
               manager,
@@ -528,6 +549,7 @@ export default function AnalyticsUploadClient() {
           })
           .filter(
             (row) =>
+              row.creator_id.length > 0 &&
               row.username.length > 0
           );
 
@@ -535,7 +557,7 @@ export default function AnalyticsUploadClient() {
         parsedRows.length === 0
       ) {
         throw new Error(
-          "No creators with usernames were found."
+          "No valid creators with Creator IDs and usernames were found."
         );
       }
 
@@ -764,6 +786,10 @@ export default function AnalyticsUploadClient() {
                 <thead className="bg-white/10 text-left">
                   <tr>
                     <th className="p-4">
+                      Creator ID
+                    </th>
+
+                    <th className="p-4">
                       Creator
                     </th>
 
@@ -820,9 +846,13 @@ export default function AnalyticsUploadClient() {
                         index
                       ) => (
                         <tr
-                          key={`${creator.username}-${index}`}
+                          key={`${creator.creator_id}-${index}`}
                           className="border-t border-white/10"
                         >
+                          <td className="p-4 text-gray-400">
+                            {creator.creator_id}
+                          </td>
+
                           <td className="p-4 font-semibold">
                             @
                             {
