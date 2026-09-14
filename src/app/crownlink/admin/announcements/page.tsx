@@ -247,14 +247,17 @@ export default async function AnnouncementsPage() {
               Publish Update
             </h2>
 
-            <form
-              action={createAnnouncement}
-              style={{
-                display: "grid",
-                gap: 16,
-                marginTop: 22,
-              }}
-            >
+           <form
+  action={async (formData: FormData) => {
+    "use server";
+
+    await createAnnouncement(formData);
+  }}
+  style={{
+    display: "grid",
+    gap: 16,
+  }}
+>
               <label>
                 <span style={labelStyle}>
                   Title
