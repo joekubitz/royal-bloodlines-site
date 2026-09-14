@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
+
 import GenerateMatchesButton from "./GenerateMatchesButton";
 import MatchActions from "./MatchActions";
 import RecordResultsForm from "./RecordResultsForm";
 import TestDataControls from "./TestDataControls";
+
+import {
+  analyzeScheduleConflicts,
+  type ScheduleHealthResult,
+} from "@/app/lib/crownlink/analyzeScheduleConflicts";
+
 import {
   formatEasternDate,
   formatEasternTime,
@@ -41,12 +49,12 @@ export default async function CrownLinkMatchmakingAdminPage() {
 
   /*
    * Bloodline Arena uses Eastern Time everywhere.
-   * Using UTC here can hide same-day evening
-   * events after midnight UTC but before
-   * midnight in New York.
    */
   const today = getEasternToday();
 
+  /*
+   * EVENTS
+   */
   const { data: events } = await adminSupabase
     .from("crownlink_events")
     .select(`
@@ -58,9 +66,16 @@ export default async function CrownLinkMatchmakingAdminPage() {
     `)
     .eq("status", "active")
     .gte("event_date", today)
-    .order("event_date", { ascending: true })
-    .order("event_time", { ascending: true });
+    .order("event_date", {
+      ascending: true,
+    })
+    .order("event_time", {
+      ascending: true,
+    });
 
+  /*
+   * MATCHES
+   */
   const { data: matches } = await adminSupabase
     .from("crownlink_matches")
     .select(`
@@ -73,11 +88,21 @@ export default async function CrownLinkMatchmakingAdminPage() {
       schedule_slot_id,
       created_at
     `)
-    .in("status", ["suggested", "approved"])
-    .order("created_at", { ascending: true });
+    .in("status", [
+      "suggested",
+      "approved",
+    ])
+    .order("created_at", {
+      ascending: true,
+    });
 
-  const matchIds = (matches ?? []).map((match) => match.id);
+  const matchIds = (matches ?? []).map(
+    (match) => match.id
+  );
 
+  /*
+   * ATTENDANCE / RESULTS
+   */
   let matchAttendance: {
     match_id: string;
     creator_id: string;
@@ -92,92 +117,152 @@ export default async function CrownLinkMatchmakingAdminPage() {
   }[] = [];
 
   if (matchIds.length > 0) {
-    const { data: attendanceData } = await adminSupabase
-      .from("crownlink_match_attendance")
-      .select(`
-        match_id,
-        creator_id,
-        status
-      `)
-      .in("match_id", matchIds);
+    const { data: attendanceData } =
+      await adminSupabase
+        .from(
+          "crownlink_match_attendance"
+        )
+        .select(`
+          match_id,
+          creator_id,
+          status
+        `)
+        .in("match_id", matchIds);
 
-    matchAttendance = attendanceData ?? [];
+    matchAttendance =
+      attendanceData ?? [];
 
-    const { data: resultsData } = await adminSupabase
-      .from("crownlink_match_results")
-      .select(`
-        match_id,
-        creator_one_score,
-        creator_two_score,
-        score_screenshot_url
-      `)
-      .in("match_id", matchIds);
+    const { data: resultsData } =
+      await adminSupabase
+        .from("crownlink_match_results")
+        .select(`
+          match_id,
+          creator_one_score,
+          creator_two_score,
+          score_screenshot_url
+        `)
+        .in("match_id", matchIds);
 
     matchResults = resultsData ?? [];
   }
 
-  const attendanceByMatch = new Map<string, typeof matchAttendance>();
+  const attendanceByMatch =
+    new Map<
+      string,
+      typeof matchAttendance
+    >();
 
   for (const attendance of matchAttendance) {
-    const current = attendanceByMatch.get(attendance.match_id) ?? [];
+    const current =
+      attendanceByMatch.get(
+        attendance.match_id
+      ) ?? [];
+
     current.push(attendance);
-    attendanceByMatch.set(attendance.match_id, current);
+
+    attendanceByMatch.set(
+      attendance.match_id,
+      current
+    );
   }
 
-  const resultsByMatch = new Map(
-    matchResults.map((result) => [result.match_id, result])
-  );
+  const resultsByMatch =
+    new Map(
+      matchResults.map(
+        (result) => [
+          result.match_id,
+          result,
+        ]
+      )
+    );
 
-  const { data: eventDates } = await adminSupabase
-    .from("crownlink_event_dates")
-    .select(`
-      id,
-      event_id,
-      event_date
-    `)
-    .order("event_date", { ascending: true });
+  /*
+   * EVENT DATES
+   */
+  const { data: eventDates } =
+    await adminSupabase
+      .from(
+        "crownlink_event_dates"
+      )
+      .select(`
+        id,
+        event_id,
+        event_date
+      `)
+      .order("event_date", {
+        ascending: true,
+      });
 
-  const { data: scheduleSlots } = await adminSupabase
-    .from("crownlink_schedule_slots")
-    .select(`
-      id,
-      event_id,
-      event_date_id,
-      slot_time
-    `)
-    .order("slot_time", { ascending: true });
+  /*
+   * SCHEDULE SLOTS
+   */
+  const { data: scheduleSlots } =
+    await adminSupabase
+      .from(
+        "crownlink_schedule_slots"
+      )
+      .select(`
+        id,
+        event_id,
+        event_date_id,
+        slot_time
+      `)
+      .order("slot_time", {
+        ascending: true,
+      });
 
-  const eventDateMap = new Map(
-    (eventDates ?? []).map((eventDate) => [
-      eventDate.id,
-      eventDate,
-    ])
-  );
+  const eventDateMap =
+    new Map(
+      (eventDates ?? []).map(
+        (eventDate) => [
+          eventDate.id,
+          eventDate,
+        ]
+      )
+    );
 
-  const scheduleSlotMap = new Map(
-    (scheduleSlots ?? []).map((slot) => [
-      slot.id,
-      slot,
-    ])
-  );
+  const scheduleSlotMap =
+    new Map(
+      (scheduleSlots ?? []).map(
+        (slot) => [
+          slot.id,
+          slot,
+        ]
+      )
+    );
 
-  const { data: signups } = await adminSupabase
-    .from("crownlink_event_signups")
-    .select(`
-      event_id,
-      user_id,
-      status
-    `)
-    .eq("status", "signed_up");
+  /*
+   * SIGNUPS
+   */
+  const { data: signups } =
+    await adminSupabase
+      .from(
+        "crownlink_event_signups"
+      )
+      .select(`
+        event_id,
+        user_id,
+        status
+      `)
+      .eq(
+        "status",
+        "signed_up"
+      );
 
-  const creatorIds = Array.from(
-    new Set(
-      (matches ?? []).flatMap((match) => [
-        match.creator_one_id,
-        match.creator_two_id,
-      ])
-    )
-  );
+  /*
+   * CREATORS
+   */
+  const creatorIds =
+    Array.from(
+      new Set(
+        (matches ?? []).flatMap(
+          (match) => [
+            match.creator_one_id,
+            match.creator_two_id,
+          ]
+        )
+      )
+    );
 
   let profiles: {
     user_id: string;
@@ -192,64 +277,98 @@ export default async function CrownLinkMatchmakingAdminPage() {
   }[] = [];
 
   if (creatorIds.length > 0) {
-    const { data: profileData } = await adminSupabase
-      .from("crownlink_profiles")
-      .select(`
-        user_id,
-        display_name,
-        tiktok_username,
-        diamond_level
-      `)
-      .in("user_id", creatorIds);
+    const { data: profileData } =
+      await adminSupabase
+        .from(
+          "crownlink_profiles"
+        )
+        .select(`
+          user_id,
+          display_name,
+          tiktok_username,
+          diamond_level
+        `)
+        .in(
+          "user_id",
+          creatorIds
+        );
 
-    profiles = profileData ?? [];
+    profiles =
+      profileData ?? [];
 
-    const { data: roleData } = await adminSupabase
-      .from("user_roles")
-      .select(`
-        user_id,
-        agency_id
-      `)
-      .in("user_id", creatorIds);
+    const { data: roleData } =
+      await adminSupabase
+        .from("user_roles")
+        .select(`
+          user_id,
+          agency_id
+        `)
+        .in(
+          "user_id",
+          creatorIds
+        );
 
     roles = roleData ?? [];
   }
 
-  const { data: agencies } = await adminSupabase
-    .from("crownlink_agencies")
-    .select(`
-      id,
-      name
-    `);
+  /*
+   * AGENCIES
+   */
+  const { data: agencies } =
+    await adminSupabase
+      .from(
+        "crownlink_agencies"
+      )
+      .select(`
+        id,
+        name
+      `);
 
-  const profileMap = new Map(
-    profiles.map((profile) => [
-      profile.user_id,
-      profile,
-    ])
-  );
+  const profileMap =
+    new Map(
+      profiles.map(
+        (profile) => [
+          profile.user_id,
+          profile,
+        ]
+      )
+    );
 
-  const roleMap = new Map(
-    roles.map((role) => [
-      role.user_id,
-      role,
-    ])
-  );
+  const roleMap =
+    new Map(
+      roles.map(
+        (role) => [
+          role.user_id,
+          role,
+        ]
+      )
+    );
 
-  const agencyMap = new Map(
-    (agencies ?? []).map((agency) => [
-      agency.id,
-      agency.name,
-    ])
-  );
+  const agencyMap =
+    new Map(
+      (agencies ?? []).map(
+        (agency) => [
+          agency.id,
+          agency.name,
+        ]
+      )
+    );
 
-  function getCreator(userId: string) {
-    const profile = profileMap.get(userId);
-    const role = roleMap.get(userId);
+  function getCreator(
+    userId: string
+  ) {
+    const profile =
+      profileMap.get(userId);
+
+    const role =
+      roleMap.get(userId);
 
     const agencyName =
       role?.agency_id
-        ? agencyMap.get(role.agency_id) ?? "Unknown Agency"
+        ? agencyMap.get(
+            role.agency_id
+          ) ??
+          "Unknown Agency"
         : "No Agency";
 
     const name =
@@ -260,10 +379,98 @@ export default async function CrownLinkMatchmakingAdminPage() {
 
     return {
       name,
-      username: profile?.tiktok_username ?? "",
-      diamondLevel: Number(profile?.diamond_level ?? 0),
+      username:
+        profile?.tiktok_username ??
+        "",
+      diamondLevel:
+        Number(
+          profile?.diamond_level ??
+            0
+        ),
       agencyName,
     };
+  }
+
+  /*
+   * SCHEDULE HEALTH
+   *
+   * Run the conflict scanner for every
+   * active upcoming event.
+   */
+  const scheduleHealthMap =
+    new Map<
+      string,
+      ScheduleHealthResult
+    >();
+
+  if (
+    events &&
+    events.length > 0
+  ) {
+    const healthResults =
+      await Promise.all(
+        events.map(
+          async (event) => {
+            try {
+              const health =
+                await analyzeScheduleConflicts(
+                  event.id
+                );
+
+              return {
+                eventId:
+                  event.id,
+                health,
+              };
+            } catch (error) {
+              console.error(
+                `SCHEDULE HEALTH ERROR FOR EVENT ${event.id}:`,
+                error
+              );
+
+              return {
+                eventId:
+                  event.id,
+
+                health: {
+                  score: 0,
+                  status:
+                    "critical" as const,
+                  totalIssues: 1,
+                  dangerCount: 1,
+                  warningCount: 0,
+                  infoCount: 0,
+
+                  conflicts: [
+                    {
+                      id:
+                        `health-error-${event.id}`,
+                      severity:
+                        "danger" as const,
+                      type:
+                        "analysis_error",
+                      title:
+                        "Schedule analysis failed",
+                      message:
+                        "Bloodline Arena could not complete the conflict scan for this event.",
+                    },
+                  ],
+                },
+              };
+            }
+          }
+        )
+      );
+
+    for (
+      const result of
+        healthResults
+    ) {
+      scheduleHealthMap.set(
+        result.eventId,
+        result.health
+      );
+    }
   }
 
   return (
@@ -273,7 +480,8 @@ export default async function CrownLinkMatchmakingAdminPage() {
         background:
           "radial-gradient(circle at top, #4b0d12 0%, #180607 35%, #050505 75%)",
         color: "white",
-        padding: "40px 20px",
+        padding:
+          "40px 20px",
       }}
     >
       <div
@@ -287,7 +495,8 @@ export default async function CrownLinkMatchmakingAdminPage() {
           href="/bloodline-arena/admin"
           style={{
             color: "#d3a33c",
-            textDecoration: "none",
+            textDecoration:
+              "none",
             fontWeight: 700,
             fontSize: 14,
           }}
@@ -326,24 +535,33 @@ export default async function CrownLinkMatchmakingAdminPage() {
           <p
             style={{
               marginTop: 10,
-              color: "rgba(255,255,255,0.55)",
+              color:
+                "rgba(255,255,255,0.55)",
             }}
           >
-            Generate and review 1v1 matches from event signups.
+            Generate, review, and
+            scan 1v1 event
+            schedules for conflicts.
           </p>
         </div>
 
-        {!events || events.length === 0 ? (
+        {!events ||
+        events.length === 0 ? (
           <div
             style={{
               padding: 26,
               borderRadius: 18,
-              border: "1px solid rgba(211,163,60,0.2)",
-              background: "rgba(20,10,10,0.75)",
-              color: "rgba(255,255,255,0.5)",
+              border:
+                "1px solid rgba(211,163,60,0.2)",
+              background:
+                "rgba(20,10,10,0.75)",
+              color:
+                "rgba(255,255,255,0.5)",
             }}
           >
-            No upcoming events are available for matchmaking.
+            No upcoming events are
+            available for
+            matchmaking.
           </div>
         ) : (
           <div
@@ -352,693 +570,1416 @@ export default async function CrownLinkMatchmakingAdminPage() {
               gap: 24,
             }}
           >
-            {events.map((event) => {
-              const eventMatches =
-                matches?.filter(
-                  (match) => match.event_id === event.id
-                ) ?? [];
+            {events.map(
+              (event) => {
+                const scheduleHealth =
+                  scheduleHealthMap.get(
+                    event.id
+                  );
 
-              const eventRequiredDates =
-                eventDates?.filter(
-                  (eventDate) => eventDate.event_id === event.id
-                ) ?? [];
-
-              const eventSignupIds =
-                signups
-                  ?.filter(
-                    (signup) => signup.event_id === event.id
-                  )
-                  .map((signup) => signup.user_id) ?? [];
-
-              const signedUpCreatorCount = eventSignupIds.length;
-              const hasOddCreatorCount =
-                signedUpCreatorCount % 2 !== 0;
-
-              const dateCompletion = eventRequiredDates.map(
-                (requiredDate) => {
-                  const dateMatches = eventMatches.filter(
+                const eventMatches =
+                  matches?.filter(
                     (match) =>
-                      match.event_date_id === requiredDate.id
+                      match.event_id ===
+                      event.id
+                  ) ?? [];
+
+                const eventRequiredDates =
+                  eventDates?.filter(
+                    (eventDate) =>
+                      eventDate.event_id ===
+                      event.id
+                  ) ?? [];
+
+                const eventSignupIds =
+                  signups
+                    ?.filter(
+                      (signup) =>
+                        signup.event_id ===
+                        event.id
+                    )
+                    .map(
+                      (signup) =>
+                        signup.user_id
+                    ) ?? [];
+
+                const signedUpCreatorCount =
+                  eventSignupIds.length;
+
+                const hasOddCreatorCount =
+                  signedUpCreatorCount %
+                    2 !==
+                  0;
+
+                const dateCompletion =
+                  eventRequiredDates.map(
+                    (
+                      requiredDate
+                    ) => {
+                      const dateMatches =
+                        eventMatches.filter(
+                          (
+                            match
+                          ) =>
+                            match.event_date_id ===
+                            requiredDate.id
+                        );
+
+                      const matchedCreatorIds =
+                        new Set(
+                          dateMatches.flatMap(
+                            (
+                              match
+                            ) => [
+                              match.creator_one_id,
+                              match.creator_two_id,
+                            ]
+                          )
+                        );
+
+                      const missingCreatorIds =
+                        eventSignupIds.filter(
+                          (
+                            userId
+                          ) =>
+                            !matchedCreatorIds.has(
+                              userId
+                            )
+                        );
+
+                      return {
+                        ...requiredDate,
+                        matchedCreatorCount:
+                          matchedCreatorIds.size,
+                        missingCreatorIds,
+                        complete:
+                          signedUpCreatorCount >
+                            0 &&
+                          missingCreatorIds.length ===
+                            0 &&
+                          !hasOddCreatorCount,
+                      };
+                    }
                   );
 
-                  const matchedCreatorIds = new Set(
-                    dateMatches.flatMap((match) => [
-                      match.creator_one_id,
-                      match.creator_two_id,
-                    ])
+                const scheduleComplete =
+                  eventRequiredDates.length >
+                    0 &&
+                  signedUpCreatorCount >
+                    0 &&
+                  !hasOddCreatorCount &&
+                  dateCompletion.every(
+                    (date) =>
+                      date.complete
                   );
 
-                  const missingCreatorIds = eventSignupIds.filter(
-                    (userId) => !matchedCreatorIds.has(userId)
-                  );
-
-                  return {
-                    ...requiredDate,
-                    matchedCreatorCount: matchedCreatorIds.size,
-                    missingCreatorIds,
-                    complete:
-                      signedUpCreatorCount > 0 &&
-                      missingCreatorIds.length === 0 &&
-                      !hasOddCreatorCount,
-                  };
-                }
-              );
-
-              const scheduleComplete =
-                eventRequiredDates.length > 0 &&
-                signedUpCreatorCount > 0 &&
-                !hasOddCreatorCount &&
-                dateCompletion.every((date) => date.complete);
-
-              return (
-                <div
-                  key={event.id}
-                  style={{
-                    borderRadius: 20,
-                    border:
-                      "1px solid rgba(211,163,60,0.22)",
-                    background: "rgba(20,10,10,0.78)",
-                    overflow: "hidden",
-                  }}
-                >
+                return (
                   <div
+                    key={event.id}
                     style={{
-                      padding: 24,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 20,
-                      flexWrap: "wrap",
+                      borderRadius:
+                        20,
+                      border:
+                        "1px solid rgba(211,163,60,0.22)",
+                      background:
+                        "rgba(20,10,10,0.78)",
+                      overflow:
+                        "hidden",
                     }}
                   >
-                    <div>
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#d3a33c",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          letterSpacing: 2,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Upcoming Event
-                      </p>
-
-                      <h2
-                        style={{
-                          margin: "8px 0 0",
-                          fontSize: 22,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {event.name}
-                      </h2>
-
-                      <p
-                        style={{
-                          margin: "9px 0 0",
-                          color: "rgba(255,255,255,0.5)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {formatEasternDate(event.event_date)}
-                        {" • "}
-                        {formatEasternTime(event.event_time)}
-                      </p>
-                    </div>
-
+                    {/* EVENT HEADER */}
                     <div
                       style={{
-                        display: "grid",
-                        gap: 12,
-                        minWidth: 220,
-                      }}
-                    >
-                      <GenerateMatchesButton
-                        eventId={event.id}
-                        eventName={event.name}
-                      />
-
-                      <TestDataControls
-                        eventId={event.id}
-                        eventName={event.name}
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      margin: "0 24px 24px",
-                      padding: 16,
-                      borderRadius: 14,
-                      border: scheduleComplete
-                        ? "1px solid rgba(80,210,110,0.25)"
-                        : "1px solid rgba(255,170,70,0.25)",
-                      background: scheduleComplete
-                        ? "rgba(60,180,90,0.08)"
-                        : "rgba(255,150,40,0.07)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                        flexWrap: "wrap",
+                        padding: 24,
+                        display:
+                          "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems:
+                          "center",
+                        gap: 20,
+                        flexWrap:
+                          "wrap",
                       }}
                     >
                       <div>
                         <p
                           style={{
                             margin: 0,
-                            fontSize: 11,
-                            fontWeight: 900,
-                            letterSpacing: 1.2,
-                            textTransform: "uppercase",
-                            color: scheduleComplete
-                              ? "#b8f5c2"
-                              : "#ffc37d",
+                            color:
+                              "#d3a33c",
+                            fontSize:
+                              11,
+                            fontWeight:
+                              800,
+                            letterSpacing:
+                              2,
+                            textTransform:
+                              "uppercase",
                           }}
                         >
-                          {scheduleComplete
-                            ? "Schedule Complete"
-                            : "Schedule Incomplete"}
+                          Upcoming Event
                         </p>
+
+                        <h2
+                          style={{
+                            margin:
+                              "8px 0 0",
+                            fontSize:
+                              22,
+                            fontWeight:
+                              900,
+                          }}
+                        >
+                          {
+                            event.name
+                          }
+                        </h2>
 
                         <p
                           style={{
-                            margin: "6px 0 0",
-                            color: "rgba(255,255,255,0.6)",
-                            fontSize: 12,
+                            margin:
+                              "9px 0 0",
+                            color:
+                              "rgba(255,255,255,0.5)",
+                            fontSize:
+                              13,
                           }}
                         >
-                          {signedUpCreatorCount} signed-up{" "}
-                          {signedUpCreatorCount === 1
-                            ? "creator"
-                            : "creators"}
+                          {formatEasternDate(
+                            event.event_date
+                          )}
                           {" • "}
-                          {eventRequiredDates.length} required{" "}
-                          {eventRequiredDates.length === 1
-                            ? "date"
-                            : "dates"}
+                          {formatEasternTime(
+                            event.event_time
+                          )}
                         </p>
                       </div>
 
-                      {hasOddCreatorCount && (
-                        <span
-                          style={{
-                            padding: "6px 10px",
-                            borderRadius: 999,
-                            background: "rgba(255,90,90,0.08)",
-                            border:
-                              "1px solid rgba(255,90,90,0.18)",
-                            color: "#ffb0b0",
-                            fontSize: 10,
-                            fontWeight: 900,
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Odd creator count
-                        </span>
-                      )}
-                    </div>
-
-                    {eventRequiredDates.length === 0 ? (
-                      <p
-                        style={{
-                          margin: "12px 0 0",
-                          color: "#ffb0b0",
-                          fontSize: 12,
-                        }}
-                      >
-                        Add at least one required battle date before
-                        generating the schedule.
-                      </p>
-                    ) : (
                       <div
                         style={{
-                          marginTop: 14,
-                          display: "grid",
-                          gap: 8,
+                          display:
+                            "grid",
+                          gap: 12,
+                          minWidth:
+                            220,
                         }}
                       >
-                        {dateCompletion.map((date) => (
-                          <div
-                            key={date.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              gap: 12,
-                              padding: "9px 10px",
-                              borderRadius: 10,
-                              background: "rgba(0,0,0,0.16)",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 800,
-                              }}
-                            >
-                              {formatEasternDate(date.event_date)}
-                            </span>
+                        <GenerateMatchesButton
+                          eventId={
+                            event.id
+                          }
+                          eventName={
+                            event.name
+                          }
+                        />
 
-                            <span
-                              style={{
-                                fontSize: 11,
-                                color: date.complete
-                                  ? "#b8f5c2"
-                                  : "#ffc37d",
-                                fontWeight: 800,
-                              }}
-                            >
-                              {date.complete
-                                ? "Complete"
-                                : `${date.matchedCreatorCount}/${signedUpCreatorCount} creators matched`}
-                            </span>
-                          </div>
-                        ))}
+                        <TestDataControls
+                          eventId={
+                            event.id
+                          }
+                          eventName={
+                            event.name
+                          }
+                        />
                       </div>
-                    )}
+                    </div>
 
-                    {!scheduleComplete &&
-                      eventRequiredDates.length > 0 &&
-                      signedUpCreatorCount > 0 && (
-                        <p
-                          style={{
-                            margin: "12px 0 0",
-                            color: "rgba(255,255,255,0.48)",
-                            fontSize: 11,
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          The schedule cannot be considered complete until
-                          every signed-up creator has one match on every
-                          required date.
-                        </p>
-                      )}
-                  </div>
-
-                  <div
-                    style={{
-                      padding: 24,
-                      borderTop:
-                        "1px solid rgba(255,255,255,0.06)",
-                      background: "rgba(0,0,0,0.15)",
-                    }}
-                  >
+                    {/* SCHEDULE COMPLETION */}
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 15,
-                        marginBottom: 16,
+                        margin:
+                          "0 24px 24px",
+                        padding: 16,
+                        borderRadius:
+                          14,
+
+                        border:
+                          scheduleComplete
+                            ? "1px solid rgba(80,210,110,0.25)"
+                            : "1px solid rgba(255,170,70,0.25)",
+
+                        background:
+                          scheduleComplete
+                            ? "rgba(60,180,90,0.08)"
+                            : "rgba(255,150,40,0.07)",
                       }}
                     >
-                      <h3
-                        style={{
-                          margin: 0,
-                          fontSize: 17,
-                          fontWeight: 900,
-                        }}
-                      >
-                        Scheduled Matches
-                      </h3>
-
-                      <span
-                        style={{
-                          color: "rgba(255,255,255,0.4)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {eventMatches.length}{" "}
-                        {eventMatches.length === 1
-                          ? "match"
-                          : "matches"}
-                      </span>
-                    </div>
-
-                    {eventMatches.length === 0 ? (
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "rgba(255,255,255,0.4)",
-                          fontSize: 13,
-                        }}
-                      >
-                        No scheduled matches have been generated yet.
-                      </p>
-                    ) : (
                       <div
                         style={{
-                          display: "grid",
-                          gap: 14,
+                          display:
+                            "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "center",
+                          gap: 12,
+                          flexWrap:
+                            "wrap",
                         }}
                       >
-                        {eventMatches.map((match) => {
-                          const creatorOne = getCreator(
-                            match.creator_one_id
-                          );
+                        <div>
+                          <p
+                            style={{
+                              margin:
+                                0,
+                              fontSize:
+                                11,
+                              fontWeight:
+                                900,
+                              letterSpacing:
+                                1.2,
+                              textTransform:
+                                "uppercase",
+                              color:
+                                scheduleComplete
+                                  ? "#b8f5c2"
+                                  : "#ffc37d",
+                            }}
+                          >
+                            {scheduleComplete
+                              ? "Schedule Complete"
+                              : "Schedule Incomplete"}
+                          </p>
 
-                          const creatorTwo = getCreator(
-                            match.creator_two_id
-                          );
+                          <p
+                            style={{
+                              margin:
+                                "6px 0 0",
+                              color:
+                                "rgba(255,255,255,0.6)",
+                              fontSize:
+                                12,
+                            }}
+                          >
+                            {
+                              signedUpCreatorCount
+                            }{" "}
+                            signed-up{" "}
+                            {signedUpCreatorCount ===
+                            1
+                              ? "creator"
+                              : "creators"}
+                            {" • "}
+                            {
+                              eventRequiredDates.length
+                            }{" "}
+                            required{" "}
+                            {eventRequiredDates.length ===
+                            1
+                              ? "date"
+                              : "dates"}
+                          </p>
+                        </div>
 
-                          const difference = Math.abs(
-                            creatorOne.diamondLevel -
-                              creatorTwo.diamondLevel
-                          );
+                        {hasOddCreatorCount && (
+                          <span
+                            style={{
+                              padding:
+                                "6px 10px",
+                              borderRadius:
+                                999,
+                              background:
+                                "rgba(255,90,90,0.08)",
+                              border:
+                                "1px solid rgba(255,90,90,0.18)",
+                              color:
+                                "#ffb0b0",
+                              fontSize:
+                                10,
+                              fontWeight:
+                                900,
+                              textTransform:
+                                "uppercase",
+                            }}
+                          >
+                            Odd creator
+                            count
+                          </span>
+                        )}
+                      </div>
 
-                          const matchDate = match.event_date_id
-                            ? eventDateMap.get(match.event_date_id)
-                            : null;
-
-                          const matchSlot = match.schedule_slot_id
-                            ? scheduleSlotMap.get(match.schedule_slot_id)
-                            : null;
-
-                          const attendance =
-                            attendanceByMatch.get(match.id) ?? [];
-
-                          const result = resultsByMatch.get(match.id);
-
-                          const hasNoShow = attendance.some(
-                            (row) => row.status === "no_show"
-                          );
-
-                          const hasReplacement = attendance.some(
-                            (row) => row.status === "replacement"
-                          );
-
-                          const bothAttendanceMarked =
-                            attendance.filter(
-                              (row) => row.status !== "unmarked"
-                            ).length >= 2;
-
-                          const hasBothScores =
-                            result?.creator_one_score !== null &&
-                            result?.creator_one_score !== undefined &&
-                            result?.creator_two_score !== null &&
-                            result?.creator_two_score !== undefined;
-
-                          let resultStatus = "Needs Results";
-                          let resultStatusColor = "rgba(255,255,255,0.55)";
-                          let resultStatusBackground =
-                            "rgba(255,255,255,0.05)";
-                          let resultStatusBorder =
-                            "1px solid rgba(255,255,255,0.1)";
-
-                          if (hasNoShow) {
-                            resultStatus = "No Show";
-                            resultStatusColor = "#ffb0b0";
-                            resultStatusBackground =
-                              "rgba(255,90,90,0.08)";
-                            resultStatusBorder =
-                              "1px solid rgba(255,90,90,0.2)";
-                          } else if (hasReplacement) {
-                            resultStatus = "Replacement Used";
-                            resultStatusColor = "#ffc37d";
-                            resultStatusBackground =
-                              "rgba(255,150,40,0.08)";
-                            resultStatusBorder =
-                              "1px solid rgba(255,150,40,0.2)";
-                          } else if (bothAttendanceMarked && hasBothScores) {
-                            resultStatus = "Results Recorded";
-                            resultStatusColor = "#b8f5c2";
-                            resultStatusBackground =
-                              "rgba(60,180,90,0.08)";
-                            resultStatusBorder =
-                              "1px solid rgba(80,210,110,0.22)";
-                          }
-
-                          return (
-                            <div
-                              key={match.id}
-                              style={{
-                                padding: 20,
-                                borderRadius: 16,
-                                border:
-                                  "1px solid rgba(211,163,60,0.16)",
-                                background:
-                                  "rgba(255,255,255,0.025)",
-                              }}
-                            >
+                      {eventRequiredDates.length ===
+                      0 ? (
+                        <p
+                          style={{
+                            margin:
+                              "12px 0 0",
+                            color:
+                              "#ffb0b0",
+                            fontSize:
+                              12,
+                          }}
+                        >
+                          Add at least one
+                          required battle
+                          date before
+                          generating the
+                          schedule.
+                        </p>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop:
+                              14,
+                            display:
+                              "grid",
+                            gap: 8,
+                          }}
+                        >
+                          {dateCompletion.map(
+                            (
+                              date
+                            ) => (
                               <div
+                                key={
+                                  date.id
+                                }
                                 style={{
-                                  marginBottom: 16,
-                                  padding: "12px 14px",
-                                  borderRadius: 12,
-                                  background: "rgba(211,163,60,0.07)",
-                                  border: "1px solid rgba(211,163,60,0.18)",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <div>
-                                  <p
-                                    style={{
-                                      margin: 0,
-                                      color: "rgba(255,255,255,0.42)",
-                                      fontSize: 9,
-                                      fontWeight: 900,
-                                      letterSpacing: 1.3,
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    Required Battle Date
-                                  </p>
-
-                                  <p
-                                    style={{
-                                      margin: "5px 0 0",
-                                      fontSize: 14,
-                                      fontWeight: 900,
-                                      color: "#d3a33c",
-                                    }}
-                                  >
-                                    {matchDate
-                                      ? formatEasternDate(matchDate.event_date)
-                                      : "Date not assigned"}
-                                  </p>
-                                </div>
-
-                                <div
-                                  style={{
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  <p
-                                    style={{
-                                      margin: 0,
-                                      color: "rgba(255,255,255,0.42)",
-                                      fontSize: 9,
-                                      fontWeight: 900,
-                                      letterSpacing: 1.3,
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    Battle Time
-                                  </p>
-
-                                  <p
-                                    style={{
-                                      margin: "5px 0 0",
-                                      fontSize: 14,
-                                      fontWeight: 900,
-                                    }}
-                                  >
-                                    {matchSlot
-                                      ? formatEasternTime(matchSlot.slot_time)
-                                      : "Time not assigned"}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {(!matchDate || !matchSlot) && (
-                                <div
-                                  style={{
-                                    marginBottom: 16,
-                                    padding: "10px 12px",
-                                    borderRadius: 10,
-                                    background: "rgba(255,90,90,0.07)",
-                                    border: "1px solid rgba(255,90,90,0.18)",
-                                    color: "#ffb0b0",
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  This is a legacy match from before multi-date
-                                  scheduling. Cancel it before generating the new
-                                  schedule.
-                                </div>
-                              )}
-
-                              <div
-                                style={{
-                                  display: "flex",
+                                  display:
+                                    "flex",
                                   justifyContent:
                                     "space-between",
-                                  alignItems: "center",
+                                  alignItems:
+                                    "center",
                                   gap: 12,
-                                  marginBottom: 18,
-                                  flexWrap: "wrap",
+                                  padding:
+                                    "9px 10px",
+                                  borderRadius:
+                                    10,
+                                  background:
+                                    "rgba(0,0,0,0.16)",
                                 }}
                               >
                                 <span
                                   style={{
-                                    padding: "6px 10px",
-                                    borderRadius: 999,
-                                    background:
-                                      match.status === "approved"
-                                        ? "rgba(60,180,90,0.12)"
-                                        : "rgba(211,163,60,0.1)",
-                                    border:
-                                      match.status === "approved"
-                                        ? "1px solid rgba(80,210,110,0.25)"
-                                        : "1px solid rgba(211,163,60,0.2)",
-                                    color:
-                                      match.status === "approved"
-                                        ? "#b8f5c2"
-                                        : "#d3a33c",
-                                    fontSize: 10,
-                                    fontWeight: 900,
-                                    letterSpacing: 1,
-                                    textTransform: "uppercase",
+                                    fontSize:
+                                      12,
+                                    fontWeight:
+                                      800,
                                   }}
                                 >
-                                  {match.status}
+                                  {formatEasternDate(
+                                    date.event_date
+                                  )}
                                 </span>
 
                                 <span
                                   style={{
+                                    fontSize:
+                                      11,
                                     color:
-                                      "rgba(255,255,255,0.4)",
-                                    fontSize: 11,
+                                      date.complete
+                                        ? "#b8f5c2"
+                                        : "#ffc37d",
+                                    fontWeight:
+                                      800,
                                   }}
                                 >
-                                  Diamond difference:{" "}
-                                  {difference.toLocaleString()}
+                                  {date.complete
+                                    ? "Complete"
+                                    : `${date.matchedCreatorCount}/${signedUpCreatorCount} creators matched`}
                                 </span>
                               </div>
+                            )
+                          )}
+                        </div>
+                      )}
 
-                              {match.status === "approved" && (
+                      {!scheduleComplete &&
+                        eventRequiredDates.length >
+                          0 &&
+                        signedUpCreatorCount >
+                          0 && (
+                          <p
+                            style={{
+                              margin:
+                                "12px 0 0",
+                              color:
+                                "rgba(255,255,255,0.48)",
+                              fontSize:
+                                11,
+                              lineHeight:
+                                1.5,
+                            }}
+                          >
+                            The schedule
+                            cannot be
+                            considered
+                            complete until
+                            every signed-up
+                            creator has one
+                            match on every
+                            required date.
+                          </p>
+                        )}
+                    </div>
+
+                    {/* SCHEDULE HEALTH */}
+                    {scheduleHealth && (
+                      <div
+                        style={{
+                          margin:
+                            "0 24px 24px",
+                          padding:
+                            18,
+                          borderRadius:
+                            16,
+
+                          border:
+                            scheduleHealth.status ===
+                            "healthy"
+                              ? "1px solid rgba(80,210,110,0.25)"
+                              : scheduleHealth.status ===
+                                  "critical"
+                                ? "1px solid rgba(255,90,90,0.28)"
+                                : "1px solid rgba(255,170,70,0.28)",
+
+                          background:
+                            scheduleHealth.status ===
+                            "healthy"
+                              ? "rgba(60,180,90,0.07)"
+                              : scheduleHealth.status ===
+                                  "critical"
+                                ? "rgba(255,70,70,0.07)"
+                                : "rgba(255,150,40,0.07)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display:
+                              "flex",
+                            justifyContent:
+                              "space-between",
+                            alignItems:
+                              "center",
+                            gap: 16,
+                            flexWrap:
+                              "wrap",
+                          }}
+                        >
+                          <div>
+                            <p
+                              style={{
+                                margin:
+                                  0,
+                                color:
+                                  "rgba(255,255,255,0.42)",
+                                fontSize:
+                                  9,
+                                fontWeight:
+                                  900,
+                                letterSpacing:
+                                  1.4,
+                                textTransform:
+                                  "uppercase",
+                              }}
+                            >
+                              Schedule
+                              Health
+                            </p>
+
+                            <div
+                              style={{
+                                display:
+                                  "flex",
+                                alignItems:
+                                  "baseline",
+                                gap: 8,
+                                marginTop:
+                                  4,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize:
+                                    30,
+                                  fontWeight:
+                                    950,
+
+                                  color:
+                                    scheduleHealth.status ===
+                                    "healthy"
+                                      ? "#b8f5c2"
+                                      : scheduleHealth.status ===
+                                          "critical"
+                                        ? "#ffb0b0"
+                                        : "#ffc37d",
+                                }}
+                              >
+                                {
+                                  scheduleHealth.score
+                                }
+                                %
+                              </span>
+
+                              <span
+                                style={{
+                                  color:
+                                    "rgba(255,255,255,0.38)",
+                                  fontSize:
+                                    11,
+                                  fontWeight:
+                                    800,
+                                  textTransform:
+                                    "uppercase",
+                                }}
+                              >
+                                {scheduleHealth.status ===
+                                "healthy"
+                                  ? "Healthy"
+                                  : scheduleHealth.status ===
+                                      "critical"
+                                    ? "Needs Attention"
+                                    : "Review Recommended"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display:
+                                "flex",
+                              gap: 8,
+                              flexWrap:
+                                "wrap",
+                            }}
+                          >
+                            {scheduleHealth.dangerCount >
+                              0 && (
+                              <span
+                                style={{
+                                  padding:
+                                    "6px 10px",
+                                  borderRadius:
+                                    999,
+                                  border:
+                                    "1px solid rgba(255,90,90,0.22)",
+                                  background:
+                                    "rgba(255,90,90,0.08)",
+                                  color:
+                                    "#ffb0b0",
+                                  fontSize:
+                                    9,
+                                  fontWeight:
+                                    900,
+                                }}
+                              >
+                                {
+                                  scheduleHealth.dangerCount
+                                }{" "}
+                                Critical
+                              </span>
+                            )}
+
+                            {scheduleHealth.warningCount >
+                              0 && (
+                              <span
+                                style={{
+                                  padding:
+                                    "6px 10px",
+                                  borderRadius:
+                                    999,
+                                  border:
+                                    "1px solid rgba(255,170,70,0.22)",
+                                  background:
+                                    "rgba(255,150,40,0.07)",
+                                  color:
+                                    "#ffc37d",
+                                  fontSize:
+                                    9,
+                                  fontWeight:
+                                    900,
+                                }}
+                              >
+                                {
+                                  scheduleHealth.warningCount
+                                }{" "}
+                                Warning
+                              </span>
+                            )}
+
+                            {scheduleHealth.totalIssues ===
+                              0 && (
+                              <span
+                                style={{
+                                  padding:
+                                    "6px 10px",
+                                  borderRadius:
+                                    999,
+                                  border:
+                                    "1px solid rgba(80,210,110,0.22)",
+                                  background:
+                                    "rgba(60,180,90,0.08)",
+                                  color:
+                                    "#b8f5c2",
+                                  fontSize:
+                                    9,
+                                  fontWeight:
+                                    900,
+                                }}
+                              >
+                                No Conflicts
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {scheduleHealth
+                          .conflicts
+                          .length >
+                        0 ? (
+                          <div
+                            style={{
+                              display:
+                                "grid",
+                              gap: 9,
+                              marginTop:
+                                16,
+                            }}
+                          >
+                            {scheduleHealth.conflicts.map(
+                              (
+                                conflict
+                              ) => (
                                 <div
+                                  key={
+                                    conflict.id
+                                  }
                                   style={{
-                                    marginBottom: 16,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    flexWrap: "wrap",
+                                    padding:
+                                      "11px 12px",
+                                    borderRadius:
+                                      11,
+
+                                    border:
+                                      conflict.severity ===
+                                      "danger"
+                                        ? "1px solid rgba(255,90,90,0.16)"
+                                        : "1px solid rgba(255,170,70,0.15)",
+
+                                    background:
+                                      conflict.severity ===
+                                      "danger"
+                                        ? "rgba(255,70,70,0.045)"
+                                        : "rgba(255,150,40,0.04)",
                                   }}
                                 >
-                                  <span
+                                  <div
                                     style={{
-                                      padding: "7px 11px",
-                                      borderRadius: 999,
-                                      background: resultStatusBackground,
-                                      border: resultStatusBorder,
-                                      color: resultStatusColor,
-                                      fontSize: 10,
-                                      fontWeight: 900,
-                                      letterSpacing: 0.8,
-                                      textTransform: "uppercase",
+                                      display:
+                                        "flex",
+                                      gap: 10,
+                                      alignItems:
+                                        "flex-start",
                                     }}
                                   >
-                                    {resultStatus}
-                                  </span>
-
-                                  {result?.score_screenshot_url && (
                                     <span
                                       style={{
-                                        color: "rgba(255,255,255,0.42)",
-                                        fontSize: 10,
-                                        fontWeight: 800,
+                                        flex:
+                                          "0 0 auto",
+
+                                        color:
+                                          conflict.severity ===
+                                          "danger"
+                                            ? "#ff8c8c"
+                                            : "#ffc37d",
+
+                                        fontSize:
+                                          15,
+                                        fontWeight:
+                                          900,
                                       }}
                                     >
-                                      Score screenshot uploaded
+                                      {conflict.severity ===
+                                      "danger"
+                                        ? "!"
+                                        : "△"}
                                     </span>
-                                  )}
+
+                                    <div>
+                                      <p
+                                        style={{
+                                          margin:
+                                            0,
+                                          fontSize:
+                                            11,
+                                          fontWeight:
+                                            900,
+
+                                          color:
+                                            conflict.severity ===
+                                            "danger"
+                                              ? "#ffb0b0"
+                                              : "#ffc37d",
+                                        }}
+                                      >
+                                        {
+                                          conflict.title
+                                        }
+                                      </p>
+
+                                      <p
+                                        style={{
+                                          margin:
+                                            "4px 0 0",
+                                          color:
+                                            "rgba(255,255,255,0.48)",
+                                          fontSize:
+                                            10,
+                                          lineHeight:
+                                            1.5,
+                                        }}
+                                      >
+                                        {
+                                          conflict.message
+                                        }
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns:
-                                    "minmax(0, 1fr) auto minmax(0, 1fr)",
-                                  gap: 18,
-                                  alignItems: "center",
-                                }}
-                              >
-                                <CreatorCard
-                                  creator={creatorOne}
-                                />
-
-                                <div
-                                  style={{
-                                    width: 46,
-                                    height: 46,
-                                    borderRadius: "50%",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    background:
-                                      "rgba(211,163,60,0.1)",
-                                    border:
-                                      "1px solid rgba(211,163,60,0.25)",
-                                    color: "#d3a33c",
-                                    fontSize: 13,
-                                    fontWeight: 900,
-                                  }}
-                                >
-                                  VS
-                                </div>
-
-                                <CreatorCard
-                                  creator={creatorTwo}
-                                />
-                              </div>
-
-                              {(match.status === "approved" ||
-                                match.status === "suggested") && (
-                                <MatchActions
-                                  matchId={match.id}
-                                  eventId={event.id}
-                                  status={match.status}
-                                />
-                              )}
-
-                              {match.status === "approved" && (
-                                <RecordResultsForm
-                                  matchId={match.id}
-                                  creatorOne={{
-                                    id: match.creator_one_id,
-                                    name: creatorOne.name,
-                                    username: creatorOne.username,
-                                  }}
-                                  creatorTwo={{
-                                    id: match.creator_two_id,
-                                    name: creatorTwo.name,
-                                    username: creatorTwo.username,
-                                  }}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <p
+                            style={{
+                              margin:
+                                "12px 0 0",
+                              color:
+                                "rgba(184,245,194,0.72)",
+                              fontSize:
+                                11,
+                            }}
+                          >
+                            No scheduling
+                            conflicts were
+                            detected for
+                            this event.
+                          </p>
+                        )}
                       </div>
                     )}
+
+                    {/* SCHEDULED MATCHES */}
+                    <div
+                      style={{
+                        padding: 24,
+                        borderTop:
+                          "1px solid rgba(255,255,255,0.06)",
+                        background:
+                          "rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "center",
+                          gap: 15,
+                          marginBottom:
+                            16,
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin:
+                              0,
+                            fontSize:
+                              17,
+                            fontWeight:
+                              900,
+                          }}
+                        >
+                          Scheduled
+                          Matches
+                        </h3>
+
+                        <span
+                          style={{
+                            color:
+                              "rgba(255,255,255,0.4)",
+                            fontSize:
+                              12,
+                          }}
+                        >
+                          {
+                            eventMatches.length
+                          }{" "}
+                          {eventMatches.length ===
+                          1
+                            ? "match"
+                            : "matches"}
+                        </span>
+                      </div>
+
+                      {eventMatches.length ===
+                      0 ? (
+                        <p
+                          style={{
+                            margin:
+                              0,
+                            color:
+                              "rgba(255,255,255,0.4)",
+                            fontSize:
+                              13,
+                          }}
+                        >
+                          No scheduled
+                          matches have
+                          been generated
+                          yet.
+                        </p>
+                      ) : (
+                        <div
+                          style={{
+                            display:
+                              "grid",
+                            gap: 14,
+                          }}
+                        >
+                          {eventMatches.map(
+                            (
+                              match
+                            ) => {
+                              const creatorOne =
+                                getCreator(
+                                  match.creator_one_id
+                                );
+
+                              const creatorTwo =
+                                getCreator(
+                                  match.creator_two_id
+                                );
+
+                              const difference =
+                                Math.abs(
+                                  creatorOne.diamondLevel -
+                                    creatorTwo.diamondLevel
+                                );
+
+                              const matchDate =
+                                match.event_date_id
+                                  ? eventDateMap.get(
+                                      match.event_date_id
+                                    )
+                                  : null;
+
+                              const matchSlot =
+                                match.schedule_slot_id
+                                  ? scheduleSlotMap.get(
+                                      match.schedule_slot_id
+                                    )
+                                  : null;
+
+                              const attendance =
+                                attendanceByMatch.get(
+                                  match.id
+                                ) ??
+                                [];
+
+                              const result =
+                                resultsByMatch.get(
+                                  match.id
+                                );
+
+                              const hasNoShow =
+                                attendance.some(
+                                  (
+                                    row
+                                  ) =>
+                                    row.status ===
+                                    "no_show"
+                                );
+
+                              const hasReplacement =
+                                attendance.some(
+                                  (
+                                    row
+                                  ) =>
+                                    row.status ===
+                                    "replacement"
+                                );
+
+                              const bothAttendanceMarked =
+                                attendance.filter(
+                                  (
+                                    row
+                                  ) =>
+                                    row.status !==
+                                    "unmarked"
+                                )
+                                  .length >=
+                                2;
+
+                              const hasBothScores =
+                                result?.creator_one_score !==
+                                  null &&
+                                result?.creator_one_score !==
+                                  undefined &&
+                                result?.creator_two_score !==
+                                  null &&
+                                result?.creator_two_score !==
+                                  undefined;
+
+                              let resultStatus =
+                                "Needs Results";
+
+                              let resultStatusColor =
+                                "rgba(255,255,255,0.55)";
+
+                              let resultStatusBackground =
+                                "rgba(255,255,255,0.05)";
+
+                              let resultStatusBorder =
+                                "1px solid rgba(255,255,255,0.1)";
+
+                              if (
+                                hasNoShow
+                              ) {
+                                resultStatus =
+                                  "No Show";
+
+                                resultStatusColor =
+                                  "#ffb0b0";
+
+                                resultStatusBackground =
+                                  "rgba(255,90,90,0.08)";
+
+                                resultStatusBorder =
+                                  "1px solid rgba(255,90,90,0.2)";
+                              } else if (
+                                hasReplacement
+                              ) {
+                                resultStatus =
+                                  "Replacement Used";
+
+                                resultStatusColor =
+                                  "#ffc37d";
+
+                                resultStatusBackground =
+                                  "rgba(255,150,40,0.08)";
+
+                                resultStatusBorder =
+                                  "1px solid rgba(255,150,40,0.2)";
+                              } else if (
+                                bothAttendanceMarked &&
+                                hasBothScores
+                              ) {
+                                resultStatus =
+                                  "Results Recorded";
+
+                                resultStatusColor =
+                                  "#b8f5c2";
+
+                                resultStatusBackground =
+                                  "rgba(60,180,90,0.08)";
+
+                                resultStatusBorder =
+                                  "1px solid rgba(80,210,110,0.22)";
+                              }
+
+                              return (
+                                <div
+                                  key={
+                                    match.id
+                                  }
+                                  style={{
+                                    padding:
+                                      20,
+                                    borderRadius:
+                                      16,
+                                    border:
+                                      "1px solid rgba(211,163,60,0.16)",
+                                    background:
+                                      "rgba(255,255,255,0.025)",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      marginBottom:
+                                        16,
+                                      padding:
+                                        "12px 14px",
+                                      borderRadius:
+                                        12,
+                                      background:
+                                        "rgba(211,163,60,0.07)",
+                                      border:
+                                        "1px solid rgba(211,163,60,0.18)",
+                                      display:
+                                        "flex",
+                                      justifyContent:
+                                        "space-between",
+                                      alignItems:
+                                        "center",
+                                      gap: 12,
+                                      flexWrap:
+                                        "wrap",
+                                    }}
+                                  >
+                                    <div>
+                                      <p
+                                        style={{
+                                          margin:
+                                            0,
+                                          color:
+                                            "rgba(255,255,255,0.42)",
+                                          fontSize:
+                                            9,
+                                          fontWeight:
+                                            900,
+                                          letterSpacing:
+                                            1.3,
+                                          textTransform:
+                                            "uppercase",
+                                        }}
+                                      >
+                                        Required
+                                        Battle
+                                        Date
+                                      </p>
+
+                                      <p
+                                        style={{
+                                          margin:
+                                            "5px 0 0",
+                                          fontSize:
+                                            14,
+                                          fontWeight:
+                                            900,
+                                          color:
+                                            "#d3a33c",
+                                        }}
+                                      >
+                                        {matchDate
+                                          ? formatEasternDate(
+                                              matchDate.event_date
+                                            )
+                                          : "Date not assigned"}
+                                      </p>
+                                    </div>
+
+                                    <div
+                                      style={{
+                                        textAlign:
+                                          "right",
+                                      }}
+                                    >
+                                      <p
+                                        style={{
+                                          margin:
+                                            0,
+                                          color:
+                                            "rgba(255,255,255,0.42)",
+                                          fontSize:
+                                            9,
+                                          fontWeight:
+                                            900,
+                                          letterSpacing:
+                                            1.3,
+                                          textTransform:
+                                            "uppercase",
+                                        }}
+                                      >
+                                        Battle
+                                        Time
+                                      </p>
+
+                                      <p
+                                        style={{
+                                          margin:
+                                            "5px 0 0",
+                                          fontSize:
+                                            14,
+                                          fontWeight:
+                                            900,
+                                        }}
+                                      >
+                                        {matchSlot
+                                          ? formatEasternTime(
+                                              matchSlot.slot_time
+                                            )
+                                          : "Time not assigned"}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {(!matchDate ||
+                                    !matchSlot) && (
+                                    <div
+                                      style={{
+                                        marginBottom:
+                                          16,
+                                        padding:
+                                          "10px 12px",
+                                        borderRadius:
+                                          10,
+                                        background:
+                                          "rgba(255,90,90,0.07)",
+                                        border:
+                                          "1px solid rgba(255,90,90,0.18)",
+                                        color:
+                                          "#ffb0b0",
+                                        fontSize:
+                                          11,
+                                        fontWeight:
+                                          800,
+                                      }}
+                                    >
+                                      This is
+                                      a legacy
+                                      match
+                                      from
+                                      before
+                                      multi-date
+                                      scheduling.
+                                      Cancel it
+                                      before
+                                      generating
+                                      the new
+                                      schedule.
+                                    </div>
+                                  )}
+
+                                  <div
+                                    style={{
+                                      display:
+                                        "flex",
+                                      justifyContent:
+                                        "space-between",
+                                      alignItems:
+                                        "center",
+                                      gap: 12,
+                                      marginBottom:
+                                        18,
+                                      flexWrap:
+                                        "wrap",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        padding:
+                                          "6px 10px",
+                                        borderRadius:
+                                          999,
+
+                                        background:
+                                          match.status ===
+                                          "approved"
+                                            ? "rgba(60,180,90,0.12)"
+                                            : "rgba(211,163,60,0.1)",
+
+                                        border:
+                                          match.status ===
+                                          "approved"
+                                            ? "1px solid rgba(80,210,110,0.25)"
+                                            : "1px solid rgba(211,163,60,0.2)",
+
+                                        color:
+                                          match.status ===
+                                          "approved"
+                                            ? "#b8f5c2"
+                                            : "#d3a33c",
+
+                                        fontSize:
+                                          10,
+                                        fontWeight:
+                                          900,
+                                        letterSpacing:
+                                          1,
+                                        textTransform:
+                                          "uppercase",
+                                      }}
+                                    >
+                                      {
+                                        match.status
+                                      }
+                                    </span>
+
+                                    <span
+                                      style={{
+                                        color:
+                                          "rgba(255,255,255,0.4)",
+                                        fontSize:
+                                          11,
+                                      }}
+                                    >
+                                      Diamond
+                                      difference:{" "}
+                                      {difference.toLocaleString()}
+                                    </span>
+                                  </div>
+
+                                  {match.status ===
+                                    "approved" && (
+                                    <div
+                                      style={{
+                                        marginBottom:
+                                          16,
+                                        display:
+                                          "flex",
+                                        alignItems:
+                                          "center",
+                                        gap: 10,
+                                        flexWrap:
+                                          "wrap",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          padding:
+                                            "7px 11px",
+                                          borderRadius:
+                                            999,
+                                          background:
+                                            resultStatusBackground,
+                                          border:
+                                            resultStatusBorder,
+                                          color:
+                                            resultStatusColor,
+                                          fontSize:
+                                            10,
+                                          fontWeight:
+                                            900,
+                                          letterSpacing:
+                                            0.8,
+                                          textTransform:
+                                            "uppercase",
+                                        }}
+                                      >
+                                        {
+                                          resultStatus
+                                        }
+                                      </span>
+
+                                      {result?.score_screenshot_url && (
+                                        <span
+                                          style={{
+                                            color:
+                                              "rgba(255,255,255,0.42)",
+                                            fontSize:
+                                              10,
+                                            fontWeight:
+                                              800,
+                                          }}
+                                        >
+                                          Score
+                                          screenshot
+                                          uploaded
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div
+                                    style={{
+                                      display:
+                                        "grid",
+                                      gridTemplateColumns:
+                                        "minmax(0, 1fr) auto minmax(0, 1fr)",
+                                      gap: 18,
+                                      alignItems:
+                                        "center",
+                                    }}
+                                  >
+                                    <CreatorCard
+                                      creator={
+                                        creatorOne
+                                      }
+                                    />
+
+                                    <div
+                                      style={{
+                                        width:
+                                          46,
+                                        height:
+                                          46,
+                                        borderRadius:
+                                          "50%",
+                                        display:
+                                          "flex",
+                                        alignItems:
+                                          "center",
+                                        justifyContent:
+                                          "center",
+                                        background:
+                                          "rgba(211,163,60,0.1)",
+                                        border:
+                                          "1px solid rgba(211,163,60,0.25)",
+                                        color:
+                                          "#d3a33c",
+                                        fontSize:
+                                          13,
+                                        fontWeight:
+                                          900,
+                                      }}
+                                    >
+                                      VS
+                                    </div>
+
+                                    <CreatorCard
+                                      creator={
+                                        creatorTwo
+                                      }
+                                    />
+                                  </div>
+
+                                  {(match.status ===
+                                    "approved" ||
+                                    match.status ===
+                                      "suggested") && (
+                                    <MatchActions
+                                      matchId={
+                                        match.id
+                                      }
+                                      eventId={
+                                        event.id
+                                      }
+                                      status={
+                                        match.status
+                                      }
+                                    />
+                                  )}
+
+                                  {match.status ===
+                                    "approved" && (
+                                    <RecordResultsForm
+                                      matchId={
+                                        match.id
+                                      }
+                                      creatorOne={{
+                                        id:
+                                          match.creator_one_id,
+                                        name:
+                                          creatorOne.name,
+                                        username:
+                                          creatorOne.username,
+                                      }}
+                                      creatorTwo={{
+                                        id:
+                                          match.creator_two_id,
+                                        name:
+                                          creatorTwo.name,
+                                        username:
+                                          creatorTwo.username,
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
         )}
       </div>
@@ -1061,8 +2002,10 @@ function CreatorCard({
       style={{
         padding: 16,
         borderRadius: 14,
-        background: "rgba(0,0,0,0.2)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background:
+          "rgba(0,0,0,0.2)",
+        border:
+          "1px solid rgba(255,255,255,0.06)",
       }}
     >
       <p
@@ -1078,8 +2021,10 @@ function CreatorCard({
       {creator.username && (
         <p
           style={{
-            margin: "5px 0 0",
-            color: "rgba(255,255,255,0.45)",
+            margin:
+              "5px 0 0",
+            color:
+              "rgba(255,255,255,0.45)",
             fontSize: 12,
           }}
         >
@@ -1089,7 +2034,8 @@ function CreatorCard({
 
       <p
         style={{
-          margin: "11px 0 0",
+          margin:
+            "11px 0 0",
           color: "#d3a33c",
           fontSize: 12,
           fontWeight: 800,
@@ -1100,13 +2046,16 @@ function CreatorCard({
 
       <p
         style={{
-          margin: "7px 0 0",
-          color: "rgba(255,255,255,0.7)",
+          margin:
+            "7px 0 0",
+          color:
+            "rgba(255,255,255,0.7)",
           fontSize: 13,
           fontWeight: 700,
         }}
       >
-        {creator.diamondLevel.toLocaleString()} diamonds
+        {creator.diamondLevel.toLocaleString()}{" "}
+        diamonds
       </p>
     </div>
   );

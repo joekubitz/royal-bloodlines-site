@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
+import { syncAttendanceEnforcement } from "@/app/lib/crownlink/syncAttendanceEnforcement";
 
 type AttendanceStatus =
   | "unmarked"
@@ -96,6 +97,9 @@ function validateAttendance(
   }
 }
 
+/*
+ * SAVE RESULTS + ATTENDANCE
+ */
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -106,12 +110,18 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Not authenticated." },
-        { status: 401 }
+        {
+          error: "Not authenticated.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const { data: userRole } = await supabase
+    const {
+      data: userRole,
+    } = await supabase
       .from("user_roles")
       .select("role, status")
       .eq("user_id", user.id)
@@ -123,8 +133,13 @@ export async function POST(request: Request) {
       userRole.status !== "active"
     ) {
       return NextResponse.json(
-        { error: "Admin access required." },
-        { status: 403 }
+        {
+          error:
+            "Admin access required.",
+        },
+        {
+          status: 403,
+        }
       );
     }
 
@@ -137,14 +152,22 @@ export async function POST(request: Request) {
 
     if (!matchId) {
       return NextResponse.json(
-        { error: "Match ID is required." },
-        { status: 400 }
+        {
+          error:
+            "Match ID is required.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     const adminSupabase =
       createAdminClient();
 
+    /*
+     * LOAD MATCH
+     */
     const {
       data: match,
       error: matchError,
@@ -165,8 +188,13 @@ export async function POST(request: Request) {
       !match
     ) {
       return NextResponse.json(
-        { error: "Match not found." },
-        { status: 404 }
+        {
+          error:
+            "Match not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -178,7 +206,9 @@ export async function POST(request: Request) {
           error:
             "Results can only be recorded for approved matches.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -191,10 +221,15 @@ export async function POST(request: Request) {
           error:
             "Attendance is required for both creators.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    /*
+     * VALIDATE ATTENDANCE
+     */
     try {
       validateAttendance(
         body.creatorOne,
@@ -213,12 +248,22 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid attendance information.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    let creatorOneScore: number | null;
-    let creatorTwoScore: number | null;
+    /*
+     * VALIDATE SCORES
+     */
+    let creatorOneScore:
+      | number
+      | null;
+
+    let creatorTwoScore:
+      | number
+      | null;
 
     try {
       creatorOneScore =
@@ -238,20 +283,29 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid battle score.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const now =
       new Date().toISOString();
 
+    /*
+     * SAVE ATTENDANCE
+     */
     const attendanceRows = [
       {
-        match_id: match.id,
+        match_id:
+          match.id,
+
         creator_id:
           match.creator_one_id,
+
         status:
           body.creatorOne.status,
+
         replacement_user_id:
           body.creatorOne.status ===
           "replacement"
@@ -260,6 +314,7 @@ export async function POST(request: Request) {
                   .replacementUserId
               )
             : null,
+
         replacement_name:
           body.creatorOne.status ===
           "replacement"
@@ -268,19 +323,30 @@ export async function POST(request: Request) {
                   .replacementName
               )
             : null,
+
         admin_notes:
           cleanOptionalText(
-            body.creatorOne.adminNotes
+            body.creatorOne
+              .adminNotes
           ),
-        updated_by: user.id,
-        updated_at: now,
+
+        updated_by:
+          user.id,
+
+        updated_at:
+          now,
       },
+
       {
-        match_id: match.id,
+        match_id:
+          match.id,
+
         creator_id:
           match.creator_two_id,
+
         status:
           body.creatorTwo.status,
+
         replacement_user_id:
           body.creatorTwo.status ===
           "replacement"
@@ -289,6 +355,7 @@ export async function POST(request: Request) {
                   .replacementUserId
               )
             : null,
+
         replacement_name:
           body.creatorTwo.status ===
           "replacement"
@@ -297,12 +364,18 @@ export async function POST(request: Request) {
                   .replacementName
               )
             : null,
+
         admin_notes:
           cleanOptionalText(
-            body.creatorTwo.adminNotes
+            body.creatorTwo
+              .adminNotes
           ),
-        updated_by: user.id,
-        updated_at: now,
+
+        updated_by:
+          user.id,
+
+        updated_at:
+          now,
       },
     ];
 
@@ -326,10 +399,15 @@ export async function POST(request: Request) {
           error:
             attendanceError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
+    /*
+     * SAVE BATTLE RESULTS
+     */
     const {
       error: resultsError,
     } = await adminSupabase
@@ -338,20 +416,29 @@ export async function POST(request: Request) {
       )
       .upsert(
         {
-          match_id: match.id,
+          match_id:
+            match.id,
+
           creator_one_score:
             creatorOneScore,
+
           creator_two_score:
             creatorTwoScore,
+
           admin_notes:
             cleanOptionalText(
               body.adminNotes
             ),
-          updated_by: user.id,
-          updated_at: now,
+
+          updated_by:
+            user.id,
+
+          updated_at:
+            now,
         },
         {
-          onConflict: "match_id",
+          onConflict:
+            "match_id",
         }
       );
 
@@ -361,16 +448,102 @@ export async function POST(request: Request) {
           error:
             resultsError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
+    /*
+     * SYNCHRONIZE ATTENDANCE ENFORCEMENT
+     *
+     * This recalculates both creators
+     * from their actual attendance
+     * history.
+     *
+     * No Show:
+     *   1 = warning
+     *   2 = final warning
+     *   3 = 30-day signup suspension
+     *
+     * Replacement:
+     *   tracked separately and does
+     *   NOT count as a no-show strike.
+     *
+     * Because this recalculates instead
+     * of blindly incrementing, correcting
+     * a mistaken attendance status later
+     * also corrects enforcement.
+     */
+    let creatorOneEnforcement;
+    let creatorTwoEnforcement;
+
+    try {
+      [
+        creatorOneEnforcement,
+        creatorTwoEnforcement,
+      ] = await Promise.all([
+        syncAttendanceEnforcement(
+          match.creator_one_id
+        ),
+
+        syncAttendanceEnforcement(
+          match.creator_two_id
+        ),
+      ]);
+    } catch (enforcementError) {
+      console.error(
+        "ATTENDANCE ENFORCEMENT SYNC ERROR:",
+        enforcementError
+      );
+
+      /*
+       * Attendance/results have already
+       * saved successfully.
+       *
+       * Return an explicit error so the
+       * admin knows enforcement needs
+       * attention instead of silently
+       * leaving it out of sync.
+       */
+      return NextResponse.json(
+        {
+          error:
+            enforcementError instanceof Error
+              ? `Battle results were saved, but attendance enforcement could not be updated: ${enforcementError.message}`
+              : "Battle results were saved, but attendance enforcement could not be updated.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /*
+     * RETURN ENFORCEMENT INFORMATION
+     *
+     * We can use this in the UI later
+     * for immediate admin warnings.
+     */
     return NextResponse.json({
       success: true,
-      matchId: match.id,
-      eventId: match.event_id,
+
+      matchId:
+        match.id,
+
+      eventId:
+        match.event_id,
+
+      enforcement: {
+        creatorOne:
+          creatorOneEnforcement,
+
+        creatorTwo:
+          creatorTwoEnforcement,
+      },
+
       message:
-        "Battle results saved.",
+        "Battle results and attendance saved.",
     });
   } catch (error) {
     console.error(
@@ -385,11 +558,16 @@ export async function POST(request: Request) {
             ? error.message
             : "Unexpected server error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
+/*
+ * LOAD EXISTING RESULTS
+ */
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
@@ -400,12 +578,19 @@ export async function GET(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Not authenticated." },
-        { status: 401 }
+        {
+          error:
+            "Not authenticated.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const { data: userRole } = await supabase
+    const {
+      data: userRole,
+    } = await supabase
       .from("user_roles")
       .select("role, status")
       .eq("user_id", user.id)
@@ -417,23 +602,37 @@ export async function GET(request: Request) {
       userRole.status !== "active"
     ) {
       return NextResponse.json(
-        { error: "Admin access required." },
-        { status: 403 }
+        {
+          error:
+            "Admin access required.",
+        },
+        {
+          status: 403,
+        }
       );
     }
 
-    const { searchParams } =
-      new URL(request.url);
+    const {
+      searchParams,
+    } = new URL(
+      request.url
+    );
 
-    const matchId =
-      String(
-        searchParams.get("matchId") || ""
-      ).trim();
+    const matchId = String(
+      searchParams.get(
+        "matchId"
+      ) || ""
+    ).trim();
 
     if (!matchId) {
       return NextResponse.json(
-        { error: "Match ID is required." },
-        { status: 400 }
+        {
+          error:
+            "Match ID is required.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
@@ -458,8 +657,13 @@ export async function GET(request: Request) {
       !match
     ) {
       return NextResponse.json(
-        { error: "Match not found." },
-        { status: 404 }
+        {
+          error:
+            "Match not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -481,7 +685,10 @@ export async function GET(request: Request) {
         updated_by,
         updated_at
       `)
-      .eq("match_id", matchId);
+      .eq(
+        "match_id",
+        matchId
+      );
 
     if (attendanceError) {
       return NextResponse.json(
@@ -489,7 +696,9 @@ export async function GET(request: Request) {
           error:
             attendanceError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -510,7 +719,10 @@ export async function GET(request: Request) {
         updated_by,
         updated_at
       `)
-      .eq("match_id", matchId)
+      .eq(
+        "match_id",
+        matchId
+      )
       .maybeSingle();
 
     if (resultsError) {
@@ -519,16 +731,65 @@ export async function GET(request: Request) {
           error:
             resultsError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /*
+     * Also return current enforcement
+     * records so the admin result screen
+     * can eventually display strikes
+     * immediately.
+     */
+    const {
+      data: enforcementRows,
+      error: enforcementError,
+    } = await adminSupabase
+      .from(
+        "crownlink_attendance_enforcement"
+      )
+      .select(`
+        user_id,
+        active_strikes,
+        lifetime_no_shows,
+        lifetime_replacements,
+        signup_suspended,
+        suspended_at,
+        suspended_until,
+        prior_suspensions,
+        last_no_show_at,
+        last_replacement_at
+      `)
+      .in(
+        "user_id",
+        [
+          match.creator_one_id,
+          match.creator_two_id,
+        ]
+      );
+
+    if (enforcementError) {
+      console.error(
+        "MATCH RESULTS ENFORCEMENT LOAD ERROR:",
+        enforcementError
       );
     }
 
     return NextResponse.json({
       success: true,
+
       match,
+
       attendance:
         attendance ?? [],
-      results: results ?? null,
+
+      results:
+        results ?? null,
+
+      enforcement:
+        enforcementRows ?? [],
     });
   } catch (error) {
     console.error(
@@ -543,7 +804,9 @@ export async function GET(request: Request) {
             ? error.message
             : "Unexpected server error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
