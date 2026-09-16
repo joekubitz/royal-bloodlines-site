@@ -5,6 +5,9 @@ import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
 import SignOutButton from "./SignOutButton";
+import CreatorRewardProofButton from "./CreatorRewardProofButton";
+import RewardLiveTimesForm from "./RewardLiveTimesForm";
+import DismissibleDashboardAlert from "./DismissibleDashboardAlert";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -62,6 +65,7 @@ export default async function CrownLinkPage() {
   } = await supabase
     .from("crownlink_profiles")
     .select(`
+      id,
       display_name,
       tiktok_username,
       diamond_level
@@ -95,6 +99,82 @@ export default async function CrownLinkPage() {
 
   const adminSupabase =
     createAdminClient();
+
+  /*
+   * CREATOR REWARDS
+   */
+  type CreatorReward = {
+    id: string;
+    reward_month: string | null;
+    reward_type: string | null;
+    reward_name: string | null;
+    level: string | null;
+    gift: string | null;
+    coins: number | null;
+    money: number | string | null;
+    dropped: boolean;
+    dropped_at: string | null;
+    proof_url: string | null;
+    typical_live_times: {
+      text?: string;
+    } | null;
+    live_timezone: string | null;
+  };
+
+  let creatorRewards: CreatorReward[] = [];
+
+  if (
+    userRole.role === "creator" &&
+    profile?.id
+  ) {
+    const {
+      data: rewardData,
+      error: rewardError,
+    } = await adminSupabase
+      .from("rewards")
+      .select(`
+        id,
+        reward_month,
+        reward_type,
+        reward_name,
+        level,
+        gift,
+        coins,
+        money,
+        dropped,
+        dropped_at,
+        proof_url,
+        typical_live_times,
+        live_timezone
+      `)
+      .eq("creator_id", profile.id)
+      .order("dropped", {
+        ascending: true,
+      })
+      .order("created_at", {
+        ascending: false,
+      });
+
+    if (rewardError) {
+      console.error(
+        "Creator rewards load error:",
+        rewardError
+      );
+    }
+
+    creatorRewards =
+      (rewardData ?? []) as CreatorReward[];
+  }
+
+  const pendingCreatorRewards =
+    creatorRewards.filter(
+      (reward) => !reward.dropped
+    );
+
+  const deliveredCreatorRewards =
+    creatorRewards.filter(
+      (reward) => reward.dropped
+    );
 
   /*
    * ATTENDANCE ENFORCEMENT
@@ -261,6 +341,20 @@ export default async function CrownLinkPage() {
   const isAgent =
     userRole.role ===
     "agent";
+
+  const rewardDismissKey =
+    `rewards-${creatorRewards
+      .map(
+        (reward) =>
+          `${reward.id}:${reward.dropped ? "dropped" : "pending"}`
+      )
+      .join("|")}`;
+
+  const attendanceDismissKey =
+    `attendance-${activeStrikes}-${signupSuspended ? "suspended" : "active"}-${suspendedUntil || "none"}`;
+
+  const notificationDismissKey =
+    `notification-${latestUnreadNotification?.id || "none"}-${unreadNotificationCount}`;
 
   return (
     <main
@@ -816,7 +910,460 @@ export default async function CrownLinkPage() {
           </div>
         </section>
 
+        {/* CREATOR REWARDS */}
+        <DismissibleDashboardAlert
+          dismissKey={rewardDismissKey}
+          ariaLabel="Close rewards alert"
+        >
+        {userRole.role ===
+          "creator" &&
+          creatorRewards.length >
+            0 && (
+            <section
+              style={{
+                marginBottom:
+                  22,
+
+                padding:
+                  24,
+
+                borderRadius:
+                  24,
+
+                border:
+                  pendingCreatorRewards.length >
+                  0
+                    ? "1px solid rgba(245,158,11,0.38)"
+                    : "1px solid rgba(34,197,94,0.25)",
+
+                background:
+                  pendingCreatorRewards.length >
+                  0
+                    ? "linear-gradient(135deg, rgba(92,48,4,0.74), rgba(39,17,3,0.92), rgba(7,7,7,0.98))"
+                    : "linear-gradient(135deg, rgba(12,70,35,0.55), rgba(5,30,17,0.90), rgba(5,5,5,0.98))",
+
+                boxShadow:
+                  pendingCreatorRewards.length >
+                  0
+                    ? "0 0 34px rgba(245,158,11,0.08)"
+                    : "0 0 30px rgba(34,197,94,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "flex-start",
+
+                  justifyContent:
+                    "space-between",
+
+                  gap: 18,
+
+                  flexWrap:
+                    "wrap",
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+
+                      color:
+                        pendingCreatorRewards.length >
+                        0
+                          ? "#fbbf24"
+                          : "#86efac",
+
+                      fontSize:
+                        9,
+
+                      fontWeight:
+                        950,
+
+                      letterSpacing:
+                        2,
+
+                      textTransform:
+                        "uppercase",
+                    }}
+                  >
+                    Creator Rewards
+                  </p>
+
+                  <h2
+                    style={{
+                      margin:
+                        "7px 0 0",
+
+                      color:
+                        "#f9f4ed",
+
+                      fontSize:
+                        22,
+
+                      fontWeight:
+                        950,
+                    }}
+                  >
+                    {pendingCreatorRewards.length >
+                    0
+                      ? `You have ${
+                          pendingCreatorRewards.length
+                        } pending ${
+                          pendingCreatorRewards.length ===
+                          1
+                            ? "reward"
+                            : "rewards"
+                        }!`
+                      : "Your Rewards"}
+                  </h2>
+
+                  <p
+                    style={{
+                      margin:
+                        "7px 0 0",
+
+                      color:
+                        "rgba(247,241,232,0.52)",
+
+                      fontSize:
+                        12,
+
+                      lineHeight:
+                        1.6,
+                    }}
+                  >
+                    {pendingCreatorRewards.length >
+                    0
+                      ? "Your reward has been recorded and is waiting to be delivered. You do not need to contact anyone unless there is an issue."
+                      : "Your delivered reward history is shown below."}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+
+                    gap: 9,
+
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      padding:
+                        "7px 11px",
+
+                      borderRadius:
+                        999,
+
+                      background:
+                        "rgba(245,158,11,0.10)",
+
+                      border:
+                        "1px solid rgba(245,158,11,0.24)",
+
+                      color:
+                        "#fbbf24",
+
+                      fontSize:
+                        9,
+
+                      fontWeight:
+                        950,
+                    }}
+                  >
+                    {
+                      pendingCreatorRewards.length
+                    }{" "}
+                    Pending
+                  </span>
+
+                  <span
+                    style={{
+                      padding:
+                        "7px 11px",
+
+                      borderRadius:
+                        999,
+
+                      background:
+                        "rgba(34,197,94,0.10)",
+
+                      border:
+                        "1px solid rgba(34,197,94,0.22)",
+
+                      color:
+                        "#86efac",
+
+                      fontSize:
+                        9,
+
+                      fontWeight:
+                        950,
+                    }}
+                  >
+                    {
+                      deliveredCreatorRewards.length
+                    }{" "}
+                    Delivered
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display:
+                    "grid",
+
+                  gap: 12,
+
+                  marginTop:
+                    20,
+                }}
+              >
+                {creatorRewards.map(
+                  (reward) => (
+                    <div
+                      key={
+                        reward.id
+                      }
+                      style={{
+                        padding:
+                          18,
+
+                        borderRadius:
+                          18,
+
+                        border:
+                          reward.dropped
+                            ? "1px solid rgba(34,197,94,0.16)"
+                            : "1px solid rgba(245,158,11,0.20)",
+
+                        background:
+                          "rgba(0,0,0,0.30)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display:
+                            "flex",
+
+                          alignItems:
+                            "flex-start",
+
+                          justifyContent:
+                            "space-between",
+
+                          gap: 14,
+
+                          flexWrap:
+                            "wrap",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              display:
+                                "flex",
+
+                              gap: 9,
+
+                              alignItems:
+                                "center",
+
+                              flexWrap:
+                                "wrap",
+                            }}
+                          >
+                            <strong
+                              style={{
+                                color:
+                                  "#f9f4ed",
+
+                                fontSize:
+                                  16,
+                              }}
+                            >
+                              🎁{" "}
+                              {reward.gift ||
+                                "Reward"}
+                            </strong>
+
+                            <span
+                              style={{
+                                padding:
+                                  "5px 8px",
+
+                                borderRadius:
+                                  999,
+
+                                background:
+                                  reward.dropped
+                                    ? "rgba(34,197,94,0.12)"
+                                    : "rgba(245,158,11,0.12)",
+
+                                color:
+                                  reward.dropped
+                                    ? "#86efac"
+                                    : "#fbbf24",
+
+                                fontSize:
+                                  8,
+
+                                fontWeight:
+                                  950,
+
+                                textTransform:
+                                  "uppercase",
+                              }}
+                            >
+                              {reward.dropped
+                                ? "Delivered"
+                                : "Pending"}
+                            </span>
+                          </div>
+
+                          <p
+                            style={{
+                              margin:
+                                "8px 0 0",
+
+                              color:
+                                "rgba(247,241,232,0.48)",
+
+                              fontSize:
+                                11,
+                            }}
+                          >
+                            {reward.reward_name ||
+                              "Reward"}
+
+                            {reward.level
+                              ? ` · ${reward.level}`
+                              : ""}
+                          </p>
+
+                          <div
+                            style={{
+                              display:
+                                "flex",
+
+                              gap: 16,
+
+                              flexWrap:
+                                "wrap",
+
+                              marginTop:
+                                12,
+                            }}
+                          >
+                            <span
+                              style={{
+                                color:
+                                  "rgba(247,241,232,0.68)",
+
+                                fontSize:
+                                  11,
+                              }}
+                            >
+                              <strong>
+                                {Number(
+                                  reward.coins ??
+                                    0
+                                ).toLocaleString()}
+                              </strong>{" "}
+                              coins
+                            </span>
+
+                            {reward.reward_month && (
+                              <span
+                                style={{
+                                  color:
+                                    "rgba(247,241,232,0.42)",
+
+                                  fontSize:
+                                    11,
+                                }}
+                              >
+                                {
+                                  reward.reward_month
+                                }
+                              </span>
+                            )}
+
+                            {reward.dropped_at && (
+                              <span
+                                style={{
+                                  color:
+                                    "#86efac",
+
+                                  fontSize:
+                                    11,
+                                }}
+                              >
+                                Delivered{" "}
+                                {new Date(
+                                  reward.dropped_at
+                                ).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month:
+                                      "short",
+
+                                    day:
+                                      "numeric",
+
+                                    year:
+                                      "numeric",
+                                  }
+                                )}
+                              </span>
+                            )}
+                          </div>
+
+                          {!reward.dropped && (
+                            <RewardLiveTimesForm
+                              rewardId={reward.id}
+                              initialTimes={
+                                reward.typical_live_times
+                                  ?.text || ""
+                              }
+                              initialTimezone={
+                                reward.live_timezone
+                              }
+                            />
+                          )}
+                        </div>
+
+                        {reward.dropped &&
+                          reward.proof_url && (
+                            <CreatorRewardProofButton
+                              rewardId={
+                                reward.id
+                              }
+                            />
+                          )}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </section>
+          )}
+
+        </DismissibleDashboardAlert>
+
         {/* ATTENDANCE / NO-SHOW WARNING */}
+        <DismissibleDashboardAlert
+          dismissKey={attendanceDismissKey}
+          ariaLabel="Close attendance warning"
+        >
         {userRole.role ===
           "creator" &&
           (activeStrikes >
@@ -1139,7 +1686,13 @@ export default async function CrownLinkPage() {
             </section>
           )}
 
+        </DismissibleDashboardAlert>
+
         {/* NOTIFICATIONS */}
+        <DismissibleDashboardAlert
+          dismissKey={notificationDismissKey}
+          ariaLabel="Close notification alert"
+        >
         {unreadNotificationCount >
           0 && (
           <section
@@ -1395,6 +1948,8 @@ export default async function CrownLinkPage() {
             </div>
           </section>
         )}
+
+        </DismissibleDashboardAlert>
 
         {/* QUICK ACTIONS */}
         <section>

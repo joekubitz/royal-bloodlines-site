@@ -64,6 +64,30 @@ export default async function CrownLinkAdminPage() {
   const analyticsLinkCount =
     pendingAnalyticsLinkCount ?? 0;
 
+  /*
+    PENDING REWARDS
+  */
+  const {
+    count: pendingRewardCount,
+    error: pendingRewardError,
+  } = await adminSupabase
+    .from("rewards")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("dropped", false);
+
+  if (pendingRewardError) {
+    console.error(
+      "Pending rewards count error:",
+      pendingRewardError
+    );
+  }
+
+  const rewardCount =
+    pendingRewardCount ?? 0;
+
   return (
     <main
       style={{
@@ -270,6 +294,23 @@ export default async function CrownLinkAdminPage() {
             />
 
             <ControlCard
+              href="/bloodline-arena/admin/rewards"
+              symbol="🎁"
+              title="Rewards"
+              description={
+                rewardCount > 0
+                  ? `${rewardCount} ${
+                      rewardCount === 1
+                        ? "reward is"
+                        : "rewards are"
+                    } waiting to be dropped.`
+                  : "Manage creator rewards, LIVE times, delivery proof, and completed gifts."
+              }
+              notificationCount={rewardCount}
+              accent
+            />
+
+            <ControlCard
               href="/bloodline-arena/admin/schedule-export"
               symbol="▤"
               title="Schedule Export"
@@ -464,12 +505,14 @@ function ControlCard({
   title,
   description,
   accent = false,
+  notificationCount = 0,
 }: {
   href: string;
   symbol: string;
   title: string;
   description: string;
   accent?: boolean;
+  notificationCount?: number;
 }) {
   return (
     <Link
@@ -497,6 +540,31 @@ function ControlCard({
         boxShadow: "0 16px 35px rgba(0,0,0,0.3)",
       }}
     >
+      {notificationCount > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            right: 13,
+            top: 13,
+            zIndex: 5,
+            minWidth: 24,
+            height: 24,
+            padding: "0 7px",
+            borderRadius: 999,
+            background: "#ef4444",
+            color: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 8,
+            fontWeight: 950,
+            boxShadow: "0 0 18px rgba(239,68,68,0.28)",
+          }}
+        >
+          {notificationCount}
+        </div>
+      )}
+
       <div
         style={{
           position: "absolute",
