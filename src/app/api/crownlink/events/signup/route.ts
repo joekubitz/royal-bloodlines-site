@@ -3,47 +3,137 @@ import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 import { rebuildScheduleSlots } from "@/app/lib/crownlink/rebuildScheduleSlots";
 
-export async function POST(request: Request) {
-  try {
-    const supabase = await createClient();
+/**
+ * Gets the authenticated user from either:
+ *
+ * 1. Website session cookies
+ * 2. Native app Authorization: Bearer <Supabase access token>
+ *
+ * This lets the website and native apps use the same API.
+ */
+async function getAuthenticatedUser(request: Request) {
+  const supabase = await createClient();
+
+  const authorization =
+    request.headers.get("authorization");
+
+  // Native iOS / Android authentication
+  if (
+    authorization &&
+    authorization
+      .toLowerCase()
+      .startsWith("bearer ")
+  ) {
+    const accessToken = authorization
+      .slice(7)
+      .trim();
+
+    if (!accessToken) {
+      return {
+        user: null,
+        supabase,
+      };
+    }
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+      error,
+    } = await supabase.auth.getUser(
+      accessToken
+    );
+
+    if (error || !user) {
+      console.error(
+        "Native auth token error:",
+        error
+      );
+
+      return {
+        user: null,
+        supabase,
+      };
+    }
+
+    return {
+      user,
+      supabase,
+    };
+  }
+
+  // Existing website cookie authentication
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return {
+    user,
+    supabase,
+  };
+}
+
+export async function POST(
+  request: Request
+) {
+  try {
+    const {
+      user,
+      supabase,
+    } = await getAuthenticatedUser(
+      request
+    );
 
     if (!user) {
       return NextResponse.json(
         {
-          error: "You must be logged in.",
+          error:
+            "You must be logged in.",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
-    const { data: userRole } =
-      await supabase
-        .from("user_roles")
-        .select("role, status")
-        .eq("user_id", user.id)
-        .single();
+    // Check account role/status using the
+    // authenticated user's normal Supabase access.
+    const {
+      data: userRole,
+      error: userRoleError,
+    } = await supabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .single();
+
+    if (userRoleError) {
+      console.error(
+        "USER ROLE CHECK ERROR:",
+        userRoleError
+      );
+    }
 
     if (
       !userRole ||
       userRole.status !== "active" ||
-      !["creator", "agent", "admin"].includes(
-        userRole.role
-      )
+      ![
+        "creator",
+        "agent",
+        "admin",
+      ].includes(userRole.role)
     ) {
       return NextResponse.json(
         {
           error:
             "You do not have permission to sign up for this event.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
     const eventId = String(
       body.eventId ?? ""
@@ -52,15 +142,22 @@ export async function POST(request: Request) {
     if (!eventId) {
       return NextResponse.json(
         {
-          error: "Event ID is required.",
+          error:
+            "Event ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    // Admin client remains SERVER-SIDE ONLY.
+    // Never send the service-role key to
+    // the iOS or Android app.
     const adminSupabase =
       createAdminClient();
 
+    // Make sure event exists and is active.
     const {
       data: event,
       error: eventError,
@@ -80,15 +177,20 @@ export async function POST(request: Request) {
           error:
             "This event is not available for signup.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    // Check current signup state.
     const {
       data: currentSignup,
       error: currentSignupError,
     } = await adminSupabase
-      .from("crownlink_event_signups")
+      .from(
+        "crownlink_event_signups"
+      )
       .select("id, status")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
@@ -100,10 +202,14 @@ export async function POST(request: Request) {
           error:
             currentSignupError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
+    // Admin-removed creators cannot
+    // rejoin themselves.
     if (
       currentSignup?.status ===
       "removed"
@@ -114,14 +220,20 @@ export async function POST(request: Request) {
             "You were removed from this event by an admin and cannot rejoin unless an admin restores your signup.",
           status: "removed",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
+    // If already signed up, pressing the
+    // button means CANCEL.
     if (
       currentSignup?.status ===
       "signed_up"
     ) {
+      // First make sure an approved match
+      // does not already exist.
       const {
         data: approvedMatches,
         error: matchError,
@@ -138,9 +250,12 @@ export async function POST(request: Request) {
       if (matchError) {
         return NextResponse.json(
           {
-            error: matchError.message,
+            error:
+              matchError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -155,22 +270,25 @@ export async function POST(request: Request) {
             status: "signed_up",
             matched: true,
           },
-          { status: 409 }
+          {
+            status: 409,
+          }
         );
       }
 
-      const { error: cancelError } =
-        await adminSupabase
-          .from(
-            "crownlink_event_signups"
-          )
-          .update({
-            status: "cancelled",
-          })
-          .eq(
-            "id",
-            currentSignup.id
-          );
+      const {
+        error: cancelError,
+      } = await adminSupabase
+        .from(
+          "crownlink_event_signups"
+        )
+        .update({
+          status: "cancelled",
+        })
+        .eq(
+          "id",
+          currentSignup.id
+        );
 
       if (cancelError) {
         return NextResponse.json(
@@ -178,7 +296,9 @@ export async function POST(request: Request) {
             error:
               cancelError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -195,26 +315,29 @@ export async function POST(request: Request) {
       });
     }
 
+    // Previously cancelled:
+    // restore the existing signup.
     if (
       currentSignup?.status ===
       "cancelled"
     ) {
-      const { error: rejoinError } =
-        await adminSupabase
-          .from(
-            "crownlink_event_signups"
-          )
-          .update({
-            status: "signed_up",
-          })
-          .eq(
-            "id",
-            currentSignup.id
-          )
-          .eq(
-            "status",
-            "cancelled"
-          );
+      const {
+        error: rejoinError,
+      } = await adminSupabase
+        .from(
+          "crownlink_event_signups"
+        )
+        .update({
+          status: "signed_up",
+        })
+        .eq(
+          "id",
+          currentSignup.id
+        )
+        .eq(
+          "status",
+          "cancelled"
+        );
 
       if (rejoinError) {
         return NextResponse.json(
@@ -222,7 +345,9 @@ export async function POST(request: Request) {
             error:
               rejoinError.message,
           },
-          { status: 500 }
+          {
+            status: 500,
+          }
         );
       }
 
@@ -239,16 +364,19 @@ export async function POST(request: Request) {
       });
     }
 
-    const { error: insertError } =
-      await adminSupabase
-        .from(
-          "crownlink_event_signups"
-        )
-        .insert({
-          event_id: eventId,
-          user_id: user.id,
-          status: "signed_up",
-        });
+    // No previous signup:
+    // create one.
+    const {
+      error: insertError,
+    } = await adminSupabase
+      .from(
+        "crownlink_event_signups"
+      )
+      .insert({
+        event_id: eventId,
+        user_id: user.id,
+        status: "signed_up",
+      });
 
     if (insertError) {
       return NextResponse.json(
@@ -256,7 +384,9 @@ export async function POST(request: Request) {
           error:
             insertError.message,
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -284,7 +414,9 @@ export async function POST(request: Request) {
             ? error.message
             : "Unexpected error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
