@@ -523,3 +523,179 @@ export async function DELETE(
     );
   }
 }
+export async function GET(request: Request) {
+  try {
+    const authorization =
+      request.headers.get("authorization");
+
+    let userId: string | null = null;
+
+    /*
+     * Native iOS / Android authentication.
+     */
+    if (
+      authorization?.startsWith("Bearer ")
+    ) {
+      const accessToken =
+        authorization
+          .slice("Bearer ".length)
+          .trim();
+
+      const adminSupabase =
+        createAdminClient();
+
+      const {
+        data: { user },
+        error: userError,
+      } =
+        await adminSupabase.auth.getUser(
+          accessToken
+        );
+
+      if (userError || !user) {
+        return NextResponse.json(
+          {
+            error:
+              "Not authenticated.",
+          },
+          { status: 401 }
+        );
+      }
+
+      userId = user.id;
+    } else {
+      /*
+       * Existing website cookie authentication.
+       */
+      const supabase =
+        await createClient();
+
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          {
+            error:
+              "Not authenticated.",
+          },
+          { status: 401 }
+        );
+      }
+
+      userId = user.id;
+    }
+
+    const adminSupabase =
+      createAdminClient();
+
+    /*
+     * Make sure this is an active
+     * Bloodline Arena account.
+     */
+    const {
+      data: userRole,
+      error: roleError,
+    } = await adminSupabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", userId)
+      .single();
+
+    if (
+      roleError ||
+      !userRole ||
+      userRole.status !== "active" ||
+      ![
+        "creator",
+        "agent",
+        "admin",
+      ].includes(userRole.role)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Bloodline Arena access required.",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+     * Return upcoming required event dates.
+     *
+     * Use Eastern Time because Bloodline Arena
+     * uses Eastern Time throughout the platform.
+     */
+    const easternDate =
+      new Intl.DateTimeFormat(
+        "en-CA",
+        {
+          timeZone:
+            "America/New_York",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }
+      ).format(new Date());
+
+    const {
+      data: eventDates,
+      error: datesError,
+    } = await adminSupabase
+      .from("crownlink_event_dates")
+      .select(`
+        id,
+        event_id,
+        event_date
+      `)
+      .gte(
+        "event_date",
+        easternDate
+      )
+      .order(
+        "event_date",
+        {
+          ascending: true,
+        }
+      );
+
+    if (datesError) {
+      console.error(
+        "LOAD BLOODLINE ARENA EVENT DATES ERROR:",
+        datesError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            datesError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      eventDates:
+        eventDates ?? [],
+    });
+  } catch (error) {
+    console.error(
+      "LOAD BLOODLINE ARENA EVENT DATES ERROR:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error.",
+      },
+      { status: 500 }
+    );
+  }
+}
