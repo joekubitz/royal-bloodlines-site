@@ -2,11 +2,67 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type RouteContext = {
   params: Promise<{
     rewardId: string;
   }>;
 };
+
+async function getAuthenticatedUser(request: Request) {
+  const authorization =
+    request.headers.get("authorization");
+
+  // Native app authentication
+  if (
+    authorization &&
+    authorization.startsWith("Bearer ")
+  ) {
+    const accessToken =
+      authorization
+        .slice("Bearer ".length)
+        .trim();
+
+    if (!accessToken) {
+      return null;
+    }
+
+    const admin =
+      createAdminClient();
+
+    const {
+      data: { user },
+      error,
+    } =
+      await admin.auth.getUser(
+        accessToken
+      );
+
+    if (error || !user) {
+      return null;
+    }
+
+    return user;
+  }
+
+  // Website cookie authentication
+  const supabase =
+    await createClient();
+
+  const {
+    data: { user },
+    error,
+  } =
+    await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
+}
 
 export async function GET(
   request: Request,
@@ -16,13 +72,10 @@ export async function GET(
     const { rewardId } =
       await context.params;
 
-    const supabase =
-      await createClient();
-
-    const {
-      data: { user },
-    } =
-      await supabase.auth.getUser();
+    const user =
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!user) {
       return NextResponse.json(
@@ -37,6 +90,32 @@ export async function GET(
 
     const admin =
       createAdminClient();
+
+    const {
+      data: userRole,
+      error: roleError,
+    } = await admin
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (
+      roleError ||
+      !userRole ||
+      userRole.role !== "creator" ||
+      userRole.status !== "active"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Creator access required.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
 
     const {
       data: profile,
