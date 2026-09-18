@@ -4,83 +4,74 @@ import { createAdminClient } from "@/app/supabase/admin";
 import { rebuildScheduleSlots } from "@/app/lib/crownlink/rebuildScheduleSlots";
 
 /**
- * Gets the authenticated user from either:
+ * Supports both:
  *
- * 1. Website session cookies
- * 2. Native app Authorization: Bearer <Supabase access token>
- *
- * This lets the website and native apps use the same API.
+ * 1. Website authentication through Supabase cookies
+ * 2. Native iOS / Android authentication through
+ *    Authorization: Bearer <Supabase access token>
  */
 async function getAuthenticatedUser(request: Request) {
-  const supabase = await createClient();
-
   const authorization =
     request.headers.get("authorization");
 
-  // Native iOS / Android authentication
+  // Native app authentication
   if (
     authorization &&
-    authorization
-      .toLowerCase()
-      .startsWith("bearer ")
+    authorization.toLowerCase().startsWith("bearer ")
   ) {
-    const accessToken = authorization
-      .slice(7)
-      .trim();
+    const accessToken =
+      authorization.slice(7).trim();
 
     if (!accessToken) {
-      return {
-        user: null,
-        supabase,
-      };
+      return null;
     }
+
+    const adminSupabase =
+      createAdminClient();
 
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(
+    } = await adminSupabase.auth.getUser(
       accessToken
     );
 
     if (error || !user) {
       console.error(
-        "Native auth token error:",
+        "NATIVE AUTH TOKEN ERROR:",
         error
       );
 
-      return {
-        user: null,
-        supabase,
-      };
+      return null;
     }
 
-    return {
-      user,
-      supabase,
-    };
+    return user;
   }
 
-  // Existing website cookie authentication
+  // Existing website authentication
+  const supabase =
+    await createClient();
+
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
-  return {
-    user,
-    supabase,
-  };
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
 }
 
 export async function POST(
   request: Request
 ) {
   try {
-    const {
-      user,
-      supabase,
-    } = await getAuthenticatedUser(
-      request
-    );
+    const user =
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!user) {
       return NextResponse.json(
@@ -94,12 +85,22 @@ export async function POST(
       );
     }
 
-    // Check account role/status using the
-    // authenticated user's normal Supabase access.
+    /*
+     * Everything below this point happens
+     * server-side.
+     *
+     * The user's identity has already been
+     * verified by Supabase.
+     */
+    const adminSupabase =
+      createAdminClient();
+
+    // MARK: Check role
+
     const {
       data: userRole,
       error: userRoleError,
-    } = await supabase
+    } = await adminSupabase
       .from("user_roles")
       .select("role, status")
       .eq("user_id", user.id)
@@ -109,6 +110,16 @@ export async function POST(
       console.error(
         "USER ROLE CHECK ERROR:",
         userRoleError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to verify your account permissions.",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
@@ -132,12 +143,15 @@ export async function POST(
       );
     }
 
+    // MARK: Read event ID
+
     const body =
       await request.json();
 
-    const eventId = String(
-      body.eventId ?? ""
-    ).trim();
+    const eventId =
+      String(
+        body.eventId ?? ""
+      ).trim();
 
     if (!eventId) {
       return NextResponse.json(
@@ -151,13 +165,8 @@ export async function POST(
       );
     }
 
-    // Admin client remains SERVER-SIDE ONLY.
-    // Never send the service-role key to
-    // the iOS or Android app.
-    const adminSupabase =
-      createAdminClient();
+    // MARK: Verify event
 
-    // Make sure event exists and is active.
     const {
       data: event,
       error: eventError,
@@ -183,7 +192,8 @@ export async function POST(
       );
     }
 
-    // Check current signup state.
+    // MARK: Current signup
+
     const {
       data: currentSignup,
       error: currentSignupError,
@@ -208,8 +218,8 @@ export async function POST(
       );
     }
 
-    // Admin-removed creators cannot
-    // rejoin themselves.
+    // MARK: Admin removed
+
     if (
       currentSignup?.status ===
       "removed"
@@ -226,14 +236,17 @@ export async function POST(
       );
     }
 
-    // If already signed up, pressing the
-    // button means CANCEL.
+    // MARK: Already signed up -> cancel
+
     if (
       currentSignup?.status ===
       "signed_up"
     ) {
-      // First make sure an approved match
-      // does not already exist.
+      /*
+       * Before cancellation, make sure
+       * this creator does not already
+       * have an approved battle.
+       */
       const {
         data: approvedMatches,
         error: matchError,
@@ -267,7 +280,8 @@ export async function POST(
           {
             error:
               "Your signup is locked because your battle has already been approved.",
-            status: "signed_up",
+            status:
+              "signed_up",
             matched: true,
           },
           {
@@ -302,6 +316,10 @@ export async function POST(
         );
       }
 
+      /*
+       * Keep the existing scheduling
+       * system in sync.
+       */
       await rebuildScheduleSlots(
         adminSupabase,
         eventId
@@ -315,8 +333,8 @@ export async function POST(
       });
     }
 
-    // Previously cancelled:
-    // restore the existing signup.
+    // MARK: Previously cancelled -> rejoin
+
     if (
       currentSignup?.status ===
       "cancelled"
@@ -364,8 +382,8 @@ export async function POST(
       });
     }
 
-    // No previous signup:
-    // create one.
+    // MARK: New signup
+
     const {
       error: insertError,
     } = await adminSupabase
