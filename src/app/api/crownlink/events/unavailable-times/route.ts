@@ -2,32 +2,130 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
-export async function POST(request: Request) {
-  try {
-    const supabase = await createClient();
+/**
+ * Supports:
+ * 1. Website authentication through Supabase cookies
+ * 2. Native iOS / Android authentication through
+ *    Authorization: Bearer <Supabase access token>
+ */
+async function getAuthenticatedUser(
+  request: Request
+) {
+  const authorization =
+    request.headers.get("authorization");
+
+  // Native app authentication
+  if (
+    authorization &&
+    authorization
+      .toLowerCase()
+      .startsWith("bearer ")
+  ) {
+    const accessToken =
+      authorization.slice(7).trim();
+
+    if (!accessToken) {
+      return null;
+    }
+
+    const adminSupabase =
+      createAdminClient();
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+      error,
+    } =
+      await adminSupabase.auth.getUser(
+        accessToken
+      );
+
+    if (error || !user) {
+      console.error(
+        "NATIVE AUTH TOKEN ERROR:",
+        error
+      );
+
+      return null;
+    }
+
+    return user;
+  }
+
+  // Existing website authentication
+  const supabase =
+    await createClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
+}
+
+// MARK: - ADD UNAVAILABLE TIME
+
+export async function POST(
+  request: Request
+) {
+  try {
+    const user =
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!user) {
       return NextResponse.json(
-        { error: "Not authenticated." },
-        { status: 401 }
+        {
+          error:
+            "Not authenticated.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const { data: userRole } = await supabase
+    const adminSupabase =
+      createAdminClient();
+
+    // Verify role server-side.
+    const {
+      data: userRole,
+      error: userRoleError,
+    } = await adminSupabase
       .from("user_roles")
       .select("role, status")
       .eq("user_id", user.id)
       .single();
 
+    if (userRoleError) {
+      console.error(
+        "UNAVAILABLE TIME ROLE CHECK ERROR:",
+        userRoleError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to verify your account permissions.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
     if (
       !userRole ||
-      !["creator", "admin"].includes(
-        userRole.role
-      ) ||
+      ![
+        "creator",
+        "admin",
+      ].includes(userRole.role) ||
       userRole.status !== "active"
     ) {
       return NextResponse.json(
@@ -35,23 +133,29 @@ export async function POST(request: Request) {
           error:
             "Active creator access required.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const eventId = String(
-      body.eventId || ""
-    ).trim();
+    const eventId =
+      String(
+        body.eventId ?? ""
+      ).trim();
 
-    const eventDateId = String(
-      body.eventDateId || ""
-    ).trim();
+    const eventDateId =
+      String(
+        body.eventDateId ?? ""
+      ).trim();
 
-    const blockedTime = String(
-      body.blockedTime || ""
-    ).trim();
+    const blockedTime =
+      String(
+        body.blockedTime ?? ""
+      ).trim();
 
     if (
       !eventId ||
@@ -63,18 +167,21 @@ export async function POST(request: Request) {
           error:
             "Event, event date, and blocked time are required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const adminSupabase =
-      createAdminClient();
-
+    // Verify the creator is actually
+    // signed up for this event.
     const {
       data: signup,
       error: signupError,
     } = await adminSupabase
-      .from("crownlink_event_signups")
+      .from(
+        "crownlink_event_signups"
+      )
       .select("id, status")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
@@ -90,15 +197,21 @@ export async function POST(request: Request) {
           error:
             "You must be signed up for this event first.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
+    // Verify this required date
+    // belongs to this event.
     const {
       data: eventDate,
       error: eventDateError,
     } = await adminSupabase
-      .from("crownlink_event_dates")
+      .from(
+        "crownlink_event_dates"
+      )
       .select("id, event_id")
       .eq("id", eventDateId)
       .eq("event_id", eventId)
@@ -113,10 +226,13 @@ export async function POST(request: Request) {
           error:
             "Required event date not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
+    // Add blocked time.
     const {
       data: blockedRecord,
       error: insertError,
@@ -126,23 +242,29 @@ export async function POST(request: Request) {
       )
       .insert({
         event_id: eventId,
-        event_date_id: eventDateId,
+        event_date_id:
+          eventDateId,
         user_id: user.id,
-        blocked_time: blockedTime,
+        blocked_time:
+          blockedTime,
       })
       .select()
       .single();
 
     if (insertError) {
+      // Duplicate unavailable time.
       if (
-        insertError.code === "23505"
+        insertError.code ===
+        "23505"
       ) {
         return NextResponse.json(
           {
             error:
               "That time is already marked unavailable.",
           },
-          { status: 409 }
+          {
+            status: 409,
+          }
         );
       }
 
@@ -152,14 +274,20 @@ export async function POST(request: Request) {
       );
 
       return NextResponse.json(
-        { error: insertError.message },
-        { status: 500 }
+        {
+          error:
+            insertError.message,
+        },
+        {
+          status: 500,
+        }
       );
     }
 
     return NextResponse.json({
       success: true,
-      unavailableTime: blockedRecord,
+      unavailableTime:
+        blockedRecord,
     });
   } catch (error) {
     console.error(
@@ -169,35 +297,47 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Unexpected server error.",
+        error:
+          "Unexpected server error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
+
+// MARK: - REMOVE UNAVAILABLE TIME
 
 export async function DELETE(
   request: Request
 ) {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user =
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!user) {
       return NextResponse.json(
-        { error: "Not authenticated." },
-        { status: 401 }
+        {
+          error:
+            "Not authenticated.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const unavailableTimeId = String(
-      body.unavailableTimeId || ""
-    ).trim();
+    const unavailableTimeId =
+      String(
+        body.unavailableTimeId ??
+          ""
+      ).trim();
 
     if (!unavailableTimeId) {
       return NextResponse.json(
@@ -205,13 +345,17 @@ export async function DELETE(
           error:
             "Unavailable time ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const adminSupabase =
       createAdminClient();
 
+    // Find the record first so we can
+    // verify ownership.
     const {
       data: unavailableTime,
       error: lookupError,
@@ -220,7 +364,10 @@ export async function DELETE(
         "crownlink_event_unavailable_times"
       )
       .select("id, user_id")
-      .eq("id", unavailableTimeId)
+      .eq(
+        "id",
+        unavailableTimeId
+      )
       .maybeSingle();
 
     if (
@@ -232,10 +379,14 @@ export async function DELETE(
           error:
             "Unavailable time not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
+    // A creator can only remove their
+    // own unavailable time.
     if (
       unavailableTime.user_id !==
       user.id
@@ -245,17 +396,23 @@ export async function DELETE(
           error:
             "You can only remove your own unavailable times.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const { error: deleteError } =
-      await adminSupabase
-        .from(
-          "crownlink_event_unavailable_times"
-        )
-        .delete()
-        .eq("id", unavailableTimeId);
+    const {
+      error: deleteError,
+    } = await adminSupabase
+      .from(
+        "crownlink_event_unavailable_times"
+      )
+      .delete()
+      .eq(
+        "id",
+        unavailableTimeId
+      );
 
     if (deleteError) {
       console.error(
@@ -264,8 +421,13 @@ export async function DELETE(
       );
 
       return NextResponse.json(
-        { error: deleteError.message },
-        { status: 500 }
+        {
+          error:
+            deleteError.message,
+        },
+        {
+          status: 500,
+        }
       );
     }
 
@@ -280,9 +442,12 @@ export async function DELETE(
 
     return NextResponse.json(
       {
-        error: "Unexpected server error.",
+        error:
+          "Unexpected server error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
