@@ -2,32 +2,73 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type RouteContext = {
   params: Promise<{
     rewardId: string;
   }>;
 };
 
+async function getAuthenticatedUser(request: Request) {
+  const authorization = request.headers.get("authorization");
+
+  // Native app authentication
+  if (
+    authorization &&
+    authorization.startsWith("Bearer ")
+  ) {
+    const accessToken = authorization
+      .slice("Bearer ".length)
+      .trim();
+
+    if (!accessToken) {
+      return null;
+    }
+
+    const adminSupabase = createAdminClient();
+
+    const {
+      data: { user },
+      error,
+    } = await adminSupabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return null;
+    }
+
+    return user;
+  }
+
+  // Website cookie authentication
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
+}
+
 export async function POST(
   request: Request,
   context: RouteContext
 ) {
   try {
-    const { rewardId } =
-      await context.params;
+    const { rewardId } = await context.params;
 
-    const supabase =
-      await createClient();
-
-    const {
-      data: { user },
-    } =
-      await supabase.auth.getUser();
+    const user = await getAuthenticatedUser(request);
 
     if (!user) {
       return NextResponse.json(
         {
-          error: "Unauthorized",
+          error: "Not authenticated.",
         },
         {
           status: 401,
@@ -35,50 +76,37 @@ export async function POST(
       );
     }
 
-    const body =
-      await request.json();
+    const adminSupabase = createAdminClient();
 
-    const liveTimes =
-      String(
-        body?.liveTimes || ""
-      ).trim();
+    const {
+      data: userRole,
+      error: roleError,
+    } = await adminSupabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    const timezone =
-      String(
-        body?.timezone || ""
-      ).trim();
-
-    if (!liveTimes) {
+    if (
+      roleError ||
+      !userRole ||
+      userRole.role !== "creator" ||
+      userRole.status !== "active"
+    ) {
       return NextResponse.json(
         {
-          error:
-            "Please enter your typical LIVE times.",
+          error: "Creator access required.",
         },
         {
-          status: 400,
+          status: 403,
         }
       );
     }
-
-    if (!timezone) {
-      return NextResponse.json(
-        {
-          error:
-            "Please select a timezone.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const admin =
-      createAdminClient();
 
     const {
       data: profile,
       error: profileError,
-    } = await admin
+    } = await adminSupabase
       .from("crownlink_profiles")
       .select("id")
       .eq("user_id", user.id)
@@ -90,8 +118,7 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          error:
-            "Creator profile not found.",
+          error: "Creator profile not found.",
         },
         {
           status: 404,
@@ -99,41 +126,42 @@ export async function POST(
       );
     }
 
-    const {
-      data: reward,
-      error: rewardError,
-    } = await admin
-      .from("rewards")
-      .select(
-        "id, creator_id, dropped"
-      )
-      .eq("id", rewardId)
-      .eq(
-        "creator_id",
-        profile.id
-      )
-      .maybeSingle();
+    const body = await request.json();
 
-    if (
-      rewardError ||
-      !reward
-    ) {
+    // Website currently sends:
+    // liveTimes + timezone
+    //
+    // The additional names are supported for native/API compatibility.
+    const typicalLiveTimes = String(
+      body.liveTimes ??
+        body.typicalLiveTimes ??
+        body.typical_live_times ??
+        ""
+    ).trim();
+
+    const liveTimezone = String(
+      body.timezone ??
+        body.liveTimezone ??
+        body.live_timezone ??
+        ""
+    ).trim();
+
+    if (!typicalLiveTimes) {
       return NextResponse.json(
         {
           error:
-            "Reward not found.",
+            "Please enter the times you typically go LIVE.",
         },
         {
-          status: 404,
+          status: 400,
         }
       );
     }
 
-    if (reward.dropped) {
+    if (!liveTimezone) {
       return NextResponse.json(
         {
-          error:
-            "This reward has already been delivered.",
+          error: "Timezone is required.",
         },
         {
           status: 400,
@@ -142,25 +170,75 @@ export async function POST(
     }
 
     const {
+      data: reward,
+      error: rewardError,
+    } = await adminSupabase
+      .from("rewards")
+      .select(`
+        id,
+        creator_id,
+        dropped
+      `)
+      .eq("id", rewardId)
+      .maybeSingle();
+
+    if (
+      rewardError ||
+      !reward
+    ) {
+      return NextResponse.json(
+        {
+          error: "Reward not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    if (reward.creator_id !== profile.id) {
+      return NextResponse.json(
+        {
+          error:
+            "You do not have access to this reward.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    if (reward.dropped) {
+      return NextResponse.json(
+        {
+          error:
+            "LIVE times cannot be changed after the reward has been delivered.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    const {
+      data: updatedReward,
       error: updateError,
-    } = await admin
+    } = await adminSupabase
       .from("rewards")
       .update({
-        typical_live_times:
-          {
-            text: liveTimes,
-          },
-
-        live_timezone:
-          timezone,
-
-        live_times_updated_at:
-          new Date().toISOString(),
-
-        updated_at:
-          new Date().toISOString(),
+        typical_live_times: {
+          text: typicalLiveTimes,
+        },
+        live_timezone: liveTimezone,
       })
-      .eq("id", rewardId);
+      .eq("id", rewardId)
+      .eq("creator_id", profile.id)
+      .select(`
+        id,
+        typical_live_times,
+        live_timezone
+      `)
+      .single();
 
     if (updateError) {
       console.error(
@@ -170,8 +248,7 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error:
-            "Unable to save your LIVE times.",
+          error: updateError.message,
         },
         {
           status: 500,
@@ -181,6 +258,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      reward: updatedReward,
     });
   } catch (error) {
     console.error(
