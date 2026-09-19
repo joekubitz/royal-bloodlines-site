@@ -124,6 +124,7 @@ export async function POST(
       !userRole ||
       ![
         "creator",
+        "agent",
         "admin",
       ].includes(userRole.role) ||
       userRole.status !== "active"
@@ -131,7 +132,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Active creator access required.",
+            "Active account access required.",
         },
         {
           status: 403,
@@ -173,7 +174,7 @@ export async function POST(
       );
     }
 
-    // Verify the creator is actually
+    // Verify this user is actually
     // signed up for this event.
     const {
       data: signup,
@@ -385,7 +386,7 @@ export async function DELETE(
       );
     }
 
-    // A creator can only remove their
+    // Users can only remove their
     // own unavailable time.
     if (
       unavailableTime.user_id !==
