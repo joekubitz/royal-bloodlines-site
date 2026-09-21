@@ -8,44 +8,32 @@ import {
   type CreatorLevel,
 } from "@/app/admin/analytics/levelRules";
 
-import {
-  getRankUp,
-} from "@/app/admin/analytics/tierRules";
+import { getRankUp } from "@/app/admin/analytics/tierRules";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function getAuthenticatedUser(
-  request: NextRequest
-) {
-  const authorization =
-    request.headers.get("authorization");
+// MARK: - Authentication
+
+async function getAuthenticatedUser(request: NextRequest) {
+  const authorization = request.headers.get("authorization");
 
   /*
     IOS / MOBILE APP AUTH
   */
-  if (
-    authorization
-      ?.toLowerCase()
-      .startsWith("bearer ")
-  ) {
-    const accessToken =
-      authorization.slice(7).trim();
+  if (authorization?.toLowerCase().startsWith("bearer ")) {
+    const accessToken = authorization.slice(7).trim();
 
     if (!accessToken) {
       return null;
     }
 
-    const adminSupabase =
-      createAdminClient();
+    const adminSupabase = createAdminClient();
 
     const {
       data: { user },
       error,
-    } =
-      await adminSupabase.auth.getUser(
-        accessToken
-      );
+    } = await adminSupabase.auth.getUser(accessToken);
 
     if (error || !user) {
       return null;
@@ -57,14 +45,12 @@ async function getAuthenticatedUser(
   /*
     WEBSITE SESSION AUTH
   */
-  const supabase =
-    await createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
     error,
-  } =
-    await supabase.auth.getUser();
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
     return null;
@@ -73,14 +59,11 @@ async function getAuthenticatedUser(
   return user;
 }
 
-export async function GET(
-  request: NextRequest
-) {
+// MARK: - Route
+
+export async function GET(request: NextRequest) {
   try {
-    const user =
-      await getAuthenticatedUser(
-        request
-      );
+    const user = await getAuthenticatedUser(request);
 
     if (!user) {
       return NextResponse.json(
@@ -94,8 +77,7 @@ export async function GET(
       );
     }
 
-    const adminSupabase =
-      createAdminClient();
+    const adminSupabase = createAdminClient();
 
     /*
       VERIFY ACTIVE ADMIN ROLE
@@ -103,12 +85,11 @@ export async function GET(
     const {
       data: userRole,
       error: roleError,
-    } =
-      await adminSupabase
-        .from("user_roles")
-        .select("role, status")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    } = await adminSupabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (roleError) {
       console.error(
@@ -119,8 +100,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to verify account access.",
+          error: "Unable to verify account access.",
         },
         {
           status: 500,
@@ -136,8 +116,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Administrator access required.",
+          error: "Administrator access required.",
         },
         {
           status: 403,
@@ -148,32 +127,31 @@ export async function GET(
     /*
       LOAD BACKSTAGE CREATOR STATS
 
-      Newest imports are first.
-      We keep only the newest row
-      for each creator.
+      Fetch enough rows to get past Supabase's
+      default 1,000-row response limit.
+
+      Rows are ordered newest first, then we keep
+      the newest row for each unique creator.
     */
     const {
       data: rows,
       error: statsError,
-    } =
-      await adminSupabase
-        .from("backstage_creator_stats")
-        .select(`
-          creator_id,
-          username,
-          diamonds,
-          live_days,
-          live_duration,
-          diamonds_from_matches,
-          last_month_diamonds,
-          imported_at
-        `)
-        .order(
-          "imported_at",
-          {
-            ascending: false,
-          }
-        );
+    } = await adminSupabase
+      .from("backstage_creator_stats")
+      .select(`
+        creator_id,
+        username,
+        diamonds,
+        live_days,
+        live_duration,
+        diamonds_from_matches,
+        last_month_diamonds,
+        imported_at
+      `)
+      .order("imported_at", {
+        ascending: false,
+      })
+      .range(0, 4999);
 
     if (statsError) {
       console.error(
@@ -184,8 +162,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to load agency analytics.",
+          error: "Unable to load agency analytics.",
         },
         {
           status: 500,
@@ -195,169 +172,140 @@ export async function GET(
 
     /*
       DEDUPE CREATORS
-    */
-    const creatorMap =
-      new Map<
-        string,
-        NonNullable<
-          typeof rows
-        >[number]
-      >();
 
-    for (
-      const row of rows ?? []
-    ) {
-      const normalizedUsername =
-        String(
-          row.username ?? ""
-        )
-          .trim()
-          .toLowerCase()
-          .replace(/^@/, "");
+      Because the newest imports are first,
+      the first row we encounter for a username
+      is the row we retain.
+    */
+    const creatorMap = new Map<
+      string,
+      NonNullable<typeof rows>[number]
+    >();
+
+    for (const row of rows ?? []) {
+      const normalizedUsername = String(
+        row.username ?? ""
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/^@/, "");
 
       if (!normalizedUsername) {
         continue;
       }
 
-      if (
-        !creatorMap.has(
-          normalizedUsername
-        )
-      ) {
-        creatorMap.set(
-          normalizedUsername,
-          row
-        );
+      if (!creatorMap.has(normalizedUsername)) {
+        creatorMap.set(normalizedUsername, row);
       }
     }
 
-    const creators =
-      Array.from(
-        creatorMap.values()
-      );
+    const creators = Array.from(
+      creatorMap.values()
+    );
 
     /*
-      TOTALS
+      AGENCY TOTALS
     */
     let diamondsThisMonth = 0;
     let diamondsLastMonth = 0;
     let matchDiamonds = 0;
     let rankUps = 0;
 
-    const bonusLevels:
-      Record<
-        CreatorLevel,
-        number
-      > = {
-        "Level 1": 0,
-        "Level 2": 0,
-        "Level 3": 0,
-        "Level 4": 0,
-        "Level 5": 0,
-        "Not Qualified": 0,
-      };
+    /*
+      CREATOR BONUS LEVEL COUNTS
+    */
+    const bonusLevels: Record<
+      CreatorLevel,
+      number
+    > = {
+      "Level 1": 0,
+      "Level 2": 0,
+      "Level 3": 0,
+      "Level 4": 0,
+      "Level 5": 0,
+      "Not Qualified": 0,
+    };
 
-    for (
-      const creator of creators
-    ) {
-      const diamonds =
-        Number(
-          creator.diamonds ?? 0
-        );
+    for (const creator of creators) {
+      const diamonds = Number(
+        creator.diamonds ?? 0
+      );
 
-      const lastMonthDiamonds =
-        Number(
-          creator.last_month_diamonds ??
-            0
-        );
+      const lastMonthDiamonds = Number(
+        creator.last_month_diamonds ?? 0
+      );
 
-      const creatorMatchDiamonds =
-        Number(
-          creator
-            .diamonds_from_matches ??
-            0
-        );
+      const creatorMatchDiamonds = Number(
+        creator.diamonds_from_matches ?? 0
+      );
 
-      const days =
-        Number(
-          creator.live_days ?? 0
-        );
+      const days = Number(
+        creator.live_days ?? 0
+      );
 
-      const hours =
-        Number(
-          creator.live_duration ?? 0
-        );
+      const hours = Number(
+        creator.live_duration ?? 0
+      );
 
-      diamondsThisMonth +=
-        diamonds;
+      /*
+        TOTAL DIAMONDS
+      */
+      diamondsThisMonth += diamonds;
+      diamondsLastMonth += lastMonthDiamonds;
+      matchDiamonds += creatorMatchDiamonds;
 
-      diamondsLastMonth +=
-        lastMonthDiamonds;
+      /*
+        RANK UPS
 
-      matchDiamonds +=
-        creatorMatchDiamonds;
-
-      const rankUp =
-        getRankUp({
-          currentDiamonds:
-            diamonds,
-          lastMonthDiamonds,
-        });
+        Uses the same tier rules as the
+        website analytics dashboard.
+      */
+      const rankUp = getRankUp({
+        currentDiamonds: diamonds,
+        lastMonthDiamonds,
+      });
 
       if (rankUp.rankedUp) {
         rankUps += 1;
       }
 
-      const level =
-        getCreatorLevel({
-          diamonds,
-          days,
-          hours,
-        });
+      /*
+        CREATOR BONUS LEVEL
+
+        Uses the same level rules as the
+        website analytics dashboard.
+      */
+      const level = getCreatorLevel({
+        diamonds,
+        days,
+        hours,
+      });
 
       bonusLevels[level] += 1;
     }
 
+    /*
+      RESPONSE
+    */
     return NextResponse.json({
       success: true,
 
       totals: {
-        creators:
-          creators.length,
-
-        diamonds_this_month:
-          diamondsThisMonth,
-
-        diamonds_last_month:
-          diamondsLastMonth,
-
-        match_diamonds:
-          matchDiamonds,
-
-        rank_ups:
-          rankUps,
+        creators: creators.length,
+        diamonds_this_month: diamondsThisMonth,
+        diamonds_last_month: diamondsLastMonth,
+        match_diamonds: matchDiamonds,
+        rank_ups: rankUps,
       },
 
       bonus_levels: {
-        level_1:
-          bonusLevels["Level 1"],
-
-        level_2:
-          bonusLevels["Level 2"],
-
-        level_3:
-          bonusLevels["Level 3"],
-
-        level_4:
-          bonusLevels["Level 4"],
-
-        level_5:
-          bonusLevels["Level 5"],
-
+        level_1: bonusLevels["Level 1"],
+        level_2: bonusLevels["Level 2"],
+        level_3: bonusLevels["Level 3"],
+        level_4: bonusLevels["Level 4"],
+        level_5: bonusLevels["Level 5"],
         not_qualified:
-          bonusLevels[
-            "Not Qualified"
-          ],
+          bonusLevels["Not Qualified"],
       },
     });
   } catch (error) {
