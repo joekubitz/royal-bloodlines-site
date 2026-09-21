@@ -1,156 +1,370 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+kimport { NextRequest, NextResponse } from "next/server";
+
+import { createClient } from "@/app/supabase/server";
+import { createAdminClient } from "@/app/supabase/admin";
+
+import {
+  getCreatorLevel,
+  type CreatorLevel,
+} from "@/app/admin/analytics/levelRules";
+
+import {
+  getRankUp,
+} from "@/app/admin/analytics/tierRules";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+async function getAuthenticatedUser(
+  request: NextRequest
+) {
+  const authorization =
+    request.headers.get("authorization");
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase environment variables.");
+  /*
+    IOS / MOBILE APP AUTH
+  */
+  if (
+    authorization
+      ?.toLowerCase()
+      .startsWith("bearer ")
+  ) {
+    const accessToken =
+      authorization.slice(7).trim();
+
+    if (!accessToken) {
+      return null;
+    }
+
+    const adminSupabase =
+      createAdminClient();
+
+    const {
+      data: { user },
+      error,
+    } =
+      await adminSupabase.auth.getUser(
+        accessToken
+      );
+
+    if (error || !user) {
+      return null;
+    }
+
+    return user;
   }
 
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  /*
+    WEBSITE SESSION AUTH
+  */
+  const supabase =
+    await createClient();
+
+  const {
+    data: { user },
+    error,
+  } =
+    await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest
+) {
   try {
-    const supabase = createAdminClient();
+    const user =
+      await getAuthenticatedUser(
+        request
+      );
 
-    // Authenticate the iOS user
-    const authorization = request.headers.get("authorization");
-
-    if (!authorization?.startsWith("Bearer ")) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
           error: "Unauthorized",
         },
-        { status: 401 }
-      );
-    }
-
-    const accessToken = authorization.replace("Bearer ", "").trim();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return NextResponse.json(
         {
-          success: false,
-          error: "Invalid session",
-        },
-        { status: 401 }
+          status: 401,
+        }
       );
     }
 
-    // Verify administrator role
-    const { data: adminRole, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role, status")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .eq("status", "active")
-      .maybeSingle();
+    const adminSupabase =
+      createAdminClient();
+
+    /*
+      VERIFY ACTIVE ADMIN ROLE
+    */
+    const {
+      data: userRole,
+      error: roleError,
+    } =
+      await adminSupabase
+        .from("user_roles")
+        .select("role, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
     if (roleError) {
-      console.error("Admin role lookup failed:", roleError);
+      console.error(
+        "Admin dashboard role error:",
+        roleError
+      );
 
       return NextResponse.json(
         {
           success: false,
-          error: "Unable to verify administrator access",
+          error:
+            "Unable to verify account access.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    if (!adminRole) {
+    if (
+      !userRole ||
+      userRole.role !== "admin" ||
+      userRole.status !== "active"
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Administrator access required",
+          error:
+            "Administrator access required.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    // Active creator accounts
-    const { count: creatorCount, error: creatorError } = await supabase
-      .from("crownlink_profiles")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("profile_status", "active");
+    /*
+      LOAD BACKSTAGE CREATOR STATS
 
-    if (creatorError) {
-      console.error("Creator count failed:", creatorError);
+      Newest imports are first.
+      We keep only the newest row
+      for each creator.
+    */
+    const {
+      data: rows,
+      error: statsError,
+    } =
+      await adminSupabase
+        .from("backstage_creator_stats")
+        .select(`
+          creator_id,
+          username,
+          diamonds,
+          live_days,
+          live_duration,
+          diamonds_from_matches,
+          last_month_diamonds,
+          imported_at
+        `)
+        .order(
+          "imported_at",
+          {
+            ascending: false,
+          }
+        );
+
+    if (statsError) {
+      console.error(
+        "Admin dashboard stats error:",
+        statsError
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Unable to load agency analytics.",
+        },
+        {
+          status: 500,
+        }
+      );
     }
 
-    // Creator accounts waiting for approval
-    const { count: pendingApprovalCount, error: approvalError } =
-      await supabase
-        .from("crownlink_profiles")
-        .select("*", {
-          count: "exact",
-          head: true,
-        })
-        .eq("profile_status", "pending");
+    /*
+      DEDUPE CREATORS
+    */
+    const creatorMap =
+      new Map<
+        string,
+        NonNullable<
+          typeof rows
+        >[number]
+      >();
 
-    if (approvalError) {
-      console.error("Pending approval count failed:", approvalError);
+    for (
+      const row of rows ?? []
+    ) {
+      const normalizedUsername =
+        String(
+          row.username ?? ""
+        )
+          .trim()
+          .toLowerCase()
+          .replace(/^@/, "");
+
+      if (!normalizedUsername) {
+        continue;
+      }
+
+      if (
+        !creatorMap.has(
+          normalizedUsername
+        )
+      ) {
+        creatorMap.set(
+          normalizedUsername,
+          row
+        );
+      }
     }
 
-    // Approved battles
-    const { count: upcomingBattleCount, error: battleError } =
-      await supabase
-        .from("crownlink_matches")
-        .select("*", {
-          count: "exact",
-          head: true,
-        })
-        .eq("status", "approved");
+    const creators =
+      Array.from(
+        creatorMap.values()
+      );
 
-    if (battleError) {
-      console.error("Upcoming battle count failed:", battleError);
-    }
+    /*
+      TOTALS
+    */
+    let diamondsThisMonth = 0;
+    let diamondsLastMonth = 0;
+    let matchDiamonds = 0;
+    let rankUps = 0;
 
-    // Rewards that have not been dropped yet
-    const { count: pendingRewardCount, error: rewardError } =
-      await supabase
-        .from("creator_rewards")
-        .select("*", {
-          count: "exact",
-          head: true,
-        })
-        .eq("dropped", false);
+    const bonusLevels:
+      Record<
+        CreatorLevel,
+        number
+      > = {
+        "Level 1": 0,
+        "Level 2": 0,
+        "Level 3": 0,
+        "Level 4": 0,
+        "Level 5": 0,
+        "Not Qualified": 0,
+      };
 
-    if (rewardError) {
-      console.error("Pending reward count failed:", rewardError);
+    for (
+      const creator of creators
+    ) {
+      const diamonds =
+        Number(
+          creator.diamonds ?? 0
+        );
+
+      const lastMonthDiamonds =
+        Number(
+          creator.last_month_diamonds ??
+            0
+        );
+
+      const creatorMatchDiamonds =
+        Number(
+          creator
+            .diamonds_from_matches ??
+            0
+        );
+
+      const days =
+        Number(
+          creator.live_days ?? 0
+        );
+
+      const hours =
+        Number(
+          creator.live_duration ?? 0
+        );
+
+      diamondsThisMonth +=
+        diamonds;
+
+      diamondsLastMonth +=
+        lastMonthDiamonds;
+
+      matchDiamonds +=
+        creatorMatchDiamonds;
+
+      const rankUp =
+        getRankUp({
+          currentDiamonds:
+            diamonds,
+          lastMonthDiamonds,
+        });
+
+      if (rankUp.rankedUp) {
+        rankUps += 1;
+      }
+
+      const level =
+        getCreatorLevel({
+          diamonds,
+          days,
+          hours,
+        });
+
+      bonusLevels[level] += 1;
     }
 
     return NextResponse.json({
       success: true,
 
       totals: {
-        creators: creatorCount ?? 0,
-        pending_approvals: pendingApprovalCount ?? 0,
-        upcoming_battles: upcomingBattleCount ?? 0,
-        pending_rewards: pendingRewardCount ?? 0,
+        creators:
+          creators.length,
+
+        diamonds_this_month:
+          diamondsThisMonth,
+
+        diamonds_last_month:
+          diamondsLastMonth,
+
+        match_diamonds:
+          matchDiamonds,
+
+        rank_ups:
+          rankUps,
+      },
+
+      bonus_levels: {
+        level_1:
+          bonusLevels["Level 1"],
+
+        level_2:
+          bonusLevels["Level 2"],
+
+        level_3:
+          bonusLevels["Level 3"],
+
+        level_4:
+          bonusLevels["Level 4"],
+
+        level_5:
+          bonusLevels["Level 5"],
+
+        not_qualified:
+          bonusLevels[
+            "Not Qualified"
+          ],
       },
     });
   } catch (error) {
-    console.error("Admin dashboard API error:", error);
+    console.error(
+      "Admin dashboard API error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -158,9 +372,11 @@ export async function GET(request: NextRequest) {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load admin dashboard",
+            : "Unable to load admin dashboard.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
