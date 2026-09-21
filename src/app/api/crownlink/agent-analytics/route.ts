@@ -12,29 +12,19 @@ async function getAuthenticatedUser(request: NextRequest) {
   /*
     IOS / MOBILE APP AUTH
   */
-  if (
-    authorization
-      ?.toLowerCase()
-      .startsWith("bearer ")
-  ) {
-    const accessToken = authorization
-      .slice(7)
-      .trim();
+  if (authorization?.toLowerCase().startsWith("bearer ")) {
+    const accessToken = authorization.slice(7).trim();
 
     if (!accessToken) {
       return null;
     }
 
-    const adminSupabase =
-      createAdminClient();
+    const adminSupabase = createAdminClient();
 
     const {
       data: { user },
       error,
-    } =
-      await adminSupabase.auth.getUser(
-        accessToken
-      );
+    } = await adminSupabase.auth.getUser(accessToken);
 
     if (error || !user) {
       return null;
@@ -60,12 +50,9 @@ async function getAuthenticatedUser(request: NextRequest) {
   return user;
 }
 
-export async function GET(
-  request: NextRequest
-) {
+export async function GET(request: NextRequest) {
   try {
-    const user =
-      await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser(request);
 
     if (!user) {
       return NextResponse.json(
@@ -79,13 +66,11 @@ export async function GET(
       );
     }
 
-    const adminSupabase =
-      createAdminClient();
+    const adminSupabase = createAdminClient();
 
     /*
       VERIFY ACTIVE AGENT ROLE
     */
-
     const {
       data: userRole,
       error: roleError,
@@ -104,8 +89,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to verify account access.",
+          error: "Unable to verify account access.",
         },
         {
           status: 500,
@@ -132,7 +116,6 @@ export async function GET(
     /*
       FIND AGENT'S BACKSTAGE MANAGER
     */
-
     const {
       data: agentAccess,
       error: accessError,
@@ -154,8 +137,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to load agent analytics access.",
+          error: "Unable to load agent analytics access.",
         },
         {
           status: 500,
@@ -176,28 +158,23 @@ export async function GET(
         totals: {
           creators: 0,
           diamonds: 0,
-          live_days: 0,
-          live_hours: 0,
+          requirements_met: 0,
           matches: 0,
           match_diamonds: 0,
           last_month_diamonds: 0,
-          last_month_days: 0,
-          last_month_hours: 0,
         },
       });
     }
 
-    const manager =
-      agentAccess.backstage_manager;
+    const manager = agentAccess.backstage_manager;
 
     /*
-      LOAD CREATOR STATS FOR THIS AGENT
+      LOAD ALL STATS FOR THIS MANAGER.
 
-      backstage_creator_stats contains historical
-      imports, so we'll load the manager's rows and
-      keep only the newest record for each creator.
+      Rows are sorted newest first so that when
+      duplicate usernames exist, the newest row
+      is the one we keep.
     */
-
     const {
       data: statsRows,
       error: statsError,
@@ -232,8 +209,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to load team analytics.",
+          error: "Unable to load team analytics.",
         },
         {
           status: 500,
@@ -242,90 +218,94 @@ export async function GET(
     }
 
     /*
-      KEEP ONLY THE LATEST ROW PER CREATOR
-    */
+      REMOVE DUPLICATE CREATORS.
 
+      Backstage may contain multiple Creator IDs
+      for the same TikTok username, so username is
+      the unique key here.
+
+      We normalize capitalization, spaces, and @.
+    */
     const creatorMap = new Map<
       string,
       NonNullable<typeof statsRows>[number]
     >();
 
     for (const row of statsRows ?? []) {
-      const key =
-        row.creator_id ||
-        row.username.toLowerCase();
+      const normalizedUsername = row.username
+        .trim()
+        .toLowerCase()
+        .replace(/^@/, "");
 
-      if (!creatorMap.has(key)) {
-        creatorMap.set(key, row);
+      if (
+        normalizedUsername &&
+        !creatorMap.has(normalizedUsername)
+      ) {
+        creatorMap.set(normalizedUsername, row);
       }
     }
 
-    const creators =
-      Array.from(creatorMap.values()).sort(
-        (a, b) =>
-          Number(b.diamonds ?? 0) -
-          Number(a.diamonds ?? 0)
-      );
+    /*
+      SORT CURRENT CREATORS BY DIAMONDS
+    */
+    const creators = Array.from(
+      creatorMap.values()
+    ).sort(
+      (a, b) =>
+        Number(b.diamonds ?? 0) -
+        Number(a.diamonds ?? 0)
+    );
 
     /*
       TEAM TOTALS
     */
-
     const totals = creators.reduce(
       (result, creator) => {
         result.creators += 1;
 
-        result.diamonds +=
-          Number(creator.diamonds ?? 0);
+        /*
+          CREATOR REQUIREMENT:
+          Must have BOTH 12+ LIVE days
+          AND 25+ LIVE hours.
+        */
+        if (
+          Number(creator.live_days ?? 0) >= 12 &&
+          Number(creator.live_duration ?? 0) >= 25
+        ) {
+          result.requirements_met += 1;
+        }
 
-        result.live_days +=
-          Number(creator.live_days ?? 0);
+        result.diamonds += Number(
+          creator.diamonds ?? 0
+        );
 
-        result.live_hours +=
-          Number(creator.live_duration ?? 0);
+        result.matches += Number(
+          creator.matches ?? 0
+        );
 
-        result.matches +=
-          Number(creator.matches ?? 0);
+        result.match_diamonds += Number(
+          creator.diamonds_from_matches ?? 0
+        );
 
-        result.match_diamonds +=
-          Number(
-            creator.diamonds_from_matches ?? 0
-          );
-
-        result.last_month_diamonds +=
-          Number(
-            creator.last_month_diamonds ?? 0
-          );
-
-        result.last_month_days +=
-          Number(
-            creator.last_month_days ?? 0
-          );
-
-        result.last_month_hours +=
-          Number(
-            creator.last_month_hours ?? 0
-          );
+        result.last_month_diamonds += Number(
+          creator.last_month_diamonds ?? 0
+        );
 
         return result;
       },
       {
         creators: 0,
         diamonds: 0,
-        live_days: 0,
-        live_hours: 0,
+        requirements_met: 0,
         matches: 0,
         match_diamonds: 0,
         last_month_diamonds: 0,
-        last_month_days: 0,
-        last_month_hours: 0,
       }
     );
 
     /*
       RESPONSE
     */
-
     return NextResponse.json({
       success: true,
       state: "connected",
