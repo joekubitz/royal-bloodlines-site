@@ -255,6 +255,15 @@ export async function GET(request: NextRequest) {
         Number(b.diamonds ?? 0) -
         Number(a.diamonds ?? 0)
     );
+console.log(
+  "AGENT ANALYTICS SAMPLE:",
+  creators.slice(0, 3).map((creator) => ({
+    username: creator.username,
+    diamonds: creator.diamonds,
+    live_days: creator.live_days,
+    live_duration: creator.live_duration,
+  }))
+);
 
     /*
       TEAM TOTALS
