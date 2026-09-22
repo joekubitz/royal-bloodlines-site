@@ -127,47 +127,79 @@ export async function GET(request: NextRequest) {
     /*
       LOAD BACKSTAGE CREATOR STATS
 
-      Fetch enough rows to get past Supabase's
-      default 1,000-row response limit.
+      Supabase limits each response to 1,000 rows,
+      so fetch the table in batches until every
+      available row has been loaded.
 
       Rows are ordered newest first, then we keep
       the newest row for each unique creator.
     */
-    const {
-      data: rows,
-      error: statsError,
-    } = await adminSupabase
-      .from("backstage_creator_stats")
-      .select(`
-        creator_id,
-        username,
-        diamonds,
-        live_days,
-        live_duration,
-        diamonds_from_matches,
-        last_month_diamonds,
-        imported_at
-      `)
-      .order("imported_at", {
-        ascending: false,
-      })
-      .range(0, 4999);
+    type BackstageCreatorRow = {
+      creator_id: string | null;
+      username: string | null;
+      diamonds: number | null;
+      live_days: number | null;
+      live_duration: number | null;
+      diamonds_from_matches: number | null;
+      last_month_diamonds: number | null;
+      imported_at: string | null;
+    };
 
-    if (statsError) {
-      console.error(
-        "Admin dashboard stats error:",
-        statsError
-      );
+    const rows: BackstageCreatorRow[] = [];
+    const pageSize = 1000;
+    let page = 0;
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unable to load agency analytics.",
-        },
-        {
-          status: 500,
-        }
-      );
+    while (true) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const {
+        data: batch,
+        error: statsError,
+      } = await adminSupabase
+        .from("backstage_creator_stats")
+        .select(`
+          creator_id,
+          username,
+          diamonds,
+          live_days,
+          live_duration,
+          diamonds_from_matches,
+          last_month_diamonds,
+          imported_at
+        `)
+        .order("imported_at", {
+          ascending: false,
+        })
+        .range(from, to);
+
+      if (statsError) {
+        console.error(
+          "Admin dashboard stats error:",
+          statsError
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Unable to load agency analytics.",
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+
+      const currentBatch =
+        (batch ?? []) as BackstageCreatorRow[];
+
+      rows.push(...currentBatch);
+
+      if (currentBatch.length < pageSize) {
+        break;
+      }
+
+      page += 1;
     }
 
     /*
