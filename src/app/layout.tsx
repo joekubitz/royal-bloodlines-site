@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Cinzel, Inter } from "next/font/google";
+import Navbar from "@/components/Navbar";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -12,15 +13,9 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-
 export const metadata = {
   title: "Royals Bloodline",
   description: "Premium Creator Agency",
-  icons: {
-    icon: "/royals-icon.png",
-  },
 };
 
 export default function RootLayout({
@@ -31,11 +26,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cinzel.variable} ${inter.variable}`}>
       <body className="bg-black text-white">
-
         <Navbar />
-
         {children}
-
       </body>
     </html>
   );
