@@ -42,8 +42,7 @@ export async function POST(request: Request) {
     if (password.length < 8) {
       return NextResponse.json(
         {
-          error:
-            "Your password must be at least 8 characters.",
+          error: "Your password must be at least 8 characters.",
         },
         { status: 400 }
       );
@@ -69,8 +68,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json(
         {
-          error:
-            "The registration code could not be verified.",
+          error: "The registration code could not be verified.",
         },
         { status: 500 }
       );
@@ -88,11 +86,12 @@ export async function POST(request: Request) {
 
     /*
       Step 2:
-      Verify the code belongs to an active agent.
+      Verify the code belongs to an active agent
+      or administrator.
 
-      If the agent already has agency_id on user_roles,
-      we will use it. If not, we fall back to the
-      agent's Bloodline Arena profile agency_name.
+      Admins such as Camera Kings can have their own
+      creator registration code without changing their
+      admin role.
     */
     const { data: agentRole, error: roleError } =
       await adminSupabase
@@ -101,16 +100,18 @@ export async function POST(request: Request) {
         .eq("user_id", agentCode.agent_user_id)
         .maybeSingle();
 
+    const allowedRegistrationRoles = ["agent", "admin"];
+
     if (
       roleError ||
       !agentRole ||
-      agentRole.role !== "agent" ||
+      !allowedRegistrationRoles.includes(agentRole.role) ||
       agentRole.status !== "active"
     ) {
       return NextResponse.json(
         {
           error:
-            "That registration code is not connected to an active Bloodline Arena agent.",
+            "That registration code is not connected to an active Bloodline Arena agent or administrator.",
         },
         { status: 400 }
       );
@@ -123,8 +124,8 @@ export async function POST(request: Request) {
 
     /*
       Step 3A:
-      If the agent role already has agency_id,
-      verify that agency is active.
+      If the registration-code owner already has an
+      agency_id, verify that agency is active.
     */
     if (agencyId) {
       const { data: agency, error: agencyError } =
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "The agent's assigned agency could not be verified. Please contact a Bloodline Arena administrator.",
+              "The assigned agency could not be verified. Please contact a Bloodline Arena administrator.",
           },
           { status: 400 }
         );
@@ -153,8 +154,8 @@ export async function POST(request: Request) {
 
     /*
       Step 3B:
-      Older/current agent accounts may only have
-      agency_name stored on crownlink_profiles.
+      Older/current accounts may only have agency_name
+      stored on crownlink_profiles.
 
       In that case, find the matching active agency
       and use its ID for the new creator.
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "This agent does not have an agency assigned in Bloodline Arena. Please contact an administrator.",
+              "This registration code owner does not have an agency assigned in Bloodline Arena. Please contact an administrator.",
           },
           { status: 400 }
         );
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              `The agent's agency "${agentProfile.agency_name}" is not connected to an active Bloodline Arena agency. Please contact an administrator.`,
+              `The assigned agency "${agentProfile.agency_name}" is not connected to an active Bloodline Arena agency. Please contact an administrator.`,
           },
           { status: 400 }
         );
@@ -228,8 +229,9 @@ export async function POST(request: Request) {
       Step 4:
       Create the Supabase Auth account.
 
-      We also save the agent and agency in user metadata
-      so the relationship is available during onboarding.
+      Save the registration-code owner and agency in
+      user metadata so the relationship is available
+      during onboarding.
     */
     const {
       data: createdUser,
@@ -269,8 +271,8 @@ export async function POST(request: Request) {
 
     /*
       Step 5:
-      Create the active creator role AND assign the
-      same agency as the agent tied to the code.
+      Create the active creator role and assign the
+      same agency as the registration-code owner.
     */
     const { error: roleInsertError } =
       await adminSupabase
