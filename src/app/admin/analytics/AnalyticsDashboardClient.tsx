@@ -58,61 +58,43 @@ export default function AnalyticsDashboardClient({
   creators,
   agentTrendHistory = {},
   isAgentView = false,
+  ownManager = null,
+  allowedManagers = [],
 }: {
   creators: CreatorStat[];
   latestImport?: string | null;
   agentTrendHistory?: AgentTrendHistory;
   isAgentView?: boolean;
+  ownManager?: string | null;
+  allowedManagers?: string[];
 }) {
   const [
     agentFilter,
     setAgentFilter,
   ] = useState("all");
 
-  const agentManager = useMemo(() => {
-    if (!isAgentView) {
-      return null;
-    }
-
-    return (
-      creators.find(
-        (creator) =>
-          Boolean(creator.manager?.trim())
-      )?.manager?.trim() ?? null
-    );
-  }, [creators, isAgentView]);
-
-  const effectiveAgentFilter =
-    isAgentView && agentManager
-      ? agentManager
-      : agentFilter;
+  const effectiveAgentFilter = agentFilter;
+  const normalizedOwnManager = ownManager?.trim().toLowerCase() ?? null;
 
   /*
     AGENT LIST
   */
 
   const agents = useMemo(() => {
-    const uniqueAgents =
-      Array.from(
-        new Set(
-          creators
-            .map((creator) =>
-              creator.manager?.trim()
-            )
-            .filter(
-              (
-                agent
-              ): agent is string =>
-                Boolean(agent)
-            )
-        )
-      );
+    // Agent choices come from the server-authorized hierarchy, not creator rows.
+    if (isAgentView) {
+      return Array.from(new Set([
+        ...(normalizedOwnManager ? [normalizedOwnManager] : []),
+        ...allowedManagers.map((manager) => manager.trim().toLowerCase()).filter(Boolean),
+      ])).sort((a, b) => a.localeCompare(b));
+    }
 
-    return uniqueAgents.sort(
-      (a, b) =>
-        a.localeCompare(b)
-    );
-  }, [creators]);
+    return Array.from(new Set(
+      creators.map((creator) => creator.manager?.trim()).filter(
+        (agent): agent is string => Boolean(agent)
+      )
+    )).sort((a, b) => a.localeCompare(b));
+  }, [creators, isAgentView, normalizedOwnManager, allowedManagers]);
 
   /*
     FILTER DASHBOARD
@@ -121,7 +103,6 @@ export default function AnalyticsDashboardClient({
   const filteredCreators =
     useMemo(() => {
       if (
-        isAgentView ||
         effectiveAgentFilter === "all"
       ) {
         return creators;
@@ -129,13 +110,12 @@ export default function AnalyticsDashboardClient({
 
       return creators.filter(
         (creator) =>
-          creator.manager?.trim() ===
-          effectiveAgentFilter
+          creator.manager?.trim().toLowerCase() ===
+          effectiveAgentFilter.trim().toLowerCase()
       );
     }, [
       creators,
       effectiveAgentFilter,
-      isAgentView,
     ]);
 
   /*
@@ -150,11 +130,10 @@ export default function AnalyticsDashboardClient({
         return [];
       }
 
-      return (
-        agentTrendHistory[
-          effectiveAgentFilter
-        ] ?? []
+      const key = Object.keys(agentTrendHistory).find(
+        (manager) => manager.trim().toLowerCase() === effectiveAgentFilter.trim().toLowerCase()
       );
+      return key ? agentTrendHistory[key] : [];
     }, [
       effectiveAgentFilter,
       agentTrendHistory,
@@ -648,9 +627,9 @@ export default function AnalyticsDashboardClient({
   return (
     <div className="text-white">
 
-      {/* AGENT FILTER - ADMIN ONLY */}
+      {/* AGENT FILTER - ADMIN AND SUPERVISING AGENTS */}
 
-      {!isAgentView && (
+      {( !isAgentView || agents.some((agent) => agent !== normalizedOwnManager) ) && (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -686,7 +665,7 @@ export default function AnalyticsDashboardClient({
               className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
             >
               <option value="all">
-                All Agents
+                {isAgentView ? "All My Team" : "All Agents"}
               </option>
 
               {agents.map(
@@ -699,9 +678,7 @@ export default function AnalyticsDashboardClient({
                       agent
                     }
                   >
-                    {
-                      agent
-                    }
+                    {isAgentView && agent.trim().toLowerCase() === normalizedOwnManager ? "My Analytics" : agent}
                   </option>
                 )
               )}
@@ -731,7 +708,7 @@ export default function AnalyticsDashboardClient({
               }
               className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
             >
-              View All Agents
+              {isAgentView ? "All My Team" : "View All Agents"}
             </button>
           </div>
         )}

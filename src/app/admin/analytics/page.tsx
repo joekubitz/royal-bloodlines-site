@@ -679,6 +679,77 @@ export default async function AnalyticsPage() {
     redirect("/portal");
   }
 
+  // Existing hierarchy stores auth user IDs. Resolve them to Backstage manager names.
+  // The hierarchy has RLS enabled without SELECT policies, so use the server-only
+  // admin client after verifying the authenticated viewer has active analytics access.
+  let assignedManagers: string[] = [];
+  if (isAgent && !isAdmin && analyticsAccess?.backstage_manager) {
+    const adminHierarchy = createAdminClient();
+    const { data: reports, error: reportsError } = await adminHierarchy
+      .from("analytics_agent_hierarchy")
+      .select("child_agent_id")
+      .eq("parent_agent_id", user.id);
+    if (reportsError) {
+      console.error("Hierarchy access error:", reportsError);
+    } else {
+      const childIds = (reports ?? []).map((r) => r.child_agent_id);
+      if (childIds.length) {
+        const { data: childAccess, error: childAccessError } = await adminHierarchy
+          .from("analytics_agent_access")
+          .select("user_id,backstage_manager,status")
+          .in("user_id", childIds)
+          .eq("status", "active");
+        if (childAccessError) {
+          console.error("Underagent access error:", childAccessError);
+        } else {
+          assignedManagers = (childAccess ?? [])
+            .filter((r) => typeof r.backstage_manager === "string")
+            .map((r) => r.backstage_manager.trim().toLowerCase())
+            .filter(Boolean);
+        }
+      }
+    }
+  }
+  // Backstage-only hierarchy uses normalized manager identifiers rather than
+  // auth user IDs. Only an authenticated agent with active analytics access
+  // can inherit their explicitly assigned Backstage underagents.
+  if (isAgent && !isAdmin && analyticsAccess?.backstage_manager) {
+    const ownManager = analyticsAccess.backstage_manager.trim().toLowerCase();
+    const adminHierarchy = createAdminClient();
+    const { data: backstageReports, error: backstageReportsError } =
+      await adminHierarchy
+        .from("analytics_backstage_hierarchy")
+        .select("underagent_manager")
+        .eq("supervisor_manager", ownManager);
+
+    if (backstageReportsError) {
+      // Fail closed: do not render a potentially incomplete hierarchy.
+      console.error("Backstage hierarchy access error:", backstageReportsError);
+      throw new Error("Unable to verify Backstage reporting assignments.");
+    }
+
+    assignedManagers.push(
+      ...(backstageReports ?? [])
+        .map((row) => row.underagent_manager?.trim().toLowerCase() ?? "")
+        .filter(Boolean)
+    );
+  }
+
+  const visibleManagers = new Set([
+    ...(isAgent && analyticsAccess?.backstage_manager
+      ? [analyticsAccess.backstage_manager.trim().toLowerCase()]
+      : []),
+    ...assignedManagers,
+  ]);
+  console.log("HIERARCHY DEBUG", {
+    userId: user.id,
+    isAdmin,
+    isAgent,
+    ownManager: analyticsAccess?.backstage_manager,
+    assignedManagers,
+    visibleManagers: [...visibleManagers],
+  });
+
   let backstageManager:
     | string
     | null = null;
@@ -716,29 +787,40 @@ export default async function AnalyticsPage() {
       CURRENT DASHBOARD SNAPSHOT
     */
 
-    latestImportRecord =
-      await getLatestImport(
-        supabase
-      );
+  latestImportRecord =
+  await getLatestImport(
+    createAdminClient() as typeof supabase
+  );
 
     if (latestImportRecord) {
       creators =
-        await getCreatorStatsForImport(
-          supabase,
-          latestImportRecord.id
-        );
-
+  await getCreatorStatsForImport(
+    createAdminClient() as typeof supabase,
+    latestImportRecord.id
+  );
       if (
         isAgent &&
         backstageManager
       ) {
+        console.log("ANALYTICS DEBUG", {
+          ownManager: backstageManager,
+          allowedManagers: [...visibleManagers],
+          creatorsBeforeFilter: creators.length,
+          creatorsByManager: Object.fromEntries(
+            [...visibleManagers].map((manager) => [
+              manager,
+              creators.filter(
+                (creator) =>
+                  creator.manager?.trim().toLowerCase() === manager
+              ).length,
+            ])
+          ),
+        });
+
         creators =
           creators.filter(
             (creator) =>
-              creator.manager
-                ?.trim()
-                .toLowerCase() ===
-              backstageManager
+              visibleManagers.has(creator.manager?.trim().toLowerCase() ?? "")
           );
       }
     }
@@ -857,10 +939,7 @@ export default async function AnalyticsPage() {
       isAgent && backstageManager
         ? historicalCreatorRows.filter(
             (creator) =>
-              creator.manager
-                ?.trim()
-                .toLowerCase() ===
-              backstageManager
+              visibleManagers.has(creator.manager?.trim().toLowerCase() ?? "")
           )
         : historicalCreatorRows;
 
@@ -1179,6 +1258,8 @@ export default async function AnalyticsPage() {
         latestImport={latestImport}
         agentTrendHistory={agentTrendHistory}
         isAgentView={isAgent}
+        ownManager={backstageManager}
+        allowedManagers={isAdmin ? [] : [...visibleManagers]}
       />
     </main>
   );
