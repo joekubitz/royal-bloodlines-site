@@ -1,17 +1,5 @@
 import "./globals.css";
-import { Cinzel, Inter } from "next/font/google";
 import Navbar from "@/components/Navbar";
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-cinzel",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata = {
   title: "Royals Bloodline",
@@ -24,8 +12,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${cinzel.variable} ${inter.variable}`}>
-      <body className="bg-black text-white">
+    <html lang="en">
+      <body
+        className="bg-black text-white"
+        style={
+          {
+            "--font-cinzel": "Georgia, 'Times New Roman', serif",
+            "--font-inter": "Arial, Helvetica, sans-serif",
+          } as React.CSSProperties
+        }
+      >
         <Navbar />
         {children}
       </body>
