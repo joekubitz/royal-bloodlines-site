@@ -209,9 +209,18 @@ export async function POST(request: Request) {
     if (roleResult.error) throw new Error(roleResult.error.message);
     if (profileResult.error) throw new Error(profileResult.error.message);
 
+    // Active creators and agents may participate when signed up.
+    // This affects matchmaking eligibility only; account roles are unchanged.
+    // Prefer the creator role when a user has both active roles.
     const eligibleRoles = new Map(
       (roleResult.data ?? [])
-        .filter((role) => role.role === "creator" && role.status === "active")
+        .filter((role) =>
+          role.status === "active" &&
+          (role.role === "creator" || role.role === "agent")
+        )
+        .sort((a, b) =>
+          (a.role === "creator" ? 1 : 0) - (b.role === "creator" ? 1 : 0)
+        )
         .map((role) => [role.user_id, role])
     );
     const profiles = new Map((profileResult.data ?? []).map((profile) => [profile.user_id, profile]));
