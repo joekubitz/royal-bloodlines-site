@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,6 +30,9 @@ export default function EventSignupButton({
   const [matched, setMatched] =
     useState(false);
 
+  const [registrationClosed, setRegistrationClosed] =
+    useState(false);
+
   const [checkingStatus, setCheckingStatus] =
     useState(true);
 
@@ -39,18 +43,55 @@ export default function EventSignupButton({
     useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadStatus() {
+      setCheckingStatus(true);
+      setError("");
+
       const supabase = createClient();
+
+      // Check event registration status
+      const {
+        data: event,
+        error: eventError,
+      } = await supabase
+        .from("crownlink_events")
+        .select("registration_closed")
+        .eq("id", eventId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (eventError || !event) {
+        console.error(
+          "Event registration check error:",
+          eventError
+        );
+
+        setError(
+          "Unable to verify event registration status."
+        );
+        setCheckingStatus(false);
+        return;
+      }
+
+      setRegistrationClosed(
+        event.registration_closed === true
+      );
 
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
+      if (cancelled) return;
 
       if (!user) {
         setCheckingStatus(false);
         return;
       }
 
+      // Check creator signup
       const {
         data: signup,
         error: signupError,
@@ -61,21 +102,32 @@ export default function EventSignupButton({
         .eq("user_id", user.id)
         .maybeSingle();
 
+      if (cancelled) return;
+
       if (signupError) {
         console.error(
           "Signup status check error:",
           signupError
         );
-      } else if (signup) {
-        setSignupStatus(
-          signup.status as SignupStatus
+
+        setError(
+          "Unable to verify your signup status."
         );
-      } else {
-        setSignupStatus(null);
+        setCheckingStatus(false);
+        return;
       }
 
+      setSignupStatus(
+        signup
+          ? (signup.status as SignupStatus)
+          : null
+      );
+
+      // Check approved matches
+      // Limit to one because creators may have
+      // multiple approved battles.
       const {
-        data: approvedMatch,
+        data: approvedMatches,
         error: matchError,
       } = await supabase
         .from("crownlink_matches")
@@ -85,29 +137,45 @@ export default function EventSignupButton({
         .or(
           `creator_one_id.eq.${user.id},creator_two_id.eq.${user.id}`
         )
-        .maybeSingle();
+        .limit(1);
+
+      if (cancelled) return;
 
       if (matchError) {
         console.error(
           "Match check error:",
           matchError
         );
+
+        setError(
+          "Unable to verify your battle status."
+        );
+        setCheckingStatus(false);
+        return;
       }
 
       setMatched(
-        Boolean(approvedMatch)
+        (approvedMatches?.length ?? 0) > 0
       );
 
       setCheckingStatus(false);
     }
 
     loadStatus();
+
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
   async function handleClick() {
     if (
+      loading ||
+      checkingStatus ||
+      registrationClosed ||
       matched ||
-      signupStatus === "removed"
+      signupStatus === "removed" ||
+      error
     ) {
       return;
     }
@@ -121,8 +189,7 @@ export default function EventSignupButton({
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             eventId,
@@ -130,14 +197,18 @@ export default function EventSignupButton({
         }
       );
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        if (
-          result.status === "removed"
-        ) {
+        if (result.status === "removed") {
           setSignupStatus("removed");
+        }
+
+        if (
+          result.registrationClosed === true ||
+          result.status === "registration_closed"
+        ) {
+          setRegistrationClosed(true);
         }
 
         if (result.matched) {
@@ -149,13 +220,10 @@ export default function EventSignupButton({
             "Could not update your signup."
         );
 
-        setLoading(false);
         return;
       }
 
-      if (
-        result.status === "signed_up"
-      ) {
+      if (result.status === "signed_up") {
         setSignupStatus("signed_up");
       } else if (
         result.status === "cancelled"
@@ -163,14 +231,17 @@ export default function EventSignupButton({
         setSignupStatus("cancelled");
       }
 
-      setLoading(false);
-
       router.refresh();
-    } catch {
+    } catch (error) {
+      console.error(
+        "Event signup error:",
+        error
+      );
+
       setError(
         "Unexpected error. Please try again."
       );
-
+    } finally {
       setLoading(false);
     }
   }
@@ -184,8 +255,31 @@ export default function EventSignupButton({
   const isDisabled =
     loading ||
     checkingStatus ||
+    registrationClosed ||
+    matched ||
+    removed ||
+    Boolean(error);
+
+  const isLocked =
+    registrationClosed ||
     matched ||
     removed;
+
+  let buttonText = "Sign Up";
+
+  if (checkingStatus) {
+    buttonText = "Checking...";
+  } else if (loading) {
+    buttonText = "Saving...";
+  } else if (removed) {
+    buttonText = "🔒 Removed from Event";
+  } else if (registrationClosed) {
+    buttonText = "🔒 Registration Closed";
+  } else if (matched) {
+    buttonText = "🔒 Matched — Signup Locked";
+  } else if (signedUp) {
+    buttonText = "Cancel Signup";
+  }
 
   return (
     <div
@@ -200,46 +294,32 @@ export default function EventSignupButton({
         style={{
           padding: "12px 18px",
           borderRadius: 12,
-          border:
-            matched || removed
-              ? "1px solid rgba(211,163,60,0.28)"
-              : signedUp
-              ? "1px solid rgba(255,255,255,0.15)"
-              : "none",
-          background:
-            matched || removed
-              ? "rgba(211,163,60,0.08)"
-              : signedUp
-              ? "rgba(255,255,255,0.05)"
-              : "linear-gradient(135deg, #d3a33c, #9e6f22)",
-          color:
-            matched || removed
-              ? "#d3a33c"
-              : signedUp
-              ? "white"
-              : "#080503",
+          border: isLocked
+            ? "1px solid rgba(211,163,60,0.28)"
+            : signedUp
+            ? "1px solid rgba(255,255,255,0.15)"
+            : "none",
+          background: isLocked
+            ? "rgba(211,163,60,0.08)"
+            : signedUp
+            ? "rgba(255,255,255,0.05)"
+            : "linear-gradient(135deg, #d3a33c, #9e6f22)",
+          color: isLocked
+            ? "#d3a33c"
+            : signedUp
+            ? "white"
+            : "#080503",
           fontWeight: 900,
           cursor: isDisabled
             ? "not-allowed"
             : "pointer",
           opacity:
-            loading ||
-            checkingStatus
+            loading || checkingStatus
               ? 0.6
               : 1,
         }}
       >
-        {checkingStatus
-          ? "Checking..."
-          : loading
-          ? "Saving..."
-          : removed
-          ? "🔒 Removed from Event"
-          : matched
-          ? "🔒 Matched — Signup Locked"
-          : signedUp
-          ? "Cancel Signup"
-          : "Sign Up"}
+        {buttonText}
       </button>
 
       {removed ? (
@@ -251,8 +331,22 @@ export default function EventSignupButton({
             fontWeight: 700,
           }}
         >
-          Admin approval required to
-          rejoin
+          Admin approval required to rejoin
+        </span>
+      ) : registrationClosed ? (
+        <span
+          style={{
+            marginLeft: 12,
+            color: signedUp
+              ? "#b8f5c2"
+              : "#d3a33c",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          {signedUp
+            ? "✓ You're registered. Matchmaking has been completed."
+            : "Matchmaking has been completed. No additional signups are being accepted."}
         </span>
       ) : matched ? (
         <span
@@ -274,7 +368,7 @@ export default function EventSignupButton({
             fontWeight: 700,
           }}
         >
-          ✓ You’re signed up
+          ✓ You're signed up
         </span>
       ) : null}
 

@@ -167,17 +167,36 @@ export async function POST(
 
     // MARK: Verify event
 
+    
+    // MARK: Verify event and registration status
+
     const {
       data: event,
       error: eventError,
     } = await adminSupabase
       .from("crownlink_events")
-      .select("id, status")
+      .select(
+        "id, status, registration_closed"
+      )
       .eq("id", eventId)
-      .single();
+      .maybeSingle();
+
+    if (eventError) {
+      console.error(
+        "EVENT LOOKUP ERROR:",
+        eventError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to verify event registration.",
+        },
+        { status: 500 }
+      );
+    }
 
     if (
-      eventError ||
       !event ||
       event.status !== "active"
     ) {
@@ -186,11 +205,23 @@ export async function POST(
           error:
             "This event is not available for signup.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
+
+    // Block all creator signup changes after matchmaking
+    if (event.registration_closed === true) {
+      return NextResponse.json(
+        {
+          error:
+            "Registration is closed. Matchmaking has already been completed for this event. Contact an administrator if you need assistance.",
+          status: "registration_closed",
+          registrationClosed: true,
+        },
+        { status: 409 }
+      );
+    }
+
 
     // MARK: Current signup
 

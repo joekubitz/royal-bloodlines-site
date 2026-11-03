@@ -1209,6 +1209,39 @@ export async function POST(
       incompleteDates.length ===
       0;
 
+    /*
+     * Automatically close event registration
+     * after matchmaking has successfully run.
+     *
+     * Registration closes even if some creators
+     * could not be matched.
+     */
+    const {
+      error: closeRegistrationError,
+    } = await adminSupabase
+      .from("crownlink_events")
+      .update({
+        registration_closed: true,
+      })
+      .eq("id", eventId);
+
+    if (closeRegistrationError) {
+      console.error(
+        "CLOSE REGISTRATION ERROR:",
+        closeRegistrationError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Matchmaking completed, but registration could not be closed. Please contact an administrator.",
+          matchesCreated: createdMatches.length,
+          registrationClosed: false,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       eventName:
