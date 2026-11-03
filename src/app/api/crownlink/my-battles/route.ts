@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
@@ -76,7 +77,9 @@ export async function GET(request: Request) {
           creator_one_id,
           creator_two_id,
           status,
-          approved_at
+          approved_at,
+          event_date_id,
+          schedule_slot_id
         `)
         .eq("status", "approved")
         .or(
@@ -99,6 +102,22 @@ export async function GET(request: Request) {
     const eventIds = Array.from(
       new Set(
         (matches ?? []).map((match) => match.event_id)
+      )
+    );
+
+    const eventDateIds = Array.from(
+      new Set(
+        (matches ?? [])
+          .map((match) => match.event_date_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    );
+
+    const scheduleSlotIds = Array.from(
+      new Set(
+        (matches ?? [])
+          .map((match) => match.schedule_slot_id)
+          .filter((id): id is string => Boolean(id))
       )
     );
 
@@ -131,6 +150,62 @@ export async function GET(request: Request) {
       user_id: string;
       agency_id: string | null;
     }[] = [];
+
+    // Load individual matchup dates and times.
+    const [dateResult, slotResult] = await Promise.all([
+      eventDateIds.length > 0
+        ? adminSupabase
+            .from("crownlink_event_dates")
+            .select("id, event_date")
+            .in("id", eventDateIds)
+        : Promise.resolve({
+            data: [] as {
+              id: string;
+              event_date: string;
+            }[],
+            error: null,
+          }),
+
+      scheduleSlotIds.length > 0
+        ? adminSupabase
+            .from("crownlink_schedule_slots")
+            .select("id, slot_time")
+            .in("id", scheduleSlotIds)
+        : Promise.resolve({
+            data: [] as {
+              id: string;
+              slot_time: string;
+            }[],
+            error: null,
+          }),
+    ]);
+
+    if (dateResult.error || slotResult.error) {
+      console.error(
+        "MY BATTLES SCHEDULE ERROR:",
+        dateResult.error,
+        slotResult.error
+      );
+
+      return NextResponse.json(
+        { error: "Unable to load battle schedules." },
+        { status: 500 }
+      );
+    }
+
+    const dateMap = new Map(
+      (dateResult.data ?? []).map((date) => [
+        date.id,
+        date.event_date,
+      ])
+    );
+
+    const slotMap = new Map(
+      (slotResult.data ?? []).map((slot) => [
+        slot.id,
+        slot.slot_time,
+      ])
+    );
 
     if (eventIds.length > 0) {
       const { data: eventData, error: eventsError } =
@@ -272,6 +347,14 @@ export async function GET(request: Request) {
           ? `@${opponent.tiktok_username}`
           : "Opponent");
 
+      const assignedDate = match.event_date_id
+        ? dateMap.get(match.event_date_id)
+        : undefined;
+
+      const assignedTime = match.schedule_slot_id
+        ? slotMap.get(match.schedule_slot_id)
+        : undefined;
+
       return {
         id: match.id,
         status: match.status,
@@ -281,8 +364,8 @@ export async function GET(request: Request) {
           ? {
               id: event.id,
               name: event.name,
-              event_date: event.event_date,
-              event_time: event.event_time,
+              event_date: assignedDate ?? "",
+              event_time: assignedTime ?? "",
               status: event.status,
             }
           : null,
