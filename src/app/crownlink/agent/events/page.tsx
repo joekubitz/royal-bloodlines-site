@@ -194,6 +194,38 @@ export default async function CrownLinkAgentEventsPage() {
     (creators ?? []).map((creator) => [creator.user_id, creator])
   );
 
+  // Look up only opponents in approved matches involving this agent's team.
+  // Do not expose unrelated creator profiles to the agent.
+  const opponentIds = Array.from(
+    new Set(
+      matches
+        .filter(
+          (match) =>
+            creatorIds.includes(match.creator_one_id) ||
+            creatorIds.includes(match.creator_two_id)
+        )
+        .flatMap((match) => [match.creator_one_id, match.creator_two_id])
+        .filter((id) => !creatorMap.has(id))
+    )
+  );
+
+  const opponentMap = new Map<string, string>();
+
+  if (opponentIds.length > 0) {
+    const { data: opponents, error: opponentsError } = await adminSupabase
+      .from("crownlink_profiles")
+      .select("user_id, tiktok_username")
+      .in("user_id", opponentIds);
+
+    if (opponentsError) {
+      console.error("BLOODLINE ARENA OPPONENT LOOKUP ERROR:", opponentsError);
+    }
+
+    for (const opponent of opponents ?? []) {
+      opponentMap.set(opponent.user_id, opponent.tiktok_username ?? "");
+    }
+  }
+
   function formatDate(dateString: string) {
     return new Date(`${dateString}T12:00:00`).toLocaleDateString("en-US", {
       weekday: "long",
@@ -479,22 +511,29 @@ export default async function CrownLinkAgentEventsPage() {
                               (item) => item.id === match.schedule_slot_id
                             );
 
-                            const creatorOne = creatorMap.get(
-                              match.creator_one_id
-                            );
+                            const oneIsMine = teamCreatorIds.has(match.creator_one_id);
+                            const twoIsMine = teamCreatorIds.has(match.creator_two_id);
 
-                            const creatorTwo = creatorMap.get(
-                              match.creator_two_id
-                            );
+                            const myCreatorId = oneIsMine
+                              ? match.creator_one_id
+                              : match.creator_two_id;
+                            const opponentId = oneIsMine
+                              ? match.creator_two_id
+                              : match.creator_one_id;
 
-                            const myCreator =
-                              creatorOne || creatorTwo || null;
+                            const myCreator = creatorMap.get(myCreatorId);
+                            const opponentUsername =
+                              creatorMap.get(opponentId)?.tiktok_username ??
+                              opponentMap.get(opponentId) ??
+                              null;
 
                             return {
                               match,
                               date,
                               slot,
                               myCreator,
+                              opponentUsername,
+                              bothOnTeam: oneIsMine && twoIsMine,
                             };
                           })
                           .sort((a, b) => {
@@ -510,13 +549,13 @@ export default async function CrownLinkAgentEventsPage() {
                               a.slot?.slot_time || ""
                             ).localeCompare(b.slot?.slot_time || "");
                           })
-                          .map(({ match, date, slot, myCreator }) => (
+                          .map(({ match, date, slot, myCreator, opponentUsername, bothOnTeam }) => (
                             <div
                               key={match.id}
                               style={{
                                 display: "grid",
                                 gridTemplateColumns:
-                                  "minmax(150px,auto) minmax(110px,auto) minmax(0,1fr)",
+                                  "repeat(auto-fit, minmax(155px, 1fr))",
                                 gap: 14,
                                 alignItems: "center",
                                 padding: 14,
@@ -551,6 +590,20 @@ export default async function CrownLinkAgentEventsPage() {
                                     ? `@${myCreator.tiktok_username}`
                                     : "Team Creator"}
                                 </p>
+                              </div>
+
+                              <div>
+                                <p style={labelStyle}>Opponent</p>
+                                <p style={{ ...valueStyle, color: "#d3a33c" }}>
+                                  {opponentUsername
+                                    ? `@${opponentUsername}`
+                                    : "Opponent unavailable"}
+                                </p>
+                                {bothOnTeam && (
+                                  <p style={{ ...labelStyle, marginTop: 5 }}>
+                                    Same team
+                                  </p>
+                                )}
                               </div>
                             </div>
                           ))}
