@@ -44,7 +44,9 @@ export default async function CrownLinkMyBattlesPage() {
         creator_one_id,
         creator_two_id,
         status,
-        approved_at
+        approved_at,
+        event_date_id,
+        schedule_slot_id
       `)
       .eq("status", "approved")
       .or(
@@ -84,6 +86,35 @@ export default async function CrownLinkMyBattlesPage() {
     event_time: string;
     status: string;
   }[] = [];
+
+  // Resolve each match's assigned date and time, not the event start.
+  const dateIds = Array.from(new Set((matches ?? [])
+    .map((match) => match.event_date_id)
+    .filter((id): id is string => Boolean(id))));
+  const slotIds = Array.from(new Set((matches ?? [])
+    .map((match) => match.schedule_slot_id)
+    .filter((id): id is string => Boolean(id))));
+
+  const dateMap = new Map<string, string>();
+  const slotMap = new Map<string, string>();
+
+  if (dateIds.length > 0) {
+    const { data, error } = await adminSupabase
+      .from("crownlink_event_dates")
+      .select("id, event_date")
+      .in("id", dateIds);
+    if (error) console.error("BATTLE DATE LOOKUP ERROR:", error);
+    for (const date of data ?? []) dateMap.set(date.id, date.event_date);
+  }
+
+  if (slotIds.length > 0) {
+    const { data, error } = await adminSupabase
+      .from("crownlink_schedule_slots")
+      .select("id, slot_time")
+      .in("id", slotIds);
+    if (error) console.error("BATTLE SLOT LOOKUP ERROR:", error);
+    for (const slot of data ?? []) slotMap.set(slot.id, slot.slot_time);
+  }
 
   let profiles: {
     user_id: string;
@@ -564,6 +595,13 @@ export default async function CrownLinkMyBattlesPage() {
                     ? `@${opponent.tiktok_username}`
                     : "Opponent");
 
+                 const assignedDate = match.event_date_id
+                   ? dateMap.get(match.event_date_id)
+                   : undefined;
+                 const assignedTime = match.schedule_slot_id
+                   ? slotMap.get(match.schedule_slot_id)
+                   : undefined;
+
                 return (
                   <article
                     key={match.id}
@@ -721,16 +759,12 @@ export default async function CrownLinkMyBattlesPage() {
                             >
                               <BattleDetailPill
                                 label="Date"
-                                value={formatDate(
-                                  event.event_date
-                                )}
+                                value={assignedDate ? formatDate(assignedDate) : "Not scheduled"}
                               />
 
                               <BattleDetailPill
                                 label="Time"
-                                value={formatTime(
-                                  event.event_time
-                                )}
+                                value={assignedTime ? formatTime(assignedTime) : "Not scheduled"}
                                 accent
                               />
                             </div>
