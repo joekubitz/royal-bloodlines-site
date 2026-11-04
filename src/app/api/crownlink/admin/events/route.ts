@@ -1,29 +1,162 @@
+
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
+import { sendApplePush } from "@/app/lib/apns";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// =====================================================
+// SEND NEW EVENT PUSH NOTIFICATIONS
+// =====================================================
+
+async function notifyCreatorsAboutEvent(
+  eventId: string,
+  eventName: string
+) {
+  const db = createAdminClient();
+
+  // Find all active creators.
+  const { data: creators, error: creatorsError } = await db
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "creator")
+    .eq("status", "active");
+
+  if (creatorsError) {
+    console.error(
+      "EVENT PUSH CREATOR LOOKUP ERROR:",
+      creatorsError
+    );
+    return;
+  }
+
+  const creatorIds = [
+    ...new Set(
+      (creators ?? []).map((creator) => creator.user_id)
+    ),
+  ];
+
+  if (creatorIds.length === 0) {
+    console.log("EVENT PUSH: No active creators found.");
+    return;
+  }
+
+  // Find enabled iOS devices belonging to creators.
+  const { data: devices, error: devicesError } = await db
+    .from("push_device_tokens")
+    .select("user_id, token, platform")
+    .eq("platform", "ios")
+    .eq("enabled", true)
+    .in("user_id", creatorIds);
+
+  if (devicesError) {
+    console.error(
+      "EVENT PUSH DEVICE LOOKUP ERROR:",
+      devicesError
+    );
+    return;
+  }
+
+  if (!devices || devices.length === 0) {
+    console.log(
+      "EVENT PUSH: No enabled creator iOS devices found."
+    );
+    return;
+  }
+
+  const title = "New Battle Available! ⚔️";
+
+  const body =
+    `${eventName} is now open for registration! ` +
+    "Open Royals Bloodline to sign up.";
+
+  // Deliver notifications in small batches.
+  const batchSize = 10;
+
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < devices.length; i += batchSize) {
+    const batch = devices.slice(i, i + batchSize);
+
+    const results = await Promise.allSettled(
+      batch.map((device) =>
+        sendApplePush({
+          token: device.token,
+          title,
+          body,
+          environment: "production",
+        })
+      )
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        sent++;
+      } else {
+        failed++;
+
+        console.error(
+          "EVENT PUSH DELIVERY ERROR:",
+          result.reason
+        );
+      }
+    }
+  }
+
+  console.log("EVENT PUSH RESULTS:", {
+    eventId,
+    eventName,
+    recipients: devices.length,
+    sent,
+    failed,
+  });
+}
+
+// =====================================================
+// CREATE EVENT
+// =====================================================
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
 
+    // Authenticate the user.
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: "Not authenticated." },
         { status: 401 }
       );
     }
 
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select(
-        "role, status, can_manage_events"
-      )
-      .eq("user_id", user.id)
-      .single();
+    // Check event management permissions.
+    const adminSupabase = createAdminClient();
+
+    const { data: userRole, error: roleError } =
+      await adminSupabase
+        .from("user_roles")
+        .select("role, status, can_manage_events")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    if (roleError) {
+      console.error(
+        "EVENT ROLE LOOKUP ERROR:",
+        roleError
+      );
+
+      return NextResponse.json(
+        { error: "Unable to verify permissions." },
+        { status: 500 }
+      );
+    }
 
     const canManageEvents =
       userRole?.status === "active" &&
@@ -35,84 +168,70 @@ export async function POST(request: Request) {
     if (!canManageEvents) {
       return NextResponse.json(
         {
-          error:
-            "Event management access required.",
+          error: "Event management access required.",
         },
         { status: 403 }
       );
     }
 
+    // =================================================
+    // VALIDATE EVENT INFORMATION
+    // =================================================
+
     const body = await request.json();
 
-    const name = String(
-      body.name || ""
-    ).trim();
+    const name = String(body.name ?? "").trim();
 
     const description = String(
-      body.description || ""
+      body.description ?? ""
     ).trim();
 
     const prizeInformation = String(
-      body.prizeInformation || ""
+      body.prizeInformation ?? ""
     ).trim();
 
     const eventDate = String(
-      body.eventDate || ""
+      body.eventDate ?? ""
     ).trim();
 
     const eventTime = String(
-      body.eventTime || ""
+      body.eventTime ?? ""
     ).trim();
 
-    const battleIntervalMinutes =
-      Number(
-        body.battleIntervalMinutes
-      );
+    const battleIntervalMinutes = Number(
+      body.battleIntervalMinutes
+    );
 
     if (!name) {
       return NextResponse.json(
-        {
-          error:
-            "Event name is required.",
-        },
+        { error: "Event name is required." },
         { status: 400 }
       );
     }
 
     if (!description) {
       return NextResponse.json(
-        {
-          error:
-            "Event description is required.",
-        },
+        { error: "Event description is required." },
         { status: 400 }
       );
     }
 
     if (!eventDate) {
       return NextResponse.json(
-        {
-          error:
-            "Event date is required.",
-        },
+        { error: "Event date is required." },
         { status: 400 }
       );
     }
 
     if (!eventTime) {
       return NextResponse.json(
-        {
-          error:
-            "First battle time is required.",
-        },
+        { error: "First battle time is required." },
         { status: 400 }
       );
     }
 
     if (
-      !Number.isInteger(
-        battleIntervalMinutes
-      ) ||
+      !Number.isInteger(battleIntervalMinutes) ||
       battleIntervalMinutes <= 0
     ) {
       return NextResponse.json(
@@ -124,12 +243,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const adminSupabase =
-      createAdminClient();
+    // =================================================
+    // CREATE MAIN EVENT
+    // =================================================
 
-    /*
-     * Create the main event.
-     */
     const {
       data: event,
       error: createEventError,
@@ -138,32 +255,18 @@ export async function POST(request: Request) {
       .insert({
         name,
         description,
-        prize_information:
-          prizeInformation || null,
-
-        /*
-         * Keep these existing fields for now
-         * so we don't break the rest of the site.
-         *
-         * event_date currently acts as the first
-         * required date.
-         *
-         * event_time now acts as the first battle
-         * time for each required date.
-         */
+        prize_information: prizeInformation || null,
         event_date: eventDate,
         event_time: eventTime,
-
         battle_interval_minutes:
           battleIntervalMinutes,
-
         status: "active",
         created_by: user.id,
       })
       .select()
       .single();
 
-    if (createEventError) {
+    if (createEventError || !event) {
       console.error(
         "CREATE BLOODLINE ARENA EVENT ERROR:",
         createEventError
@@ -172,24 +275,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            createEventError.message,
+            createEventError?.message ??
+            "The event could not be created.",
         },
         { status: 500 }
       );
     }
 
-    /*
-     * Automatically create the first required
-     * event date.
-     */
-    const {
-      error: createDateError,
-    } = await adminSupabase
-      .from("crownlink_event_dates")
-      .insert({
-        event_id: event.id,
-        event_date: eventDate,
-      });
+    // =================================================
+    // CREATE FIRST REQUIRED EVENT DATE
+    // =================================================
+
+    const { error: createDateError } =
+      await adminSupabase
+        .from("crownlink_event_dates")
+        .insert({
+          event_id: event.id,
+          event_date: eventDate,
+        });
 
     if (createDateError) {
       console.error(
@@ -197,17 +300,19 @@ export async function POST(request: Request) {
         createDateError
       );
 
-      /*
-       * Remove the event if its first required
-       * date could not be created.
-       *
-       * This prevents us from leaving behind
-       * a partially-created event.
-       */
-      await adminSupabase
-        .from("crownlink_events")
-        .delete()
-        .eq("id", event.id);
+      // Remove the incomplete event.
+      const { error: cleanupError } =
+        await adminSupabase
+          .from("crownlink_events")
+          .delete()
+          .eq("id", event.id);
+
+      if (cleanupError) {
+        console.error(
+          "EVENT CREATION CLEANUP ERROR:",
+          cleanupError
+        );
+      }
 
       return NextResponse.json(
         {
@@ -218,10 +323,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // =================================================
+    // NOTIFY CREATORS THAT REGISTRATION IS OPEN
+    // =================================================
+
+    try {
+      await notifyCreatorsAboutEvent(
+        event.id,
+        event.name
+      );
+    } catch (pushError) {
+      // Notification failure must not prevent
+      // successful event creation.
+      console.error(
+        "EVENT PUSH NOTIFICATION ERROR:",
+        pushError
+      );
+    }
+
+    // =================================================
+    // RETURN SUCCESS
+    // =================================================
+
     return NextResponse.json({
       success: true,
       event,
     });
+
   } catch (error) {
     console.error(
       "CREATE BLOODLINE ARENA EVENT ERROR:",
@@ -230,8 +358,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error:
-          "Unexpected server error.",
+        error: "Unexpected server error.",
       },
       { status: 500 }
     );
