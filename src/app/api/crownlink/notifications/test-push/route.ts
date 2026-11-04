@@ -57,15 +57,20 @@ export async function POST(request: NextRequest) {
       throw deviceError;
     }
 
-    if (!devices?.length) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No enabled iOS devices found for this account.",
-        },
-        { status: 404 }
-      );
-    }
+   if (!devices?.length) {
+  console.log("PUSH DEVICE LOOKUP:", {
+    userId: user.id,
+    deviceCount: devices?.length ?? 0,
+  });
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "No enabled iOS devices found for this account.",
+    },
+    { status: 404 }
+  );
+}
 
     // For now, target the first registered iOS device.
     // The iPhone installed through Xcode uses sandbox APNs.
