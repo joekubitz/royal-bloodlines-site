@@ -1,484 +1,298 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-
 import { createClient } from "@/app/supabase/server";
 import { createAdminClient } from "@/app/supabase/admin";
 
 type ImportedRow = {
   "Battle ID"?: unknown;
+  Creator?: unknown;
+  Opponent?: unknown;
   Score?: unknown;
   "Opponent Score"?: unknown;
   [key: string]: unknown;
 };
 
-function parseScore(value: unknown) {
-  if (
-    value === null ||
-    value === undefined ||
-    String(value).trim() === ""
-  ) {
+type Match = {
+  id: string;
+  event_id: string;
+  creator_one_id: string;
+  creator_two_id: string;
+  status: string;
+  creator_one_score: number | string | null;
+  creator_two_score: number | string | null;
+};
+
+type Profile = {
+  user_id: string;
+  display_name: string | null;
+  tiktok_username: string | null;
+};
+
+function cellText(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeUsername(value: unknown): string {
+  return cellText(value).replace(/^@/, "").toLowerCase();
+}
+
+function parseScore(value: unknown): number | null {
+  if (value === null || value === undefined || cellText(value) === "") {
     return null;
   }
-
-  const cleaned = String(value)
-    .trim()
-    .replace(/,/g, "")
-    .replace(/\s/g, "");
-
-  if (!/^\d+$/.test(cleaned)) {
-    return NaN;
-  }
-
+  const cleaned = cellText(value).replace(/[,\s]/g, "");
+  if (!/^\d+$/.test(cleaned)) return NaN;
   const score = Number(cleaned);
-
-  if (
-    !Number.isSafeInteger(score) ||
-    score < 0
-  ) {
-    return NaN;
-  }
-
-  return score;
+  return Number.isSafeInteger(score) && score >= 0 ? score : NaN;
 }
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Not authenticated." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 
     const adminSupabase = createAdminClient();
-
-    const { data: userRole, error: roleError } =
-      await adminSupabase
-        .from("user_roles")
-        .select("role, status")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const { data: role, error: roleError } = await adminSupabase
+      .from("user_roles")
+      .select("role, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (roleError) {
-      console.error(
-        "BLOODLINE ARENA SCORE IMPORT ROLE ERROR:",
-        roleError
-      );
-
-      return NextResponse.json(
-        { error: "Could not verify admin access." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Could not verify admin access." }, { status: 500 });
     }
-
-    if (
-      !userRole ||
-      userRole.role !== "admin" ||
-      userRole.status !== "active"
-    ) {
-      return NextResponse.json(
-        { error: "Admin access required." },
-        { status: 403 }
-      );
+    if (role?.role !== "admin" || role.status !== "active") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
     }
 
     const formData = await request.formData();
     const file = formData.get("file");
-
-    if (!(file instanceof File)) {
-      return NextResponse.json(
-        { error: "Please upload an Excel file." },
-        { status: 400 }
-      );
+    if (!(file instanceof File) || !/\.xlsx?$/i.test(file.name)) {
+      return NextResponse.json({ error: "Upload a valid .xlsx or .xls spreadsheet." }, { status: 400 });
     }
-
-    const fileName = file.name.toLowerCase();
-
-    if (
-      !fileName.endsWith(".xlsx") &&
-      !fileName.endsWith(".xls")
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Only .xlsx or .xls battle spreadsheets are supported.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const bytes = await file.arrayBuffer();
 
     let workbook: XLSX.WorkBook;
-
     try {
-      workbook = XLSX.read(bytes, {
-        type: "array",
+      workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    } catch {
+      return NextResponse.json({ error: "Could not read the Excel spreadsheet." }, { status: 400 });
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return NextResponse.json({ error: "The spreadsheet is empty." }, { status: 400 });
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<ImportedRow>(sheet, {
+      defval: "",
+      raw: false,
+    });
+    if (!rows.length) {
+      return NextResponse.json({ error: "No battle rows were found." }, { status: 400 });
+    }
+
+    const headers = Object.keys(rows[0]);
+    const required = ["Battle ID", "Creator", "Opponent", "Score", "Opponent Score"];
+    if (required.some((header) => !headers.includes(header))) {
+      return NextResponse.json({
+        error: "The spreadsheet must contain Battle ID, Creator, Opponent, Score and Opponent Score columns.",
+      }, { status: 400 });
+    }
+
+    // J/K are physical Excel columns, independent of their header labels.
+    const range = XLSX.utils.decode_range(sheet["!ref"] ?? "A1");
+    const replacements = [] as {
+      spreadsheetRow: number;
+      username: string;
+      score: number | null;
+      valid: boolean;
+      issues: string[];
+      battleId: null;
+      replacedCreatorId: null;
+    }[];
+
+    for (let r = 1; r <= range.e.r; r++) {
+      const usernameCell = sheet[XLSX.utils.encode_cell({ r, c: 9 })];
+      const scoreCell = sheet[XLSX.utils.encode_cell({ r, c: 10 })];
+      const username = cellText(usernameCell?.w ?? usernameCell?.v).replace(/^@/, "");
+      const score = parseScore(scoreCell?.w ?? scoreCell?.v);
+      if (!username && score === null) continue;
+      const issues: string[] = [];
+      if (!username) issues.push("Replacement username is missing in column J");
+      if (score === null) issues.push("Replacement score is missing in column K");
+      if (Number.isNaN(score)) issues.push("Replacement score is invalid");
+      replacements.push({
+        spreadsheetRow: r + 1,
+        username,
+        score: Number.isNaN(score) ? null : score,
+        valid: issues.length === 0,
+        issues,
+        battleId: null,
+        replacedCreatorId: null,
       });
-    } catch (error) {
-      console.error(
-        "BLOODLINE ARENA SCORE IMPORT XLSX READ ERROR:",
-        error
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "The spreadsheet could not be read. Please upload the original Bloodline Arena Excel export.",
-        },
-        { status: 400 }
-      );
     }
 
-    const firstSheetName =
-      workbook.SheetNames[0];
+    const scoredRows = rows.map((row, index) => ({
+      spreadsheetRow: index + 2,
+      originalBattleId: cellText(row["Battle ID"]),
+      spreadsheetCreator: cellText(row.Creator),
+      spreadsheetOpponent: cellText(row.Opponent),
+      creatorScore: parseScore(row.Score),
+      opponentScore: parseScore(row["Opponent Score"]),
+    })).filter((row) => row.creatorScore !== null || row.opponentScore !== null);
 
-    if (!firstSheetName) {
-      return NextResponse.json(
-        { error: "The spreadsheet is empty." },
-        { status: 400 }
-      );
+    const skippedRows = rows.length - scoredRows.length;
+    if (!scoredRows.length) {
+      return NextResponse.json({
+        error: "No completed battles with scores were found. Future unscored battles were skipped.",
+      }, { status: 400 });
     }
 
-    const worksheet =
-      workbook.Sheets[firstSheetName];
+    const originalIds = [...new Set(scoredRows.map((row) => row.originalBattleId).filter(Boolean))];
+    const { data: originalMatches, error: originalError } = await adminSupabase
+      .from("crownlink_matches")
+      .select("id, event_id, creator_one_id, creator_two_id, status, creator_one_score, creator_two_score")
+      .in("id", originalIds);
+    if (originalError) throw originalError;
 
-    const rows =
-      XLSX.utils.sheet_to_json<ImportedRow>(
-        worksheet,
-        {
-          defval: "",
-          raw: false,
-        }
-      );
-
-    if (rows.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "No battle rows were found in the spreadsheet.",
-        },
-        { status: 400 }
-      );
+    const originalMap = new Map(
+      ((originalMatches ?? []) as Match[]).map((match) => [match.id, match])
+    );
+    const eventIds = [...new Set((originalMatches ?? []).map((match) => match.event_id))];
+    if (!eventIds.length) {
+      return NextResponse.json({ error: "None of the hidden Battle IDs could be located. Import cannot safely determine the event." }, { status: 400 });
     }
 
-    const headers = Object.keys(rows[0] ?? {});
+    const { data: approvedMatches, error: approvedError } = await adminSupabase
+      .from("crownlink_matches")
+      .select("id, event_id, creator_one_id, creator_two_id, status, creator_one_score, creator_two_score")
+      .in("event_id", eventIds)
+      .eq("status", "approved");
+    if (approvedError) throw approvedError;
 
-    const requiredHeaders = [
-      "Battle ID",
-      "Score",
-      "Opponent Score",
-    ];
+    const allMatches = [...(originalMatches ?? []), ...(approvedMatches ?? [])] as Match[];
+    const creatorIds = [...new Set(allMatches.flatMap((match) => [match.creator_one_id, match.creator_two_id]))];
+    const { data: profiles, error: profileError } = await adminSupabase
+      .from("crownlink_profiles")
+      .select("user_id, display_name, tiktok_username")
+      .in("user_id", creatorIds);
+    if (profileError) throw profileError;
+    const profileMap = new Map(
+      ((profiles ?? []) as Profile[]).map((profile) => [profile.user_id, profile])
+    );
+    const usernameFor = (id: string) => normalizeUsername(profileMap.get(id)?.tiktok_username);
+    const labelFor = (id: string) =>
+      profileMap.get(id)?.display_name?.trim() ||
+      profileMap.get(id)?.tiktok_username?.trim() || "Creator";
 
-    const missingHeaders =
-      requiredHeaders.filter(
-        (header) => !headers.includes(header)
-      );
+    const seenResolvedIds = new Set<string>();
+    const preview = scoredRows.map((row) => {
+      const issues: string[] = [];
+      const notes: string[] = [];
+      const original = originalMap.get(row.originalBattleId);
+      const creatorUsername = normalizeUsername(row.spreadsheetCreator);
+      const opponentUsername = normalizeUsername(row.spreadsheetOpponent);
 
-    if (missingHeaders.length > 0) {
-      return NextResponse.json(
-        {
-          error:
-            "This does not appear to be a valid Bloodline Arena battle spreadsheet.",
-          missingHeaders,
-        },
-        { status: 400 }
-      );
-    }
-
-    const seenBattleIds = new Set<string>();
-    const duplicateBattleIds = new Set<string>();
-
-    const preparedRows = rows.map(
-      (row, index) => {
-        const battleId = String(
-          row["Battle ID"] ?? ""
-        ).trim();
-
-        const creatorScore = parseScore(
-          row.Score
-        );
-
-        const opponentScore = parseScore(
-          row["Opponent Score"]
-        );
-
-        if (battleId) {
-          if (seenBattleIds.has(battleId)) {
-            duplicateBattleIds.add(battleId);
-          }
-
-          seenBattleIds.add(battleId);
-        }
-
-        return {
-          spreadsheetRow: index + 2,
-          battleId,
-          creatorScore,
-          opponentScore,
-        };
+      if (!row.originalBattleId || !original) {
+        issues.push("Hidden Battle ID missing or unknown; event cannot be verified");
       }
-    );
-
-    const battleIds = [
-      ...new Set(
-        preparedRows
-          .map((row) => row.battleId)
-          .filter(Boolean)
-      ),
-    ];
-
-    if (battleIds.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "No Battle IDs were found. Please upload the original Bloodline Arena export without removing the hidden Battle ID column.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const { data: matches, error: matchesError } =
-      await adminSupabase
-        .from("crownlink_matches")
-        .select(`
-          id,
-          event_id,
-          creator_one_id,
-          creator_two_id,
-          status,
-          creator_one_score,
-          creator_two_score
-        `)
-        .in("id", battleIds);
-
-    if (matchesError) {
-      console.error(
-        "BLOODLINE ARENA SCORE IMPORT MATCH ERROR:",
-        matchesError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Bloodline Arena could not verify the battles in this spreadsheet.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const matchMap = new Map(
-      (matches ?? []).map((match) => [
-        match.id,
-        match,
-      ])
-    );
-
-    const creatorIds = [
-      ...new Set(
-        (matches ?? []).flatMap((match) => [
-          match.creator_one_id,
-          match.creator_two_id,
-        ])
-      ),
-    ];
-
-    const { data: profiles, error: profilesError } =
-      creatorIds.length > 0
-        ? await adminSupabase
-            .from("crownlink_profiles")
-            .select(
-              "user_id, display_name, tiktok_username"
-            )
-            .in("user_id", creatorIds)
-        : { data: [], error: null };
-
-    if (profilesError) {
-      console.error(
-        "BLOODLINE ARENA SCORE IMPORT PROFILE ERROR:",
-        profilesError
-      );
-    }
-
-    function getCreatorName(userId: string) {
-      const profile = profiles?.find(
-        (item) => item.user_id === userId
-      );
-
-      return (
-        profile?.display_name?.trim() ||
-        profile?.tiktok_username?.trim() ||
-        "Creator"
-      );
-    }
-
-    const preview = preparedRows.map(
-      (row) => {
-        const issues: string[] = [];
-
-        if (!row.battleId) {
-          issues.push("Missing Battle ID");
-        }
-
-        if (
-          row.battleId &&
-          duplicateBattleIds.has(row.battleId)
-        ) {
-          issues.push(
-            "Duplicate Battle ID in spreadsheet"
-          );
-        }
-
-        if (Number.isNaN(row.creatorScore)) {
-          issues.push(
-            "Creator score is not a valid whole number"
-          );
-        }
-
-        if (Number.isNaN(row.opponentScore)) {
-          issues.push(
-            "Opponent score is not a valid whole number"
-          );
-        }
-
-        const match = row.battleId
-          ? matchMap.get(row.battleId)
-          : undefined;
-
-        if (row.battleId && !match) {
-          issues.push(
-            "Battle was not found in Bloodline Arena"
-          );
-        }
-
-        if (
-          match &&
-          match.status !== "approved"
-        ) {
-          issues.push(
-            "Battle is no longer approved"
-          );
-        }
-
-        const bothScoresBlank =
-          row.creatorScore === null &&
-          row.opponentScore === null;
-
-        const onlyOneScoreEntered =
-          (row.creatorScore === null) !==
-          (row.opponentScore === null);
-
-        if (bothScoresBlank) {
-          issues.push(
-            "No scores entered"
-          );
-        }
-
-        if (onlyOneScoreEntered) {
-          issues.push(
-            "Both battle scores must be entered"
-          );
-        }
-
-        const hasExistingScores =
-          match &&
-          (match.creator_one_score !== null ||
-            match.creator_two_score !== null);
-
-        const scoreChanged =
-          match &&
-          !Number.isNaN(row.creatorScore) &&
-          !Number.isNaN(row.opponentScore) &&
-          row.creatorScore !== null &&
-          row.opponentScore !== null &&
-          (Number(match.creator_one_score) !==
-            row.creatorScore ||
-            Number(match.creator_two_score) !==
-              row.opponentScore);
-
-        if (
-          hasExistingScores &&
-          scoreChanged
-        ) {
-          issues.push(
-            "Battle already has scores saved"
-          );
-        }
-
-        const valid =
-          issues.length === 0;
-
-        return {
-          spreadsheetRow:
-            row.spreadsheetRow,
-          battleId: row.battleId,
-          creator:
-            match
-              ? getCreatorName(
-                  match.creator_one_id
-                )
-              : null,
-          opponent:
-            match
-              ? getCreatorName(
-                  match.creator_two_id
-                )
-              : null,
-          creatorScore:
-            Number.isNaN(row.creatorScore)
-              ? null
-              : row.creatorScore,
-          opponentScore:
-            Number.isNaN(row.opponentScore)
-              ? null
-              : row.opponentScore,
-          existingCreatorScore:
-            match?.creator_one_score ?? null,
-          existingOpponentScore:
-            match?.creator_two_score ?? null,
-          valid,
-          issues,
-        };
+      if (!creatorUsername || !opponentUsername) {
+        issues.push("Both spreadsheet TikTok usernames are required");
       }
-    );
+      if (row.creatorScore === null || row.opponentScore === null) {
+        issues.push("Both scores must be entered for a completed battle");
+      }
+      if (Number.isNaN(row.creatorScore) || Number.isNaN(row.opponentScore)) {
+        issues.push("Scores must be nonnegative whole numbers");
+      }
 
-    const validRows = preview.filter(
-      (row) => row.valid
-    );
+      // The original ID is only trusted if both usernames and approval still match.
+      // Otherwise look within that ID's event for exactly one approved matchup.
+      const candidates = original && creatorUsername && opponentUsername
+        ? (approvedMatches as Match[]).filter((match) => {
+            if (match.event_id !== original.event_id) return false;
+            const first = usernameFor(match.creator_one_id);
+            const second = usernameFor(match.creator_two_id);
+            return (first === creatorUsername && second === opponentUsername) ||
+              (first === opponentUsername && second === creatorUsername);
+          })
+        : [];
 
-    const errorRows = preview.filter(
-      (row) => !row.valid
-    );
+      let match: Match | undefined;
+      if (candidates.length === 1) {
+        match = candidates[0];
+      } else if (candidates.length === 0) {
+        issues.push("No approved battle matches both TikTok usernames in this event");
+      } else {
+        issues.push("Multiple approved battles match these usernames; manual review required");
+      }
+
+      let creatorScore = row.creatorScore;
+      let opponentScore = row.opponentScore;
+      if (match) {
+        const reversed = usernameFor(match.creator_one_id) === opponentUsername &&
+          usernameFor(match.creator_two_id) === creatorUsername;
+        if (reversed) {
+          creatorScore = row.opponentScore;
+          opponentScore = row.creatorScore;
+          notes.push("Participant order reversed; scores swapped to match the database");
+        }
+        if (match.id !== row.originalBattleId) {
+          notes.push("Outdated Battle ID corrected to current approved matchup");
+        }
+        if (seenResolvedIds.has(match.id)) {
+          issues.push("Two spreadsheet rows resolve to the same approved battle");
+        }
+        seenResolvedIds.add(match.id);
+        if (match.creator_one_score !== null || match.creator_two_score !== null) {
+          issues.push("This approved battle already has scores saved");
+        }
+      }
+
+      return {
+        spreadsheetRow: row.spreadsheetRow,
+        originalBattleId: row.originalBattleId,
+        battleId: match?.id ?? row.originalBattleId,
+        creator: match ? labelFor(match.creator_one_id) : row.spreadsheetCreator,
+        opponent: match ? labelFor(match.creator_two_id) : row.spreadsheetOpponent,
+        creatorOneId: match?.creator_one_id ?? null,
+        creatorTwoId: match?.creator_two_id ?? null,
+        spreadsheetCreator: row.spreadsheetCreator,
+        spreadsheetOpponent: row.spreadsheetOpponent,
+        creatorScore: Number.isNaN(creatorScore) ? null : creatorScore,
+        opponentScore: Number.isNaN(opponentScore) ? null : opponentScore,
+        remapped: Boolean(match && match.id !== row.originalBattleId),
+        notes,
+        valid: issues.length === 0,
+        issues,
+      };
+    });
+
+    const validRows = preview.filter((row) => row.valid).length;
+    const errorRows = preview.length - validRows;
+    const replacementErrors = replacements.filter((row) => !row.valid).length;
+    const remappedRows = preview.filter((row) => row.remapped).length;
 
     return NextResponse.json({
       success: true,
       fileName: file.name,
       totalRows: preview.length,
-      validRows: validRows.length,
-      errorRows: errorRows.length,
-      canImport:
-        validRows.length > 0 &&
-        errorRows.length === 0,
+      skippedRows,
+      validRows,
+      errorRows,
+      replacementCount: replacements.length,
+      replacementErrors,
+      remappedRows,
+      replacements,
+      requiresReplacementReview: replacements.length > 0,
+      canImport: validRows > 0 && errorRows === 0 && replacementErrors === 0,
       preview,
+      notice: `${skippedRows} unscored future battles skipped. ${remappedRows} outdated Battle IDs corrected. Review all matchups and replacement assignments before saving.`,
     });
   } catch (error) {
-    console.error(
-      "BLOODLINE ARENA SCORE IMPORT ERROR:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          "Something went wrong while scanning the battle spreadsheet.",
-      },
-      { status: 500 }
-    );
+    console.error("BLOODLINE ARENA SMART IMPORT ERROR:", error);
+    return NextResponse.json({ error: "Something went wrong while scanning the battle spreadsheet." }, { status: 500 });
   }
 }

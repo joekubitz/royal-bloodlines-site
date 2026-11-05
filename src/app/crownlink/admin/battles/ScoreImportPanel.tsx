@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,29 +8,64 @@ type PreviewRow = {
   spreadsheetRow: number;
   battleId: string;
   creator: string | null;
+  creatorOneId: string | null;
   opponent: string | null;
+  creatorTwoId: string | null;
   creatorScore: number | null;
   opponentScore: number | null;
   valid: boolean;
   issues: string[];
 };
 
+type ReplacementRow = {
+  spreadsheetRow: number;
+  username: string;
+  score: number | null;
+  valid: boolean;
+  issues: string[];
+  battleId: null;
+  replacedCreatorId: null;
+};
+
+type Assignment = {
+  battleId: string;
+  side: "creator" | "opponent" | "";
+};
+
 type PreviewResponse = {
   success?: boolean;
   error?: string;
-  fileName?: string;
+  notice?: string;
   totalRows?: number;
   validRows?: number;
   errorRows?: number;
   canImport?: boolean;
   preview?: PreviewRow[];
+  replacements?: ReplacementRow[];
 };
 
 type SaveResponse = {
   success?: boolean;
   error?: string;
-  savedCount?: number;
   message?: string;
+};
+
+const gold = "#d9b15c";
+
+const surface: React.CSSProperties = {
+  border: "1px solid rgba(201,151,50,0.2)",
+  borderRadius: 12,
+  background: "rgba(201,151,50,0.045)",
+  padding: 14,
+};
+
+const field: React.CSSProperties = {
+  background: "#100d0d",
+  color: "#f7f1e8",
+  border: "1px solid rgba(201,151,50,0.28)",
+  borderRadius: 9,
+  padding: "10px 12px",
+  width: "100%",
 };
 
 export default function ScoreImportPanel() {
@@ -38,24 +74,18 @@ export default function ScoreImportPanel() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const [result, setResult] =
-    useState<PreviewResponse | null>(null);
-
-  const [saveResult, setSaveResult] =
-    useState<SaveResponse | null>(null);
+  const [result, setResult] = useState<PreviewResponse | null>(null);
+  const [saveResult, setSaveResult] = useState<SaveResponse | null>(null);
+  const [assignments, setAssignments] =
+    useState<Record<number, Assignment>>({});
 
   async function handleScan() {
-    if (!file) {
-      setResult({
-        error: "Choose an Excel file first.",
-      });
-      return;
-    }
+    if (!file) return;
 
     setLoading(true);
     setResult(null);
     setSaveResult(null);
+    setAssignments({});
 
     try {
       const formData = new FormData();
@@ -69,24 +99,54 @@ export default function ScoreImportPanel() {
         }
       );
 
-      const data = await response.json();
+      const data: PreviewResponse = await response.json();
 
-      setResult(data);
+      setResult(
+        response.ok
+          ? data
+          : { error: data.error ?? "Scan failed." }
+      );
     } catch {
       setResult({
-        error:
-          "Something went wrong while scanning the spreadsheet.",
+        error: "Something went wrong while scanning the spreadsheet.",
       });
     } finally {
       setLoading(false);
     }
   }
 
+  const replacements = result?.replacements ?? [];
+  const battles = (result?.preview ?? []).filter(
+    (row) => row.battleId
+  );
+
+  const assignmentsComplete = replacements.every((replacement) => {
+    const assignment = assignments[replacement.spreadsheetRow];
+
+    return (
+      replacement.valid &&
+      Boolean(assignment?.battleId && assignment.side)
+    );
+  });
+
+  const filledAssignments = Object.values(assignments).filter(
+    (assignment) => assignment.battleId && assignment.side
+  );
+
+  const uniqueAssignments =
+    new Set(
+      filledAssignments.map(
+        (assignment) => `${assignment.battleId}:${assignment.side}`
+      )
+    ).size === filledAssignments.length;
+
   async function handleSave() {
     if (
       !result?.canImport ||
-      !result.preview ||
-      result.preview.length === 0
+      !result.preview?.length ||
+      !assignmentsComplete ||
+      !uniqueAssignments ||
+      saveResult?.success
     ) {
       return;
     }
@@ -95,12 +155,6 @@ export default function ScoreImportPanel() {
     setSaveResult(null);
 
     try {
-      const rows = result.preview.map((row) => ({
-        battleId: row.battleId,
-        creatorScore: row.creatorScore,
-        opponentScore: row.opponentScore,
-      }));
-
       const response = await fetch(
         "/api/crownlink/battles/save-scores",
         {
@@ -109,34 +163,47 @@ export default function ScoreImportPanel() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rows,
+            rows: result.preview.map((row) => ({
+              battleId: row.battleId,
+              creatorScore: row.creatorScore,
+              opponentScore: row.opponentScore,
+            })),
+            replacements: replacements.map((replacement) => {
+              const assignment =
+                assignments[replacement.spreadsheetRow];
+
+              const battle = result.preview!.find(
+                (row) => row.battleId === assignment.battleId
+              )!;
+
+              return {
+                battleId: assignment.battleId,
+                replacedCreatorId:
+                  assignment.side === "creator"
+                    ? battle.creatorOneId
+                    : battle.creatorTwoId,
+                username: replacement.username,
+                score: replacement.score,
+              };
+            }),
           }),
         }
       );
 
-      const data = await response.json();
+      const data: SaveResponse = await response.json();
 
-      if (!response.ok) {
-        setSaveResult({
-          error:
-            data.error ||
-            "The battle scores could not be saved.",
-        });
-        return;
+      setSaveResult(
+        response.ok
+          ? data
+          : { error: data.error ?? "Unable to save scores." }
+      );
+
+      if (response.ok) {
+        router.refresh();
       }
-
-      setSaveResult(data);
-
-      /*
-       * Refresh the server-rendered Battles page
-       * so saved scores can appear once we add them
-       * to the battle cards.
-       */
-      router.refresh();
     } catch {
       setSaveResult({
-        error:
-          "Something went wrong while saving the scores.",
+        error: "Something went wrong while saving scores.",
       });
     } finally {
       setSaving(false);
@@ -146,420 +213,342 @@ export default function ScoreImportPanel() {
   return (
     <section
       style={{
-        marginBottom: 24,
+        ...surface,
         padding: 20,
-        borderRadius: 18,
-        border:
-          "1px solid rgba(201,151,50,0.16)",
-        background:
-          "linear-gradient(145deg, rgba(17,13,13,0.96), rgba(4,4,4,0.98))",
+        background: "linear-gradient(145deg,#110d0d,#040404)",
+        marginBottom: 24,
+        color: "#f7f1e8",
       }}
     >
       <p
         style={{
-          margin: 0,
-          color: "#c99732",
-          fontSize: 7,
-          fontWeight: 950,
-          letterSpacing: 1.8,
+          color: gold,
+          fontSize: 10,
+          letterSpacing: 2,
+          fontWeight: 900,
           textTransform: "uppercase",
         }}
       >
         Battle Results
       </p>
 
-      <h2
-        style={{
-          margin: "6px 0 0",
-          color: "#f9f4ed",
-          fontSize: 20,
-          fontWeight: 950,
-        }}
-      >
+      <h2 style={{ fontSize: 22, margin: "5px 0" }}>
         Upload Scores
       </h2>
 
-      <p
-        style={{
-          margin: "7px 0 0",
-          color: "rgba(247,241,232,0.36)",
-          fontSize: 10,
-          lineHeight: 1.6,
-        }}
-      >
-        Upload a Bloodline Arena Excel export after both
-        score columns have been completed.
+      <p style={{ color: "#b7aaa0", fontSize: 12 }}>
+        Upload the Bloodline Arena Excel export. Replacement usernames
+        and scores are read from columns J and K.
       </p>
 
       <div
         style={{
-          marginTop: 16,
           display: "flex",
-          gap: 10,
-          alignItems: "center",
+          gap: 12,
           flexWrap: "wrap",
+          marginTop: 16,
+          alignItems: "center",
         }}
       >
         <input
           type="file"
           accept=".xlsx,.xls"
           onChange={(event) => {
-            setFile(
-              event.target.files?.[0] ?? null
-            );
+            setFile(event.target.files?.[0] ?? null);
             setResult(null);
             setSaveResult(null);
-          }}
-          style={{
-            color: "#f7f1e8",
-            fontSize: 10,
+            setAssignments({});
           }}
         />
 
         <button
           type="button"
-          onClick={handleScan}
           disabled={!file || loading || saving}
+          onClick={handleScan}
           style={{
-            padding: "9px 13px",
-            borderRadius: 10,
-            border:
-              "1px solid rgba(201,151,50,0.22)",
-            background:
-              "linear-gradient(135deg, rgba(201,151,50,0.15), rgba(232,111,0,0.09))",
-            color: "#d9b15c",
-            fontSize: 8,
-            fontWeight: 950,
-            letterSpacing: 0.6,
-            textTransform: "uppercase",
-            cursor:
-              !file || loading || saving
-                ? "not-allowed"
-                : "pointer",
-            opacity:
-              !file || loading || saving
-                ? 0.5
-                : 1,
+            ...field,
+            width: "auto",
+            color: gold,
+            cursor: "pointer",
           }}
         >
-          {loading
-            ? "Scanning..."
-            : "Scan Spreadsheet"}
+          {loading ? "Scanning…" : "Scan Spreadsheet"}
         </button>
       </div>
 
       {result?.error && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: 12,
-            borderRadius: 10,
-            border:
-              "1px solid rgba(205,70,70,0.3)",
-            background:
-              "rgba(120,20,20,0.12)",
-            color: "#ffb2b2",
-            fontSize: 10,
-          }}
-        >
+        <p role="alert" style={{ color: "#ff9c9c" }}>
           {result.error}
-        </div>
+        </p>
       )}
 
       {result?.preview && (
-        <div
-          style={{
-            marginTop: 18,
-          }}
-        >
-          <div
+        <>
+          <p
             style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginBottom: 14,
+              marginTop: 20,
+              color: gold,
+              fontWeight: 700,
             }}
           >
-            <StatPill
-              label="Rows"
-              value={result.totalRows ?? 0}
-            />
+            Battle score preview — {result.validRows ?? 0} ready /{" "}
+            {result.errorRows ?? 0} errors
+          </p>
 
-            <StatPill
-              label="Ready"
-              value={result.validRows ?? 0}
-            />
-
-            <StatPill
-              label="Errors"
-              value={result.errorRows ?? 0}
-            />
-          </div>
-
-          <div
-            style={{
-              overflowX: "auto",
-              borderRadius: 12,
-              border:
-                "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
+          <div style={{ overflowX: "auto" }}>
             <table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                minWidth: 700,
-                fontSize: 10,
+                minWidth: 650,
+                fontSize: 12,
               }}
             >
               <thead>
                 <tr>
-                  <Header>Row</Header>
-                  <Header>Creator</Header>
-                  <Header>Score</Header>
-                  <Header>Opponent</Header>
-                  <Header>Score</Header>
-                  <Header>Status</Header>
+                  {[
+                    "Row",
+                    "Creator",
+                    "Score",
+                    "Opponent",
+                    "Score",
+                    "Status",
+                  ].map((heading) => (
+                    <th
+                      key={heading}
+                      style={{
+                        padding: 10,
+                        textAlign: "left",
+                        color: gold,
+                        borderBottom: "1px solid #45331b",
+                      }}
+                    >
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
                 {result.preview.map((row) => (
-                  <tr
-                    key={`${row.battleId}-${row.spreadsheetRow}`}
-                  >
-                    <Cell>
-                      {row.spreadsheetRow}
-                    </Cell>
-
-                    <Cell>
-                      {row.creator ?? "Unknown"}
-                    </Cell>
-
-                    <Cell>
-                      {row.creatorScore ??
-                        "—"}
-                    </Cell>
-
-                    <Cell>
-                      {row.opponent ??
-                        "Unknown"}
-                    </Cell>
-
-                    <Cell>
-                      {row.opponentScore ??
-                        "—"}
-                    </Cell>
-
-                    <Cell>
-                      {row.valid ? (
-                        <span
-                          style={{
-                            color: "#d9b15c",
-                            fontWeight: 900,
-                          }}
-                        >
-                          Ready
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            color: "#ff9c9c",
-                          }}
-                        >
-                          {row.issues.join(
-                            " · "
-                          )}
-                        </span>
-                      )}
-                    </Cell>
+                  <tr key={`${row.spreadsheetRow}-${row.battleId}`}>
+                    {[
+                      row.spreadsheetRow,
+                      row.creator ?? "Unknown",
+                      row.creatorScore ?? "—",
+                      row.opponent ?? "Unknown",
+                      row.opponentScore ?? "—",
+                      row.valid ? "Ready" : row.issues.join(" · "),
+                    ].map((value, index) => (
+                      <td
+                        key={index}
+                        style={{
+                          padding: 10,
+                          borderBottom: "1px solid #292020",
+                          color:
+                            index === 5 && !row.valid
+                              ? "#ff9c9c"
+                              : "#e6d9c9",
+                        }}
+                      >
+                        {value}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {result.canImport && !saveResult?.success && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: 14,
-                borderRadius: 12,
-                border:
-                  "1px solid rgba(201,151,50,0.16)",
-                background:
-                  "rgba(201,151,50,0.04)",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  color:
-                    "rgba(247,241,232,0.55)",
-                  fontSize: 10,
-                }}
-              >
-                Spreadsheet passed validation.
-                Nothing has been saved yet.
+          {replacements.length > 0 && (
+            <div style={{ marginTop: 22 }}>
+              <h3 style={{ color: gold }}>
+                Replacement review ({replacements.length})
+              </h3>
+
+              <p style={{ color: "#b7aaa0", fontSize: 12 }}>
+                The spreadsheet does not link J/K entries to battles.
+                Select the actual battle and absent participant for
+                each replacement. A zero score alone does not prove a
+                no-show.
               </p>
 
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
+              {replacements.map((replacement) => {
+                const assignment =
+                  assignments[replacement.spreadsheetRow] ?? {
+                    battleId: "",
+                    side: "" as const,
+                  };
+
+                const selectedBattle = battles.find(
+                  (battle) => battle.battleId === assignment.battleId
+                );
+
+                return (
+                  <div
+                    key={replacement.spreadsheetRow}
+                    style={{ ...surface, marginTop: 12 }}
+                  >
+                    <p style={{ margin: "0 0 10px" }}>
+                      <strong>
+                        @{replacement.username || "Missing username"}
+                      </strong>{" "}
+                      — {replacement.score ?? "Missing"} diamonds{" "}
+                      <span style={{ color: "#b7aaa0" }}>
+                        (sheet row {replacement.spreadsheetRow})
+                      </span>
+                    </p>
+
+                    {!replacement.valid && (
+                      <p style={{ color: "#ff9c9c" }}>
+                        {replacement.issues.join(" · ")}
+                      </p>
+                    )}
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit,minmax(220px,1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <label style={{ fontSize: 12 }}>
+                        Battle
+                        <select
+                          style={{ ...field, marginTop: 6 }}
+                          value={assignment.battleId}
+                          onChange={(event) =>
+                            setAssignments((previous) => ({
+                              ...previous,
+                              [replacement.spreadsheetRow]: {
+                                battleId: event.target.value,
+                                side: "",
+                              },
+                            }))
+                          }
+                        >
+                          <option value="">Choose a battle</option>
+                          {battles.map((battle) => (
+                            <option
+                              key={battle.battleId}
+                              value={battle.battleId}
+                            >
+                              Row {battle.spreadsheetRow}:{" "}
+                              {battle.creator} vs {battle.opponent}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={{ fontSize: 12 }}>
+                        Who did not show up?
+                        <select
+                          style={{ ...field, marginTop: 6 }}
+                          value={assignment.side}
+                          disabled={!selectedBattle}
+                          onChange={(event) =>
+                            setAssignments((previous) => ({
+                              ...previous,
+                              [replacement.spreadsheetRow]: {
+                                ...assignment,
+                                side: event.target
+                                  .value as Assignment["side"],
+                              },
+                            }))
+                          }
+                        >
+                          <option value="">
+                            Choose original creator
+                          </option>
+
+                          {selectedBattle && (
+                            <>
+                              <option value="creator">
+                                {selectedBattle.creator}
+                              </option>
+                              <option value="opponent">
+                                {selectedBattle.opponent}
+                              </option>
+                            </>
+                          )}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!uniqueAssignments && (
+                <p style={{ color: "#ff9c9c" }}>
+                  Two replacements are assigned to the same battle
+                  side. Review these assignments.
+                </p>
+              )}
+
+              <p
                 style={{
-                  marginTop: 12,
-                  padding: "10px 15px",
-                  borderRadius: 10,
-                  border:
-                    "1px solid rgba(201,151,50,0.3)",
-                  background:
-                    "linear-gradient(135deg, rgba(201,151,50,0.22), rgba(232,111,0,0.14))",
-                  color: "#f0c96a",
-                  fontSize: 8,
-                  fontWeight: 950,
-                  letterSpacing: 0.65,
-                  textTransform: "uppercase",
-                  cursor: saving
-                    ? "not-allowed"
-                    : "pointer",
-                  opacity: saving ? 0.6 : 1,
+                  color:
+                    assignmentsComplete && uniqueAssignments
+                      ? gold
+                      : "#ffb8a5",
+                  fontSize: 12,
                 }}
               >
-                {saving
-                  ? "Saving Scores..."
-                  : "Confirm & Save Scores"}
-              </button>
+                {assignmentsComplete && uniqueAssignments
+                  ? "Assignments ready. Fill-in scores are recorded but excluded from tournament rankings."
+                  : "Complete every valid replacement assignment before continuing."}
+              </p>
             </div>
           )}
 
+          {result.notice && (
+            <p style={{ color: "#d8b878", fontSize: 12 }}>
+              {result.notice}
+            </p>
+          )}
+
+          {result.canImport &&
+            assignmentsComplete &&
+            uniqueAssignments &&
+            !saveResult?.success && (
+              <div style={{ ...surface, marginTop: 18 }}>
+                <p style={{ fontSize: 12 }}>
+                  Spreadsheet passed validation. Nothing has been
+                  saved yet.
+                </p>
+
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSave}
+                  style={{
+                    ...field,
+                    width: "auto",
+                    color: gold,
+                    cursor: "pointer",
+                  }}
+                >
+                  {saving
+                    ? "Saving Scores…"
+                    : "Confirm & Save Scores"}
+                </button>
+              </div>
+            )}
+
           {saveResult?.error && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: 12,
-                borderRadius: 10,
-                border:
-                  "1px solid rgba(205,70,70,0.3)",
-                background:
-                  "rgba(120,20,20,0.12)",
-                color: "#ffb2b2",
-                fontSize: 10,
-              }}
-            >
+            <p role="alert" style={{ color: "#ff9c9c" }}>
               {saveResult.error}
-            </div>
+            </p>
           )}
 
           {saveResult?.success && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: 13,
-                borderRadius: 10,
-                border:
-                  "1px solid rgba(201,151,50,0.23)",
-                background:
-                  "rgba(201,151,50,0.07)",
-                color: "#e4c06c",
-                fontSize: 10,
-                fontWeight: 850,
-              }}
-            >
-              ✓{" "}
-              {saveResult.message ??
-                "Battle results successfully saved."}
-            </div>
+            <p role="status" style={{ color: gold }}>
+              {saveResult.message ?? "Battle scores saved."}
+            </p>
           )}
-        </div>
+        </>
       )}
     </section>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <div
-      style={{
-        padding: "7px 10px",
-        borderRadius: 999,
-        border:
-          "1px solid rgba(201,151,50,0.13)",
-        background:
-          "rgba(201,151,50,0.035)",
-      }}
-    >
-      <span
-        style={{
-          color:
-            "rgba(247,241,232,0.3)",
-          fontSize: 7,
-          fontWeight: 900,
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </span>
-
-      <strong
-        style={{
-          marginLeft: 6,
-          color: "#d9b15c",
-        }}
-      >
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-function Header({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <th
-      style={{
-        padding: "9px 10px",
-        textAlign: "left",
-        color: "#d9b15c",
-        background:
-          "rgba(201,151,50,0.055)",
-        borderBottom:
-          "1px solid rgba(255,255,255,0.06)",
-        fontSize: 8,
-        fontWeight: 950,
-        textTransform: "uppercase",
-      }}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Cell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <td
-      style={{
-        padding: "9px 10px",
-        color:
-          "rgba(247,241,232,0.62)",
-        borderBottom:
-          "1px solid rgba(255,255,255,0.04)",
-      }}
-    >
-      {children}
-    </td>
   );
 }

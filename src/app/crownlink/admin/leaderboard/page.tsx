@@ -95,17 +95,7 @@ export default async function CrownLinkLeaderboardPage({
         )
       );
 
-      const replacementUserIds = Array.from(
-        new Set(
-          (attendance ?? [])
-            .map((row) => row.replacement_user_id)
-            .filter(Boolean)
-        )
-      ) as string[];
-
-      const allProfileIds = Array.from(
-        new Set([...scheduledCreatorIds, ...replacementUserIds])
-      );
+      const allProfileIds = scheduledCreatorIds;
 
       let profiles: {
         user_id: string;
@@ -200,40 +190,13 @@ export default async function CrownLinkLeaderboardPage({
             `${match.id}:${side.creatorId}`
           );
 
-          if (attendanceRow?.status === "no_show") {
-            continue;
-          }
-
-          if (attendanceRow?.status === "replacement") {
-            if (attendanceRow.replacement_user_id) {
-              const replacement = getProfileLabel(
-                attendanceRow.replacement_user_id
-              );
-
-              addScore(
-                `user:${attendanceRow.replacement_user_id}`,
-                replacement.name,
-                replacement.username,
-                Number(side.score)
-              );
-
-              continue;
-            }
-
-            if (attendanceRow.replacement_name?.trim()) {
-              const replacementName =
-                attendanceRow.replacement_name.trim();
-
-              addScore(
-                `replacement:${replacementName.toLowerCase()}`,
-                replacementName,
-                "",
-                Number(side.score)
-              );
-
-              continue;
-            }
-
+          // Replacement battle scores are recorded separately but do not
+          // count toward tournament standings until the rules are confirmed.
+          // Neither the absent creator nor the replacement receives points.
+          if (
+            attendanceRow?.status === "no_show" ||
+            attendanceRow?.status === "replacement"
+          ) {
             continue;
           }
 
@@ -336,8 +299,8 @@ export default async function CrownLinkLeaderboardPage({
               lineHeight: 1.6,
             }}
           >
-            Rankings are based on the total recorded score earned by the
-            person who actually battled.
+            Rankings include eligible scheduled participants only. Replacement
+            battle scores are excluded pending tournament rule confirmation.
           </p>
         </div>
 
